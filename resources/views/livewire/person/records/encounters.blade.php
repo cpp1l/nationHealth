@@ -316,7 +316,7 @@
                                         ID {{ __('patients.episode') }}
                                     </div>
                                     <div class="record-inner-value text-[14px] font-semibold break-words leading-tight">
-                                        {{ data_get($encounter, 'episode.identifier.value', '-') }}
+                                        {{ data_get($encounter, 'episode.identifier.value', data_get($encounter, 'episode.value', '-')) }}
                                     </div>
                                 </div>
                             </div>

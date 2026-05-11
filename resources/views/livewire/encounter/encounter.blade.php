@@ -28,9 +28,9 @@
                     @include('livewire.encounter.parts.diagnostic-reports')
                 </div>
 
-{{--                <div id="observations" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm scroll-mt-6">--}}
-{{--                    @include('livewire.encounter.parts.observations')--}}
-{{--                </div>--}}
+                <div id="observations" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm scroll-mt-6">
+                    @include('livewire.encounter.parts.observations')
+                </div>
 
 {{--                <div id="procedures" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm scroll-mt-6">--}}
 {{--                    @include('livewire.encounter.parts.procedures')--}}

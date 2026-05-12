@@ -64,55 +64,101 @@ class CarePlanRepository
      */
     public function formatCarePlanRequest(array $form, ?string $encounterUuid, array $encounterData, ?string $employeeUuid): array
     {
+        $id = \Illuminate\Support\Str::uuid()->toString();
+
+        $addresses = [];
+        if (!empty($encounterData['addresses'])) {
+            $addresses = $encounterData['addresses'];
+        } elseif (!empty($encounterData['diagnoses'][0]['condition']['identifier']['value'])) {
+            $addresses[] = [
+                'identifier' => [
+                    'type' => [
+                        'coding' => [['system' => 'eHealth/resources', 'code' => 'condition']]
+                    ],
+                    'value' => $encounterData['diagnoses'][0]['condition']['identifier']['value']
+                ]
+            ];
+        }
+
+        $employeeRef = [
+            'identifier' => [
+                'type' => [
+                    'coding' => [['system' => 'eHealth/resources', 'code' => 'employee']]
+                ],
+                'value' => $employeeUuid
+            ]
+        ];
+
         return \App\Core\Arr::removeEmptyKeys([
-            'intent' => 'order',
+            'id' => $id,
+            'intent' => 'plan', // Forced to plan as order is not allowed by eHealth
             'status' => 'new',
-            'category' => $form['category'],
+            'category' => [
+                'coding' => [
+                    ['system' => 'eHealth/care_plan_categories', 'code' => $form['category']]
+                ]
+            ],
             'instantiates_protocol' => !empty($form['clinical_protocol']) ? [['display' => $form['clinical_protocol']]] : null,
-            'context' => !empty($form['context']) ? ['identifier' => ['type_code' => $form['context']]] : null,
             'title' => $form['title'],
             'period' => array_filter([
-                'start' => convertToYmd($form['period_start']),
-                'end' => !empty($form['period_end']) ? convertToYmd($form['period_end']) : null,
+                'start' => convertToEHealthISO8601($form['period_start'] . ' 00:00:00'),
+                'end' => !empty($form['period_end']) ? convertToEHealthISO8601($form['period_end'] . ' 23:59:59') : null,
             ]),
-            'addresses' => $encounterData['addresses'] ?? null,
-            'supporting_info' => array_merge(
-                array_map(fn($e) => ['display' => $e['name']], $form['episodes'] ?? []),
-                array_map(fn($m) => ['display' => $m['name']], $form['medical_records'] ?? [])
-            ),
-            'encounter' => !empty($form['encounter']) ? ['identifier' => ['value' => $form['encounter']]] : null,
-            'care_manager' => ['identifier' => ['value' => $employeeUuid]],
+            'addresses' => !empty($addresses) ? array_values(array_filter($addresses)) : null,
+            'supporting_info' => array_values(array_filter(array_map(fn($e) => 
+                (!empty($e['uuid']) || !empty($e['id'])) ? [
+                    'identifier' => [
+                        'type' => ['coding' => [['system' => 'eHealth/resources', 'code' => 'episode_of_care']]],
+                        'value' => $e['uuid'] ?? $e['id']
+                    ]
+                ] : null
+            , $form['episodes'] ?? []))),
+            'encounter' => !empty($form['encounter']) ? [
+                'identifier' => [
+                    'type' => [
+                        'coding' => [['system' => 'eHealth/resources', 'code' => 'encounter']]
+                    ],
+                    'value' => $form['encounter']
+                ]
+            ] : null,
+            'author' => $employeeRef,
             'description' => $form['description'] ?: null,
             'note' => $form['note'] ?: null,
-            'inform_with' => $form['inform_with'] ?: null,
+            'terms_of_service' => [
+                'coding' => [
+                    ['system' => 'PROVIDING_CONDITION', 'code' => $form['terms_of_service']]
+                ]
+            ]
         ]);
     }
 
-    public function syncCarePlans(\App\Models\Person\Person $person, array $query = []): void
+    public function syncCarePlans(array $validatedData, ?int $personId = null): void
     {
-        $response = EHealth::carePlan()->getSummary($person->uuid, $query);
-        $data = $response->getData();
-
-        if (!isset($data['data']) || !is_array($data['data'])) {
-            return;
-        }
-
-        $validator = Validator::make($data['data'], [
-            '*' => 'array',
-            '*.id' => 'required|uuid',
-            '*.status' => 'required|string',
-            '*.title' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
-
         $activityRepo = app(CarePlanActivityRepository::class);
 
-        foreach ($data['data'] as $rawFhir) {
+        foreach ($validatedData as $rawFhir) {
+            $person = null;
+            
+            if ($personId) {
+                $person = \App\Models\Person\Person::find($personId);
+            } else {
+                // Try to find person by subject identifier (patient UUID)
+                $patientUuid = $rawFhir['subject']['identifier']['value'] ?? null;
+                if ($patientUuid) {
+                    $person = \App\Models\Person\Person::where('uuid', $patientUuid)->first();
+                }
+            }
+
+            if (!$person) {
+                \Illuminate\Support\Facades\Log::warning('CarePlanRepository: person not found for CarePlan sync', [
+                    'care_plan_uuid' => $rawFhir['id'],
+                    'patient_uuid' => $rawFhir['subject']['identifier']['value'] ?? 'missing'
+                ]);
+                continue;
+            }
+
             \App\Models\MedicalEvents\Mongo\CarePlan::updateOrCreate(
-                ['uuid' => $rawFhir['id']],
+                ['uuid' => $rawFhir['uuid']],
                 ['data' => $rawFhir]
             );
 
@@ -135,10 +181,18 @@ class CarePlanRepository
                     MedicalEventsRepository::codeableConcept()->attach($careManager, $rawFhir['careManager']);
                 }
 
+                $author = null;
+                $authorUuid = $rawFhir['author']['identifier']['value'] ?? null;
+                if ($authorUuid) {
+                    $author = \App\Models\Employee\Employee::where('uuid', $authorUuid)->first();
+                }
+
                 $carePlan = CarePlan::updateOrCreate(
-                    ['uuid' => $rawFhir['id']],
+                    ['uuid' => $rawFhir['uuid']],
                     [
                         'person_id' => $person->id,
+                        'author_id' => $author?->id,
+                        'legal_entity_id' => $person->legal_entity_id ?? legalEntity()->id,
                         'status' => $rawFhir['status'],
                         'title' => $rawFhir['title'],
                         'description' => $rawFhir['description'] ?? null,
@@ -148,6 +202,7 @@ class CarePlanRepository
                         'care_manager_id' => $careManager?->id,
                         'period_start' => isset($rawFhir['period']['start']) ? \Carbon\Carbon::parse($rawFhir['period']['start']) : null,
                         'period_end' => isset($rawFhir['period']['end']) ? \Carbon\Carbon::parse($rawFhir['period']['end']) : null,
+                        'terms_of_service' => $rawFhir['terms_of_service']['coding'][0]['code'] ?? null,
                     ]
                 );
 

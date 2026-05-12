@@ -15,7 +15,7 @@
             {{ __('patients.data_access') }}
         </button>
 
-        <button wire:click.prevent=""
+        <button wire:click.prevent="sync"
                 type="button"
                 class="button-sync flex items-center gap-2 whitespace-nowrap px-5 py-2 text-sm shadow-sm"
         >
@@ -308,22 +308,22 @@
                                     <div class="min-w-0">
                                         <div class="record-inner-label text-[10px] uppercase">Створено</div>
                                         <div
-                                            class="record-inner-value text-[14px] font-semibold break-words">{{ $plan->created_at->format('d.m.Y') }}</div>
+                                            class="record-inner-value text-[14px] font-semibold break-words">{{ $plan->created_at?->format('d.m.Y') ?? '-' }}</div>
                                     </div>
                                     <div class="min-w-0">
                                         <div class="record-inner-label text-[10px] uppercase">Початок</div>
                                         <div
-                                            class="record-inner-value text-[14px] font-semibold break-words">{{ $plan->period_start->format('d.m.Y') }}</div>
+                                            class="record-inner-value text-[14px] font-semibold break-words">{{ $plan->period_start?->format('d.m.Y') ?? '-' }}</div>
                                     </div>
                                     <div class="min-w-0">
                                         <div class="record-inner-label text-[10px] uppercase">Кінець</div>
                                         <div
-                                            class="record-inner-value text-[14px] font-semibold break-words">{{ $plan->period_end->format('d.m.Y') }}</div>
+                                            class="record-inner-value text-[14px] font-semibold break-words">{{ $plan->period_end?->format('d.m.Y') ?? '-' }}</div>
                                     </div>
                                     <div class="min-w-0">
                                         <div class="record-inner-label text-[10px] uppercase">Лікар</div>
                                         <div
-                                            class="record-inner-value text-[14px] font-semibold break-words uppercase">{{ $plan->author->party->full_name }}</div>
+                                            class="record-inner-value text-[14px] font-semibold break-words uppercase">{{ $plan->author_name }}</div>
                                     </div>
                                     <div class="min-w-0 col-span-1">
                                         <div class="record-inner-label text-[10px] uppercase">Умови надання медичної

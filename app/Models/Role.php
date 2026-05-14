@@ -40,7 +40,7 @@ class Role extends SpatieRole
             if ($teamId) {
                 // Cache teamId -> legal_entity_type_id to avoid repeated DB lookups during frequent permission checks.
                 // This mapping is invalidated immediately on type change in LegalEntity::booted().
-                $typeId = cache()->remember("le_type:$teamId", now()->addMinutes(5), function () use ($teamId) {
+                $typeId = cache()->memo()->remember("le_type:$teamId", now()->addMinutes(5), function () use ($teamId) {
                     $status = LegalEntity::whereKey($teamId)->value('status') ?? '';
 
                     if ($status === Status::REORGANIZED->value) {

@@ -363,8 +363,9 @@ class EncounterComponent extends Component
         $this->role = $authUser->roles->first()->name;
         $this->divisions = legalEntity()->divisions()->whereStatus(Status::ACTIVE)->get()->toArray();
 
-        $this->employeeFullName = $authUser->getEncounterWriterEmployee()->fullName;
-        $this->allowedConditionCodesBySystem = $this->computeAllowedConditionCodesBySystem();
+        $encounterWriterEmployee = $authUser->getEncounterWriterEmployee();
+        $this->employeeFullName = $encounterWriterEmployee->fullName;
+        $this->allowedConditionCodesBySystem = $this->computeAllowedConditionCodesBySystem($encounterWriterEmployee);
 
         $this->setPatientData();
 
@@ -626,11 +627,11 @@ class EncounterComponent extends Component
      * Key absent means no restriction; empty array means the system is forbidden; non-empty array lists the allowed codes.
      * Combines employee-type restrictions with officio-speciality restrictions, intersecting ICD-10 AM when both apply.
      *
+     * @param  Employee  $employee
      * @return array
      */
-    private function computeAllowedConditionCodesBySystem(): array
+    private function computeAllowedConditionCodesBySystem(Employee $employee): array
     {
-        $employee = Auth::user()->getEncounterWriterEmployee();
         $employeeTypeRestrictions = config("ehealth.employee_type_conditions_allowed.$employee->employeeType");
 
         $speciality = $employee->loadMissing('specialities')

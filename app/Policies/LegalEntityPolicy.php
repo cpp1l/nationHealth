@@ -18,7 +18,11 @@ class LegalEntityPolicy
      */
     public function access(User $user, LegalEntity $currentEntity): Response
     {
-        $legalEntitiesIds = $user->party?->employees()->pluck('legal_entity_id')->toArray();
+        $legalEntitiesIds = cache()->memo()->remember(
+            "user_le_ids:$user->id",
+            now()->addMinutes(5),
+            fn () => $user->party?->employees()->pluck('legal_entity_id')->toArray() ?? []
+        );
 
         $shouldAllow = in_array($currentEntity->id, $legalEntitiesIds, true);
 

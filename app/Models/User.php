@@ -108,7 +108,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function guardName(): Collection
     {
-        return collect(array_keys((array) config('auth.guards')))->values();
+        return collect(array_keys((array)config('auth.guards')))->values();
     }
 
     public function person(): BelongsTo
@@ -230,7 +230,8 @@ class User extends Authenticatable implements MustVerifyEmail
      * Scope a query to users related to a given party (direct or via employee_users pivot).
      *
      * @param  Builder  $query
-     * @param  int  $partyId
+     * @param  int|null  $partyId
+     * @param  int|null  $legalEntityId
      * @return Builder
      */
     public function scopeAllRelated(Builder $query, ?int $partyId = null, ?int $legalEntityId = null): Builder
@@ -242,7 +243,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ->where('party_id', $partyId)
             ->where(function (Builder $q) use ($partyId, $legalEntityId) {
                 $employeeBase = Employee::getEmployeesForParty(legalEntityId: $legalEntityId, partyId: $partyId);
-                $employeeBaseReorganized = Employee::getEmployeesForParty(legalEntityId: $legalEntityId, partyId: $partyId, status: Status::REORGANIZED);
+                $employeeBaseReorganized = Employee::getEmployeesForParty(
+                    legalEntityId: $legalEntityId,
+                    partyId: $partyId,
+                    status: Status::REORGANIZED
+                );
 
                 // Users linked via direct employee.user_id column
                 $q->whereIn('id', $employeeBase->whereNotNull('user_id')->select('user_id'))
@@ -295,23 +300,36 @@ class User extends Authenticatable implements MustVerifyEmail
             return $all;
         }
 
-        $status = LegalEntity::whereKey($teamId)->value('status');
-
-        $typeId = $status === Status::REORGANIZED->value
-            ? LegalEntityType::where('name', 'MSP_LIMITED')->value('id')
-            : LegalEntity::whereKey($teamId)->value('legal_entity_type_id');
-
-        if (!$typeId) {
-            return $all->where(fn () => false); // empty collection
-        }
-
         $guard = Auth::getDefaultDriver();
 
-        // Permission names allowed for the current team’s LegalEntity type (MSP_LIMITED if REORGANIZED or assigned) and current guard
-        $allowedNames = Permission::where('guard_name', $guard)
-            ->whereHas('legalEntityTypes', fn ($q) => $q->where('legal_entity_type_id', $typeId))
-            ->pluck('name')
-            ->unique();
+        $allowedNames = cache()->memo()->remember(
+            "allowed_permissions:$teamId:$guard",
+            now()->addMinutes(5),
+            function () use ($teamId, $guard) {
+                $typeId = cache()->memo()->remember("le_type:$teamId", now()->addMinutes(5), function () use ($teamId) {
+                    $status = LegalEntity::whereKey($teamId)->value('status') ?? '';
+
+                    if ($status === Status::REORGANIZED->value) {
+                        return LegalEntityType::whereName(LegalEntity::TYPE_MSP_LIMITED)->value('id');
+                    }
+
+                    return LegalEntity::whereKey($teamId)->value('legal_entity_type_id');
+                });
+
+                if (!$typeId) {
+                    return collect();
+                }
+
+                return Permission::whereGuardName($guard)
+                    ->whereHas('legalEntityTypes', fn (Builder $query) => $query->where('legal_entity_type_id', $typeId))
+                    ->pluck('name')
+                    ->unique();
+            }
+        );
+
+        if ($allowedNames->isEmpty()) {
+            return $all->where(fn () => false);
+        }
 
         return $all->filter(fn ($perm) => $allowedNames->contains($perm->name))->values();
     }
@@ -333,10 +351,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 ->keys()
                 ->all();
 
-            $roles = array_values(array_filter(
-                $roles,
-                static fn (Role $role) => in_array($role->value, $allowedTypes, true)
-            ));
+            $roles = array_values(
+                array_filter(
+                    $roles,
+                    static fn (Role $role) => in_array($role->value, $allowedTypes, true)
+                )
+            );
         }
 
         return $this->getWriterEmployeeByRolePriority(...$roles);
@@ -381,7 +401,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getMainSpeciality(LegalEntity $legalEntity): Collection
     {
         return $this->employees()
-            ->where('legal_entity_id', $legalEntity->id)
+            ->whereLegalEntityId($legalEntity->id)
             ->get()
             ->loadMissing('specialities')
             ->flatMap->specialities
@@ -431,28 +451,33 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAllowedRolesAttribute(): Collection
     {
         $guard = Auth::getDefaultDriver();
+        $teamId = getPermissionsTeamId();
 
-        // Why this need?
-        // If $this->permissions was already eager-loaded before getAllowedRolesAttribute is called (e.g., via $this->load('permissions')
-        // or $this->with = ['permissions'] in a different team context), the cached relation won't re-query —
-        // it will return whatever was loaded earlier, which may not match the current team.
-        $this->unsetRelation('permissions');
+        return cache()->memo()->rememberForever(
+            "allowed_roles:$this->id:$teamId:$guard",
+            function () use ($guard) {
+                // If $this->permissions was already eager-loaded before getAllowedRolesAttribute is called (e.g., via $this->load('permissions')
+                // or $this->with = ['permissions'] in a different team context), the cached relation won't re-query —
+                // it will return whatever was loaded earlier, which may not match the current team.
+                $this->unsetRelation('permissions');
 
-        // Direct permissions from model_has_permissions only
-        $permissions = $this->getDirectPermissions()->pluck('name')->unique();
+                // Direct permissions from model_has_permissions only
+                $permissions = $this->getDirectPermissions()->pluck('name')->unique();
 
-        // Roles whose full permission set fits within those direct permissions
-        $possibleAllowedRoles = ModelsRole::coveredByPermissions($permissions)
-            ->whereHas('permissions') // only consider roles that actually have permissions
-            ->get()
-            ->pluck('name')
-            ->unique();
+                // Roles whose full permission set fits within those direct permissions
+                $possibleAllowedRoles = ModelsRole::coveredByPermissions($permissions)
+                    ->whereHas('permissions') // only consider roles that actually have permissions
+                    ->get()
+                    ->pluck('name')
+                    ->unique();
 
-        // Roles actually assigned to the user (model_has_roles)
-        $modelAllowedRoles = $this->roles->where('guard_name', $guard)->pluck('name')->unique();
+                // Roles actually assigned to the user (model_has_roles)
+                $modelAllowedRoles = $this->roles->where('guard_name', $guard)->pluck('name')->unique();
 
-        // Intersection: roles the user HAS that are also justified by their direct permissions
-        return $possibleAllowedRoles->intersect($modelAllowedRoles)->values();
+                // Intersection: roles the user HAS that are also justified by their direct permissions
+                return $possibleAllowedRoles->intersect($modelAllowedRoles)->values();
+            }
+        );
     }
 
     /**
@@ -466,9 +491,11 @@ class User extends Authenticatable implements MustVerifyEmail
         $names = collect(is_array($roles) ? $roles : [$roles])
             ->map(fn ($role) => $role instanceof BackedEnum ? $role->value : $role);
 
+        $allowedRoles = $this->allowedRoles;
+
         return $exactMatch
-            ? $names->every(fn ($name) => $this->allowedRoles->contains($name)) // Return TRUE if user has assigned to ALL of incoming roles
-            : $names->contains(fn ($name) => $this->allowedRoles->contains($name)); // Return TRUE if user is assigned to at least of the ONE of incoming roles
+            ? $names->every(fn ($name) => $allowedRoles->contains($name)) // Return TRUE if user has assigned to ALL of incoming roles
+            : $names->contains(fn ($name) => $allowedRoles->contains($name)); // Return TRUE if user is assigned to at least of the ONE of incoming roles
     }
 
     /**
@@ -529,12 +556,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 }
 
                 if (is_int($p) || (is_string($p) && ctype_digit($p))) {
-                    $perm = Permission::query()->find((int) $p);
+                    $perm = Permission::query()->find((int)$p);
 
                     return $perm?->name;
                 }
 
-                return (string) $p;
+                return (string)$p;
             })
             ->filter()
             ->unique();
@@ -595,12 +622,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 }
 
                 if (is_int($p) || (is_string($p) && ctype_digit($p))) {
-                    $perm = Permission::find((int) $p);
+                    $perm = Permission::find((int)$p);
 
                     return $perm?->name;
                 }
 
-                return (string) $p;
+                return (string)$p;
             })
             ->filter()
             ->unique();
@@ -659,7 +686,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->type
             ->name ?? '';
 
-        $allowedRoles = collect((array) config('ehealth.legal_entity_employee_types.' . $typeName))
+        $allowedRoles = collect((array)config('ehealth.legal_entity_employee_types.' . $typeName))
             ->filter(fn ($role) => is_string($role) && $role !== '')
             ->unique()
             ->values();
@@ -675,7 +702,7 @@ class User extends Authenticatable implements MustVerifyEmail
                     return $role->value;
                 }
 
-                return (string) $role;
+                return (string)$role;
             })
             ->filter() // remove empty strings
             ->unique()

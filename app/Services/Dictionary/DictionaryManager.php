@@ -44,6 +44,13 @@ class DictionaryManager
     private array $dictionaries = [];
 
     /**
+     * In-memory cache for the current request to avoid repeated deserialization overhead.
+     *
+     * @var array<string, Collection>
+     */
+    private array $resolved = [];
+
+    /**
      * Register a dictionary instance.
      *
      * @param  DictionaryInterface  $dictionary  Dictionary instance to register
@@ -137,58 +144,50 @@ class DictionaryManager
         $cacheKey = $dictionary->getKey();
         $freshKey = $cacheKey . ':fresh';
 
-        try {
-            // Check if fresh data exists
-            if (Cache::has($freshKey)) {
-                // Fresh data exists, return cached data
-                $cachedData = Cache::get($cacheKey, []);
-
-                return collect($cachedData);
-            }
-
-            // Fresh marker expired, check if we have stale data
-            $staleData = Cache::get($cacheKey);
-            if ($staleData !== null) {
-                $this->triggerBackgroundRefresh($dictionary);
-
-                return collect($staleData);
-            }
-
-            // Get response to check pagination
-            $response = $dictionary->fetch();
-            $freshData = $response->getData();
-            $paging = $response->getPaging();
-            $totalPages = $paging['total_pages'] ?? 1;
-
-            // Cache the fresh data with both keys
-            Cache::put($cacheKey, $freshData, now()->addWeek()); // Keep stale data for a week
-            Cache::put($freshKey, true, now()->endOfDay()); // Fresh marker for 1 day
-
-            // If multiple pages, trigger background refresh for remaining pages
-            if ($totalPages > 1) {
-                for ($page = 2; $page <= $totalPages; $page++) {
-                    UpdateDictionaryCache::dispatch($dictionary->getKey(), $page)
-                        ->delay(now()->addSeconds($page * 2));
+        return $this->resolved[$key] ?? ($this->resolved[$key] = (function () use (
+            $dictionary,
+            $key,
+            $cacheKey,
+            $freshKey
+        ) {
+            try {
+                if (Cache::has($freshKey)) {
+                    return collect(Cache::get($cacheKey, []));
                 }
+
+                $staleData = Cache::get($cacheKey);
+                if ($staleData !== null) {
+                    $this->triggerBackgroundRefresh($dictionary);
+
+                    return collect($staleData);
+                }
+
+                $response = $dictionary->fetch();
+                $freshData = $response->getData();
+                $paging = $response->getPaging();
+                $totalPages = $paging['total_pages'] ?? 1;
+
+                Cache::put($cacheKey, $freshData, now()->addWeek());
+                Cache::put($freshKey, true, now()->endOfDay());
+
+                if ($totalPages > 1) {
+                    for ($page = 2; $page <= $totalPages; $page++) {
+                        UpdateDictionaryCache::dispatch($dictionary->getKey(), $page)
+                            ->delay(now()->addSeconds($page * 2));
+                    }
+                }
+
+                return collect($freshData);
+            } catch (ConnectionException $e) {
+                Log::error("Dictionary '$key' connection failed", ['error' => $e->getMessage()]);
+
+                return collect(Cache::get($cacheKey, []));
+            } catch (EHealthResponseException|EHealthValidationException $e) {
+                Log::error("Dictionary '$key' API error", ['error' => $e->getMessage()]);
+
+                return collect(Cache::get($cacheKey, []));
             }
-
-            return collect($freshData);
-
-        } catch (ConnectionException $e) {
-            Log::error("Dictionary '$key' connection failed", ['error' => $e->getMessage()]);
-
-            // Return stale data if available, otherwise empty collection
-            $staleData = Cache::get($cacheKey, []);
-
-            return collect($staleData);
-        } catch (EHealthResponseException|EHealthValidationException $e) {
-            Log::error("Dictionary '$key' API error", ['error' => $e->getMessage()]);
-
-            // Return stale data if available, otherwise empty collection
-            $staleData = Cache::get($cacheKey, []);
-
-            return collect($staleData);
-        }
+        })());
     }
 
     /**

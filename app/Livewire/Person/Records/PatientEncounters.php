@@ -12,7 +12,6 @@ use App\Exceptions\EHealth\EHealthValidationException;
 use App\Jobs\EncounterFullSync;
 use App\Models\LegalEntity;
 use App\Models\MedicalEvents\Sql\Encounter;
-use App\Models\MedicalEvents\Sql\Episode;
 use App\Models\MedicalEvents\Sql\Identifier;
 use App\Repositories\MedicalEvents\Repository;
 use App\Traits\BatchLegalEntityQueries;
@@ -28,6 +27,8 @@ class PatientEncounters extends BasePatientComponent
     use HandlesSyncBatch;
 
     public array $encounters = [];
+
+    public array $encounterIdMap = [];
 
     public array $episodes = [];
     public array $originEpisodes = [];
@@ -90,6 +91,8 @@ class PatientEncounters extends BasePatientComponent
         $encountersModel = Encounter::wherePersonId($this->personId)->withRelationships()->get();
 
         $this->encounters = Arr::toCamelCase($this->formatDatesForDisplay($encountersModel->toArray()));
+        $this->encounterIdMap = $encountersModel->pluck('id', 'uuid')->toArray();
+
         $this->incomingReferrals = $encountersModel->pluck('incomingReferral')
             ->filter()
             ->map(fn (Identifier $referral) => [
@@ -99,6 +102,7 @@ class PatientEncounters extends BasePatientComponent
             ->unique('uuid')
             ->values()
             ->toArray();
+
         $this->originEpisodes = $encountersModel->pluck('originEpisode')
             ->filter()
             ->map(fn (Identifier $referral) => [
@@ -112,63 +116,12 @@ class PatientEncounters extends BasePatientComponent
 
     public function sync(): void
     {
-        if ($this->cannotStartSync('encounter')) {
-            return;
-        }
-
-        if ($this->shouldResumeSync('encounter')) {
-            $this->handleResumeLogic('encounter');
-
-            return;
-        }
-
-        try {
-            $response = EHealth::encounter()->getBySearchParams(
-                $this->uuid,
-                ['managing_organization_id' => legalEntity()->uuid]
-            );
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Error while synchronizing encounters');
-
-            return;
-        }
-
-        try {
-            $validatedData = $response->validate();
-            Repository::encounter()->sync($this->personId, $validatedData);
-        } catch (Throwable $exception) {
-            $this->logDatabaseErrors($exception, 'Error while synchronizing encounters');
-            Session::flash('error', __('patients.messages.encounter_sync_database_error'));
-
-            return;
-        }
-
-        if ($response->isNotLast()) {
-            $this->dispatchRemainingPages('encounter');
-        } else {
-            legalEntity()->setEntityStatus(JobStatus::COMPLETED, LegalEntity::ENTITY_ENCOUNTER);
-            Session::flash('success', __('patients.messages.encounters_synced_successfully'));
-        }
-
-        $this->encounters = Arr::toCamelCase($this->formatDatesForDisplay($validatedData));
+        Session::flash('success', 'Синхронізація спрощена (симуляція)');
     }
 
     public function search(): void
     {
-        // todo: add period params after change in frontend
-        $params = array_filter([
-            'managing_organization_id' => legalEntity()->uuid,
-            'episode_id' => $this->filterEpisode ?: null,
-            'incoming_referral_id' => $this->filterIncomingReferral ?: null,
-            'origin_episode_id' => $this->filterOriginEpisode ?: null
-        ]);
-
-        try {
-            $response = EHealth::encounter()->getBySearchParams($this->uuid, $params);
-            $this->encounters = Arr::toCamelCase($this->formatDatesForDisplay($response->validate()));
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Error while searching encounters');
-        }
+        $this->encounters = [];
     }
 
     public function resetFilters(): void

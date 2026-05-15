@@ -169,7 +169,7 @@ class EncounterCreate extends EncounterComponent
             return;
         }
 
-        $this->redirectRoute('persons.index', [legalEntity()], navigate: true);
+        $this->redirectRoute('persons.encounters', [legalEntity(), $this->personId], navigate: true);
     }
 
     /**

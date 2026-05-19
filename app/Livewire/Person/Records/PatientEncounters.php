@@ -117,11 +117,45 @@ class PatientEncounters extends BasePatientComponent
 
     public function sync(): void
     {
-        try {
-            $this->startBatch('encounter');
-        } catch (Throwable $exception) {
-            $this->handleEHealthExceptions($exception, 'Error when starting encounter sync');
+        if ($this->cannotStartSync('encounter')) {
+            return;
         }
+
+        if ($this->shouldResumeSync('encounter')) {
+            $this->handleResumeLogic('encounter');
+
+            return;
+        }
+
+        try {
+            $response = EHealth::encounter()->getBySearchParams(
+                $this->uuid,
+                ['managing_organization_id' => legalEntity()->uuid]
+            );
+        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
+            $this->handleEHealthExceptions($exception, 'Error while synchronizing encounters');
+
+            return;
+        }
+
+        try {
+            $validatedData = $response->validate();
+            Repository::encounter()->sync($this->personId, $validatedData);
+        } catch (Throwable $exception) {
+            $this->logDatabaseErrors($exception, 'Error while synchronizing encounters');
+            Session::flash('error', __('patients.messages.encounter_sync_database_error'));
+
+            return;
+        }
+
+        if ($response->isNotLast()) {
+            $this->dispatchRemainingPages('encounter');
+        } else {
+            legalEntity()->setEntityStatus(JobStatus::COMPLETED, LegalEntity::ENTITY_ENCOUNTER);
+            Session::flash('success', __('patients.messages.encounters_synced_successfully'));
+        }
+
+        $this->encounters = Arr::toCamelCase($this->formatDatesForDisplay($validatedData));
     }
 
     public function search(): void

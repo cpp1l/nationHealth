@@ -109,6 +109,6 @@ class Declaration extends Model
      */
     public function hasParentDeclaration(): bool
     {
-        return $this->declarationRequest()->whereNotNull('parent_declaration_id')->exists();
+        return $this->declarationRequest()->whereNotNull('parent_declaration_uuid')->exists();
     }
 }

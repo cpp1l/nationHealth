@@ -152,7 +152,7 @@
                     id="reorganizationFilter"
                     class="input peer w-full cursor-pointer text-gray-500 dark:text-gray-400"
                     @click="open = !open"
-                    :value="reorganizedDeclarations.length && reorganizedDeclarations.includes(@js(ReorganizedStatus::RESIGNED->value)) ? @js(__('declarations.resigned')) : ''"
+                    :value="reorganizedDeclarations.length && reorganizedDeclarations.includes(@js(ReorganizedStatus::RESIGNED->value)) ? @js(__('declarations.status.resigned')) : ''"
                     placeholder="{{ __('Оберіть тип декларацій') }}"
                     readonly
                 />

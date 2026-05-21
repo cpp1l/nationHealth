@@ -1,38 +1,62 @@
+@use('App\Enums\Declaration\Status')
 @use('App\Models\DeclarationRequest')
 @use('App\Livewire\Declaration\DeclarationCreate')
+
 
 <section class="section-form">
     <x-header-navigation class="breadcrumb-form">
         <x-slot name="title">
-            {{ __('declarations.application_for_registration_of_declaration') }} - {{ $patientFullName }}
+            {{ $isNeedToResign ? __('declarations.simplified_declaration_creation') : __('declarations.application_for_registration_of_declaration') }} - {{ $patientFullName }}
         </x-slot>
     </x-header-navigation>
-
     <form class="form shift-content">
         @include('livewire.declaration.parts.main-information')
-        @include('livewire.declaration.parts.authentication')
+
+        @if (!$isNeedToResign)
+            @include('livewire.declaration.parts.authentication')
+        @endif
 
         <div class="flex gap-8">
             <a href="{{ url()->previous() }}" type="submit" class="button-minor">
                 {{ __('forms.cancel') }}
             </a>
             @can('create', DeclarationRequest::class)
-                @if($this instanceof DeclarationCreate)
+                @if($this instanceof DeclarationCreate && $status === Status::DRAFT)
                     <button wire:click.prevent="createLocally" type="submit" class="button-primary-outline">
                         {{ __('forms.create_locally') }}
                     </button>
                 @endif
-                <button wire:click.prevent="create" type="submit" class="button-primary">
-                    {{ __('declarations.create_an_application') }}
+                <button
+                    wire:click.prevent="{{
+                        $isNeedToResign && $status === Status::NEW
+                            ? 'approveSimplifiedDeclaration'
+                            : ($status === Status::NEW
+                                ? 'openMessageInformationModal'
+                                : ($status === Status::APPROVED
+                                    ? 'openSignatureModal'
+                                    : 'create'
+                                )
+                            )
+                    }}"
+                    type="submit"
+                    class="button-primary"
+                >
+                    {{ $status === Status::NEW
+                        ? __('declarations.approve_declaration_request')
+                        : ($status === Status::APPROVED
+                            ? __('declarations.sign_declaration_request')
+                            : __('declarations.create_an_application')
+                        ) 
+                    }}
                 </button>
             @endcan
         </div>
 
-        @if($showInformationMessageModal)
+        @if($showInformationMessageModal && !$isNeedToResign)
             @include('livewire.declaration.modals.information-message')
         @endif
 
-        @if($showAuthModal)
+        @if($showAuthModal && !$isNeedToResign)
             @include('livewire.declaration.modals.authentication')
         @endif
 

@@ -70,7 +70,7 @@ class DeclarationRequestPolicy
      */
     public function reject(User $user): Response
     {
-        if ($user->cannot('declaration_request:reject')) {
+        if ($user->cannot('declaration_request:reject') && $user->cannot('declaration_request:write')) {
             return Response::denyWithStatus(404);
         }
 

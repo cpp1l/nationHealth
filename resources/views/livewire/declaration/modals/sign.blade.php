@@ -17,43 +17,56 @@
                         {{ __('declarations.confirmation_of_patient_signature_on_declaration_application') }}
                     </h2>
 
-                    <ol class="list-decimal list-inside mb-8">
-                        <li class="default-p mb-4">{{ __('declarations.print_declaration_instruction') }}</li>
-                        <button x-data
-                                @click="
-                                    let printWindow = window.open('', '_blank');
-                                    printWindow.document.body.innerHTML = $wire.printableContent;
-                                    printWindow.focus();
-                                    printWindow.print();
-                                "
-                                class="button-minor gap-3"
-                        >
-                            @icon('printer', 'w-4 h-4 text-gray-800 dark:text-white')
-                            {{ __('declarations.print_application') }}
-                        </button>
-                        <li class="default-p mt-8">{{ __('declarations.signed_confirmation') }}</li>
-                    </ol>
+                    @if($isNeedToResign)
+                        <p class="default-p mb-8">
+                            {{ __('declarations.simplified_declaration_registration_warning_message-0') }}
+                            {{ __('declarations.simplified_declaration_registration_warning_message-1') }}
+                        </p>
 
-                    {{-- Is signed by patient --}}
-                    <div class="form-row">
-                        <div class="form-group group">
-                            <input x-model="isSigned"
-                                   type="checkbox"
-                                   name="isSigned"
-                                   id="isSigned"
-                                   class="default-checkbox"
-                            />
-                            <label class="default-p" for="isSigned">
-                                {{ __('declarations.patient_signed_declaration') }}
-                            </label>
+                        <p class="default-p mb-8">
+                            {{ __('declarations.simplified_declaration_registration_warning_message-2') }}
+                        </p>
+                    @else
+
+                        <ol class="list-decimal list-inside mb-8">
+                            <li class="default-p mb-4">{{ __('declarations.print_declaration_instruction') }}</li>
+                            <button x-data
+                                    @click="
+                                        let printWindow = window.open('', '_blank');
+                                        printWindow.document.body.innerHTML = $wire.printableContent;
+                                        printWindow.focus();
+                                        printWindow.print();
+                                    "
+                                    class="button-minor gap-3"
+                            >
+                                @icon('printer', 'w-4 h-4 text-gray-800 dark:text-white')
+                                {{ __('declarations.print_application') }}
+                            </button>
+                            <li class="default-p mt-8">{{ __('declarations.signed_confirmation') }}</li>
+                        </ol>
+
+                        {{-- Is signed by patient --}}
+                        <div class="form-row">
+                            <div class="form-group group">
+                                <input x-model="isSigned"
+                                    type="checkbox"
+                                    name="isSigned"
+                                    id="isSigned"
+                                    class="default-checkbox"
+                                />
+                                <label class="default-p" for="isSigned">
+                                    {{ __('declarations.patient_signed_declaration') }}
+                                </label>
+                            </div>
                         </div>
-                    </div>
+                    @endif
 
                     {{-- Action buttons --}}
                     <div class="flex justify-center gap-4 mt-16">
                         <button type="button" @click="showSignModal = false" class="button-minor">
                             {{__('forms.cancel')}}
                         </button>
+
                         <button wire:click="openSignatureModal"
                                 type="button"
                                 class="button-primary flex items-center gap-2"

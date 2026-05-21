@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\Declaration;
 
 use Throwable;
-use App\Exceptions\EHealth\EHealthConnectionException;
-use App\Exceptions\EHealth\EHealthException;
 use Exception;
+use App\Core\Arr;
 use App\Models\User;
 use Livewire\Component;
 use App\Enums\User\Role;
@@ -19,6 +18,7 @@ use App\Models\Declaration;
 use App\Models\LegalEntity;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
+use App\Models\Person\Person;
 use App\Jobs\DeclarationsSync;
 use App\Repositories\Repository;
 use App\Classes\eHealth\EHealth;
@@ -36,9 +36,11 @@ use Illuminate\Support\Facades\Session;
 use App\Notifications\SyncNotification;
 use App\Traits\BatchLegalEntityQueries;
 use Illuminate\Database\Eloquent\Builder;
+use App\Exceptions\EHealth\EHealthException;
 use App\Enums\Declaration\ReorganizedStatus;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Notifications\DeclarationSyncCompleted;
+use App\Exceptions\EHealth\EHealthConnectionException;
 
 class DeclarationIndex extends Component
 {
@@ -264,7 +266,7 @@ class DeclarationIndex extends Component
             ])
                 ->forEmployees($this->employeeIds)
                 ->whereNotIn('status', [Status::SIGNED->value])
-                ->get(['id', 'uuid', 'person_id', 'employee_id', 'declaration_number', 'status', 'parent_declaration_id'])
+                ->get(['id', 'uuid', 'person_id', 'employee_id', 'declaration_number', 'status', 'parent_declaration_uuid'])
                 ->each->setAttribute('type', 'request');
         }
 
@@ -582,6 +584,68 @@ class DeclarationIndex extends Component
         );
     }
 
+    /**
+     * Create a new resignation declaration request for a declaration from a reorganized legal entity.
+     *
+     * Finds the reorganized employee declaration linked to the given declaration ID,
+     * builds a new declaration request payload using the current authenticated doctor
+     * and the reorganized person's data, stores it locally, sends it to eHealth,
+     * updates the local record with the eHealth response, then redirects to the
+     * declaration edit page to continue the approval and sign flow.
+     *
+     * @param  int  $declarationId  The local ID of the declaration to resign
+     * @return void
+     */
+    public function resign(int $declarationId): void
+    {
+        if (Auth::user()->cannot('resign', Declaration::class)) {
+            Session::flash('error', __('declarations.policy.resign'));
+
+            return;
+        }
+
+        $reorganizedDeclaration = Declaration::find($declarationId)->reorganizedEmployeeDeclaration()->first();
+        $currentEmployee = Employee::where('user_id', Auth::id())->where('employee_type', 'DOCTOR')->whereNot('status', EntityStatus::REORGANIZED)->first();
+        $reorganizedPerson = Person::find($reorganizedDeclaration->personId);
+
+        $resignRequestData = [
+                "person_id" => $reorganizedPerson->uuid,
+                "employee_id" => $currentEmployee->uuid,
+                "division_id" => $currentEmployee->divisionUuid,
+                "authorize_with" => $reorganizedDeclaration->authorizeWith,
+                "parent_declaration_id" => $reorganizedDeclaration->declarationUuid
+        ];
+
+        $declarationRequest = Repository::declarationRequest()->store(array_merge($resignRequestData, ['status' => EntityStatus::DRAFT->value]));
+
+        try {
+            $response = EHealth::declarationRequest()->create(removeEmptyKeys(Arr::toSnakeCase($resignRequestData)));
+
+            $responseData = $response->getData();
+
+            $responseData['sync_status'] = JobStatus::PARTIAL->value;
+
+            try {
+                Repository::declarationRequest()->update($declarationRequest->id, $responseData);
+            } catch (Exception $exception) {
+                $this->handleDatabaseErrors($exception, 'Error updating declaration request after response');
+                Session::flash('error', __('messages.database_error'));
+
+                return;
+            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when resending create resign declaration request');
+
+            return;
+        }
+
+        $this->redirectRoute(
+            'declaration.edit',
+            [legalEntity(), 'personId' => $reorganizedPerson->id, 'declarationRequest' => $declarationRequest],
+            navigate: true
+        );
+    }
+
     public function reject(string $declarationUuid): void
     {
         if (!$this->ensureAbility('reject', __('declarations.policy.reject'))) {
@@ -591,7 +655,7 @@ class DeclarationIndex extends Component
         try {
             $response = EHealth::declarationRequest()->reject($declarationUuid);
 
-            ['status' => $status, 'statusReason' => $statusReason] = $response->getData();
+            ['status' => $status, 'status_reason' => $statusReason] = $response->getData();
 
             Repository::declarationRequest()->updateStatuses($declarationUuid, $status, $statusReason);
         } catch (EHealthException|EHealthConnectionException $exception) {
@@ -603,6 +667,8 @@ class DeclarationIndex extends Component
 
             return;
         }
+
+        Session::flash('success', __('declarations.rejected_declaration_request'));
     }
 
     /**

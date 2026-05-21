@@ -441,7 +441,7 @@ class LegalEntityDetails extends LegalEntityComponent
 
         $legalEntity?->setEntityStatus(JobStatus::COMPLETED);
 
-        $this->redirect(route('legal-entity.details', [legalEntity()]), navigate: true);
+        $this->legalEntity = $this->legalEntity->fresh();
 
         session()->flash('success', implode(PHP_EOL, $messages));
 

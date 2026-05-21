@@ -206,11 +206,11 @@ class DeclarationRepository
 
         $employee = Employee::where('uuid', $data['employee']['uuid'])->first();
 
-        if ($employee->status !== Status::REORGANIZED || $employee->employee_type !== 'DOCTOR') {
+        if ($employee->status !== Status::REORGANIZED || $employee->employeeType !== 'DOCTOR') {
             return;
         }
 
-        $party = Party::where('id', $employee->party_id)->first();
+        $party = Party::where('id', $employee->partyId)->first();
 
         $declarationRequest = DeclarationRequest::where('uuid', $data['declaration_request_uuid'])->first();
 
@@ -228,7 +228,7 @@ class DeclarationRepository
             'declaration_number' => $data['declaration_number'],
             'declaration_request_id' => $declarationRequest?->id,
             'declaration_request_uuid' => $declarationRequest?->uuid,
-            'authorize_with' => $declarationRequest?->authorize_with,
+            'authorize_with' => $declarationRequest?->authorizeWith,
             'updated_at'=> now(),
         ];
 

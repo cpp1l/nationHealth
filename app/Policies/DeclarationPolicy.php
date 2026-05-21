@@ -43,6 +43,22 @@ class DeclarationPolicy
     }
 
     /**
+     * Determine whether the user can resign declaration request.
+     */
+    public function resign(User $user): Response
+    {
+        if ($user->cannot('declaration_request:sign')) {
+            return Response::denyWithStatus(404);
+        }
+
+        if (!$user->hasAllowedRole(Role::DOCTOR, true)) {
+            return Response::denyWithStatus(404);
+        }
+
+        return Response::allow();
+    }
+
+    /**
      * Determine whether the user can synchronize all the declarations.
      */
     public function sync(User $user): Response

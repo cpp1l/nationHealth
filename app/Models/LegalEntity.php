@@ -154,6 +154,11 @@ class LegalEntity extends Model
         return $this->hasMany(Legator::class);
     }
 
+    public function reorganizedEmployeeDeclarations(): HasMany
+    {
+        return $this->hasMany(ReorganizationEmployeeDeclaration::class, 'legal_entity_id');
+    }
+
     /**
      * Get the parent (successor) legal entity this entity was reorganized into.
      * Traverses legators.uuid → legators.legal_entity_id → legal_entities.id.

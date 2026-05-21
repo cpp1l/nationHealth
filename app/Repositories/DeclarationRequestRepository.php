@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Core\Arr;
+use App\Enums\JobStatus;
+use App\Enums\Status;
 use App\Models\DeclarationRequest;
 use App\Models\Division;
 use App\Models\Employee\Employee;
@@ -16,6 +18,7 @@ use App\Models\Relations\AuthenticationMethod;
 use App\Models\Relations\Document;
 use App\Models\Relations\Party;
 use App\Models\Relations\Phone;
+use App\Models\ReorganizationEmployeeDeclaration;
 use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -56,13 +59,17 @@ class DeclarationRequestRepository
      * @param  array  $responseData
      * @return void
      */
-    public function update(int $id, array $responseData): void
+    public function update(int|string $id, array $responseData): void
     {
         $responseData['uuid'] = $responseData['id'];
         unset($responseData['id'], $responseData['declaration_id']);
         $responseData = $this->mapUuidsToIds($responseData, true);
 
-        DeclarationRequest::where('id', $id)->update($responseData);
+        if (\is_int($id)) {
+            DeclarationRequest::where('id', $id)->update($responseData);
+        } else {
+            DeclarationRequest::where('uuid', $id)->update($responseData);
+        }
     }
 
     /**
@@ -75,7 +82,11 @@ class DeclarationRequestRepository
     public function updateAfterApprove(string $uuid, array $data): void
     {
         DeclarationRequest::where('uuid', $uuid)->update(
-            ['status' => $data['status'], 'data_to_be_signed' => $data['data_to_be_signed']]
+            [
+                'status' => $data['status'],
+                'data_to_be_signed' => $data['data_to_be_signed'],
+                'sync_status' => JobStatus::PARTIAL->value
+            ]
         );
     }
 
@@ -89,7 +100,8 @@ class DeclarationRequestRepository
     public function updateStatus(int $id, string $status): void
     {
         DeclarationRequest::where('id', $id)->update([
-            'status' => $status
+            'status' => $status,
+            'sync_status' => JobStatus::PARTIAL->value
         ]);
     }
 
@@ -105,7 +117,8 @@ class DeclarationRequestRepository
     {
         DeclarationRequest::where('uuid', $uuid)->update([
             'status' => $status,
-            'status_reason' => $statusReason
+            'status_reason' => $statusReason,
+            'sync_status' => JobStatus::PARTIAL
         ]);
     }
 
@@ -393,6 +406,16 @@ class DeclarationRequestRepository
                 ->firstOrFail();
         }
 
+        $data['parent_declaration_uuid'] = Arr::pull($data, 'parent_declaration_id', null);
+
         return $data;
+    }
+
+    public function checkIfNeedToResign(string $personUuid): bool
+    {
+        return DeclarationRequest::whereNotNull('parent_declaration_uuid')
+            ->whereIn('parent_declaration_uuid', ReorganizationEmployeeDeclaration::where('person_uuid', $personUuid)->selectRaw('declaration_uuid::text'))
+            ->whereIn('status', [Status::NEW->value, Status::APPROVED->value])
+            ->exists();
     }
 }

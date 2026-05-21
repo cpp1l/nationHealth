@@ -103,9 +103,9 @@ class DeclarationRequest extends Request
      * @return PromiseInterface|EHealthResponse
      * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      */
-    public function reject(string $id, array $data = []): PromiseInterface|EHealthResponse
+    public function reject(string $id): PromiseInterface|EHealthResponse
     {
-        return $this->patch(self::URL . "/$id/actions/reject", $data);
+        return $this->patch(self::URL . "/$id/actions/reject");
     }
 
     /**
@@ -171,7 +171,8 @@ class DeclarationRequest extends Request
             'start_date' => 'nullable|date',
             'status' => 'required|string',
             'status_reason' => 'nullable|string',
-            'system_declaration_limit' => 'nullable|numeric'
+            'system_declaration_limit' => 'nullable|numeric',
+            'parent_declaration_uuid' => 'nullable|uuid'
         ]);
 
         if ($validator->fails()) {
@@ -200,6 +201,9 @@ class DeclarationRequest extends Request
                     break;
                 case 'declaration_id':
                     $replaced['declaration_uuid'] = $value;
+                    break;
+                case 'parent_declaration_id':
+                    $replaced['parent_declaration_uuid'] = $value;
                     break;
                 case 'division_id':
                     $replaced['division_uuid'] = $value;

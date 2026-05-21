@@ -99,6 +99,7 @@ return [
     'start' => 'Початок',
     'end' => 'Кінець',
     'all' => 'Всі',
+    'dont_show_again' => 'Більше не показувати це повідомлення',
 
     // Legal Entity
     'institution' => 'Заклад',

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->jsonb('data_to_be_signed')->nullable();
             $table->string('channel')->nullable();
             $table->integer('current_declaration_count')->nullable();
-            $table->string('parent_declaration_id')
+            $table->string('parent_declaration_uuid')
                 ->nullable()
                 ->comment('identifier of parent declaration in reorganized legal entity');
             $table->string('declaration_number')->nullable();

@@ -31,7 +31,7 @@ class DeclarationView extends Component
         $this->dictionary = dictionary()->basics()->byName('POSITION')->asCodeDescription()->toArray();
 
         $this->declaration = $declaration->load([
-            'declarationRequest:id,data_to_be_signed',
+            'declarationRequest:id,data_to_be_signed,parent_declaration_uuid',
             'employee',
             'person:id,first_name,last_name,second_name,birth_date',
             'division:id,name'

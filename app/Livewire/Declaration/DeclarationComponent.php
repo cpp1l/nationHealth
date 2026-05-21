@@ -8,6 +8,7 @@ use App\Classes\Cipher\Api\CipherRequest;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Enums\Declaration\Status;
+use App\Enums\JobStatus;
 use App\Enums\Person\AuthenticationMethod;
 use App\Exceptions\Cipher\CipherConnectionException;
 use App\Exceptions\Cipher\CipherException;
@@ -16,6 +17,7 @@ use App\Exceptions\EHealth\EHealthException;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Declaration\Forms\DeclarationForm as Form;
+use App\Models\Declaration;
 use App\Models\DeclarationRequest;
 use App\Models\Division;
 use App\Models\Employee\Employee;
@@ -41,6 +43,8 @@ abstract class DeclarationComponent extends Component
     use FormTrait;
     use WithFileUploads;
 
+    public bool $isNeedToResign = false;
+
     public Form $form;
 
     #[Locked]
@@ -51,6 +55,13 @@ abstract class DeclarationComponent extends Component
     public bool $showSignModal = false;
     public bool $showSignatureModal = false;
     public bool $showUploadingDocumentsModal = false;
+
+    /**
+     * Status of declaration request, that we use to determine which actions user can do with declaration request and which buttons show.
+     *
+     * @var Status
+     */
+    public Status $status = Status::DRAFT;
 
     /**
      * Check is patient sign form.
@@ -144,12 +155,39 @@ abstract class DeclarationComponent extends Component
 
         $this->form->personId = $this->patientUuid;
         $this->authMethods = $this->getPersonAuthMethods();
+
+        $this->isNeedToResign = Repository::declarationRequest()->checkIfNeedToResign($this->patientUuid);
     }
 
     public function openSignatureModal(): void
     {
         $this->showSignModal = false;
         $this->showSignatureModal = true;
+    }
+
+    /**
+     * Open the information message modal.
+     * This mostly need for approve newly created declaration request if previous approving was interrupted.
+     *
+     * If the person's authentication method is OFFLINE, populates
+     * $uploadedDocuments with the document data and the stored upload URL
+     * from the person's OFFLINE authentication method record.
+     *
+     * @return void
+     */
+    public function openMessageInformationModal(): void
+    {
+        $authMethodType = $this->authMethods[0]['type'] ?? null;
+
+        $declarationRequest = DeclarationRequest::findOrFail($this->declarationRequestId);
+
+        if ($authMethodType === AuthenticationMethod::OFFLINE->value) {
+            $this->uploadedDocuments[] = $declarationRequest?->person?->documents->toArray()[0] ?? [];
+            $this->uploadedDocuments[0]['url'] = $declarationRequest->person->authenticationMethods()
+                            ->where('type', AuthenticationMethod::OFFLINE->value)->value('url');
+        }
+
+        $this->showInformationMessageModal = true;
     }
 
     /**
@@ -193,26 +231,44 @@ abstract class DeclarationComponent extends Component
         try {
             $response = EHealth::declarationRequest()->create(removeEmptyKeys(Arr::toSnakeCase($validated)));
 
+            $responseData = $response->getData();
+            $responseUrgent = $response->getUrgent();
+
+            $responseData['sync_status'] = JobStatus::PARTIAL->value;
+
             try {
-                Repository::declarationRequest()->update($declarationRequest->id, $response->getData());
+                Repository::declarationRequest()->update($declarationRequest->id, $responseData);
             } catch (Exception $exception) {
                 $this->handleDatabaseErrors($exception, 'Error updating declaration request after response');
 
                 return;
             }
 
-            $this->declarationRequestUuid = $response->getData()['id'];
+            $this->declarationRequestUuid = $responseData['id'];
 
-            if ($response->getUrgent()['authentication_method_current']['type'] === AuthenticationMethod::OFFLINE->value) {
-                $this->uploadedDocuments = $response->getUrgent()['documents'];
+            if ($responseUrgent['authentication_method_current']['type'] === AuthenticationMethod::OFFLINE->value) {
+                if (isset($responseUrgent['documents'])) {
+                    foreach ($responseUrgent['documents'] as $document) {
+                        $declarationRequest->person->authenticationMethods()
+                            ->where('type', AuthenticationMethod::OFFLINE->value)
+                            ->update(['url' => $document['url'] ?? null]);
+                    }
+                }
+
+                $this->uploadedDocuments = $responseUrgent['documents'];
             }
-
-            $this->showInformationMessageModal = true;
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error when creating a declaration');
 
             return;
         }
+
+        // Redirect to edit page after successfully creating new declaration request
+        $this->redirectRoute(
+            'declaration.edit',
+            [legalEntity(), 'personId' => $declarationRequest->person_id, 'declarationRequest' => $this->declarationRequestId],
+            navigate: true
+        );
     }
 
     /**
@@ -273,6 +329,8 @@ abstract class DeclarationComponent extends Component
                 $this->dataToBeSigned = $toBeSignedData;
                 $this->showAuthModal = false;
                 $this->showSignModal = true;
+
+                $this->status = Status::APPROVED;
             }
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error when approving a declaration');
@@ -383,6 +441,32 @@ abstract class DeclarationComponent extends Component
     }
 
     /**
+     * Approve a declaration request created from a reorganized declaration.
+     *
+     * Finds the pending NEW declaration request for the current person that has
+     * a parent declaration UUID (i.e. belongs to a reorganized legal entity),
+     * approves it via eHealth, opens the sign modal, and refreshes the local
+     * declaration request instance so the computed status reflects the new state.
+     *
+     * @return void
+     */
+    public function approveSimplifiedDeclaration(): void
+    {
+        $resignedDeclarationRequest = DeclarationRequest::where('person_id', $this->personId)
+            ->where('status', Status::NEW->value)
+            ->whereNotNull('parent_declaration_uuid')
+            ->firstOrFail();
+
+        $this->declarationRequestUuid = $resignedDeclarationRequest->uuid;
+
+        $this->approveUploadedFiles();
+
+        $this->showSignModal = true;
+
+        $this->status = Status::APPROVED;
+    }
+
+    /**
      * Send approve request if all files were uploaded successfully
      *
      * @return void
@@ -393,24 +477,32 @@ abstract class DeclarationComponent extends Component
         $response = EHealth::declarationRequest()->approve($this->declarationRequestUuid);
 
         if ($response->getStatusCode() === 200) {
+            $responseData = $response->getData();
+
             try {
                 Repository::declarationRequest()->updateAfterApprove(
-                    $response->getData()['id'],
-                    $response->getData()
+                    $responseData['id'],
+                    $responseData
                 );
 
-                $toBeSignedData = $response->getData()['data_to_be_signed'];
-                DB::transaction(fn () => $this->syncDeclarationRelatedData($toBeSignedData));
+                $toBeSignedData = $responseData['data_to_be_signed'];
+
+                // Simplify resigned declaration don't need to sync person data
+                if (!$this->isNeedToResign) {
+                    DB::transaction(fn () => $this->syncDeclarationRelatedData($toBeSignedData));
+                }
             } catch (Exception|Throwable $exception) {
                 $this->handleDatabaseErrors($exception, 'Error while approving uploaded declaration request');
 
                 return;
             }
 
-            $this->printableContent = $response->getData()['data_to_be_signed']['content'];
-            $this->dataToBeSigned = $response->getData()['data_to_be_signed'];
+            $this->printableContent = $toBeSignedData['content'];
+            $this->dataToBeSigned = $toBeSignedData;
             $this->showUploadingDocumentsModal = false;
             $this->showSignModal = true;
+
+            $this->status = Status::APPROVED;
         }
     }
 
@@ -434,8 +526,14 @@ abstract class DeclarationComponent extends Component
             return;
         }
 
-        $dataToSign = $this->dataToBeSigned;
-        $dataToSign['person']['patient_signed'] = $this->isSigned;
+        if (!$this->isNeedToResign) {
+            $dataToSign = $this->dataToBeSigned;
+            $dataToSign['person']['patient_signed'] = $this->isSigned;
+        } else {
+            $dataToSign = EHealth::declarationRequest()
+                ->get($this->declarationRequestUuid)
+                ->getData()['data_to_be_signed'];
+        }
 
         try {
             $signedContent = new CipherRequest()->signData(
@@ -449,6 +547,17 @@ abstract class DeclarationComponent extends Component
             $exception->handle('Error when signing data with Cipher');
 
             return;
+        }
+
+        if (!$this->isNeedToResign) {
+            $declarationRequest = DeclarationRequest::findOrFail($this->declarationRequestId);
+
+            $oldDeclaration = Declaration::where('person_id', $declarationRequest->person_id)
+                ->where('division_id', $declarationRequest->division_id)
+                ->where('employee_id', $declarationRequest->employee_id)
+                ->where('status', Status::ACTIVE)
+                ->filterByLegalEntityId(legalEntity()->id)
+                ->first();
         }
 
         try {
@@ -468,6 +577,16 @@ abstract class DeclarationComponent extends Component
                     $this->handleDatabaseErrors($exception, "Error while $context");
 
                     return;
+                }
+
+                if ($this->isNeedToResign) {
+                    $parentDeclaration = Declaration::whereUuid($declarationRequest->parent_declaration_uuid)->first();
+
+                    $parentDeclaration->status = Status::TERMINATED;
+                    $parentDeclaration->save();
+                } else if ($oldDeclaration) {
+                    $oldDeclaration->status = Status::TERMINATED;
+                    $oldDeclaration->save();
                 }
 
                 $this->redirectRoute('declaration.index', [legalEntity()], navigate: true);

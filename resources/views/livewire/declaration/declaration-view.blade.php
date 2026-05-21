@@ -1,4 +1,9 @@
 @use('Carbon\CarbonImmutable')
+@use('App\Models\Declaration')
+
+@php
+    $hasLegators = legalEntity()->legators->isNotEmpty();
+@endphp
 
 <section class="shift-content section-form w-full max-w-7xl">
     <div class="flex items-center justify-between gap-4 flex-wrap w-full">
@@ -219,6 +224,40 @@
                     />
                 </div>
             </div>
+            @if($hasLegators && ($declaration->reorganizedEmployeeDeclaration || $declaration->hasParentDeclaration()))
+
+            <div class="form-row-2">
+                <div class="form-group group">
+                    <label for="divisionName" class="label">
+                        {{ __('declarations.reorganized_uuid') }}
+                    </label>
+                    <input value="{{ $declaration->reorganizedEmployeeDeclaration ? $declaration->reorganizedEmployeeDeclaration->legalEntity->uuid : Declaration::whereUuid($declaration->declarationRequest->parentDeclarationUuid)->first()->legalEntity->uuid }}"
+                           type="text"
+                           name="divisionName"
+                           id="divisionName"
+                           class="input peer"
+                           placeholder=" "
+                           disabled
+                           autocomplete="off"
+                    />
+                </div>
+
+                <div class="form-group group">
+                    <label for="patientLastName" class="label">
+                        {{ __('declarations.reorganized_name') }}
+                    </label>
+                    <input value="{{ $declaration->reorganizedEmployeeDeclaration ? $declaration->reorganizedEmployeeDeclaration->legalEntity->edr['name'] : Declaration::whereUuid($declaration->declarationRequest->parentDeclarationUuid)->first()->legalEntity->edr['name'] }}"
+                           type="text"
+                           name="patientLastName"
+                           id="patientLastName"
+                           class="input peer"
+                           placeholder=" "
+                           disabled
+                           autocomplete="off"
+                    />
+                </div>
+            </div>
+            @endif
         </fieldset>
 
         <a href="{{ url()->previous() }}" type="submit" class="button-minor">

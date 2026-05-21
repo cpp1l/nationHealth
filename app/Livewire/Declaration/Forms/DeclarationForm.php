@@ -25,7 +25,7 @@ class DeclarationForm extends BaseForm
 
     public ?string $authorizeWith = null;
 
-    public ?string $parentDeclarationId = null;
+    public ?string $parentDeclarationUuid = null;
 
     public ?int $verificationCode = null;
 
@@ -55,7 +55,7 @@ class DeclarationForm extends BaseForm
             ],
             'divisionId' => ['required', 'uuid', Rule::exists('divisions', 'uuid')],
             'authorizeWith' => ['nullable', 'uuid'],
-            'parentDeclarationId' => [
+            'parentDeclarationUuid' => [
                 'nullable',
                 'uuid',
                 Rule::exists('declarations', 'uuid')->where('status', Status::ACTIVE->value)

@@ -17,6 +17,8 @@ return new class extends Migration
             $table->id();
             $table->uuid()->unique()->nullable();
             $table->enum('type', ['THIRD_PERSON', 'OTP', 'OFFLINE', 'NA']);
+            // Here need to be text type because of the length of url commonly exceed the 255 characters
+            $table->text('url')->nullable();
             $table->string('phone_number')->nullable();
             $table->string('value')->nullable();
             $table->string('alias')->nullable();

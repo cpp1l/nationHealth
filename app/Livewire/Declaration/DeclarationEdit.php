@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Declaration;
 
-use App\Models\DeclarationRequest;
 use App\Models\LegalEntity;
+use App\Models\DeclarationRequest;
 
 class DeclarationEdit extends DeclarationComponent
 {
@@ -28,5 +28,7 @@ class DeclarationEdit extends DeclarationComponent
         $this->form->authorizeWith = $declarationRequest->authorizeWith;
 
         $this->declarationRequestUuid = $declarationRequest->uuid ?? '';
+
+        $this->status = $declarationRequest->status;
     }
 }

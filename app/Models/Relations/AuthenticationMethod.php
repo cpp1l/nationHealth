@@ -29,7 +29,8 @@ class AuthenticationMethod extends Model
         'phone_number',
         'value',
         'alias',
-        'ehealth_ended_at'
+        'ehealth_ended_at',
+        'url'
     ];
 
     protected $casts = ['ehealth_ended_at' => EHealthDateCast::class];

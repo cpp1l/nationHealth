@@ -101,9 +101,6 @@
                                 <th scope="col" class="th-input w-[15%]">{{ __('forms.birth_date_abbreviated') }}</th>
                                 <th scope="col" class="th-input w-[25%]">{{ __('employees.doctor') }}</th>
                                 <th scope="col" class="th-input w-[15%]">{{ __('forms.status.label') }}</th>
-                                @if ($hasLegators)
-                                    <th scope="col" class="th-input w-[15%]">{{ __('forms.status.reorganization_status') }}</th>
-                                @endif
                                 <th scope="col" class="th-input w-[5%]">{{ __('forms.action') }}</th>
                             </tr>
                             </thead>
@@ -120,33 +117,33 @@
                                             match($declaration->status) {
                                                 Status::DRAFT => 'badge-dark',
                                                 Status::NEW, Status::APPROVED => 'badge-yellow',
-                                                Status::ACTIVE => 'badge-green',
+                                                Status::ACTIVE => $hasLegators && $declaration->reorganizedEmployeeDeclaration && !$declaration->hasParentDeclaration() ? 'badge-yellow' : 'badge-green',
                                                 Status::REJECTED, Status::CANCELLED, Status::TERMINATED => 'badge-red',
                                                 default => ''
                                             }
                                         }}">
-                                            {{ $declaration->status->label() }}
+                                            @if($declaration->type === 'declaration')
+                                                @if ($hasLegators && $declaration->reorganizedEmployeeDeclaration && $declaration->status == Status::ACTIVE)
+                                                    {{ __('declarations.status.to_be_resigned') }}
+                                                @else
+                                                    {{ !$declaration->hasParentDeclaration() ? $declaration->status->label() : __('declarations.status.resigned') }}
+                                                @endif
+                                            @else
+                                                {{ $declaration->status->label() }}
+                                            @endif
                                         </span>
                                     </td>
 
-                                    @if ($hasLegators)
-                                        <td class="td-input">
-                                            @if ($declaration->type === 'declaration')
-                                                @if ($declaration->reorganizedEmployeeDeclaration)
-                                                    {{ $declaration->status == Status::ACTIVE && !$declaration->hasParentDeclaration() ? __('declarations.to_be_resigned') : __('forms.not_applicable') }}
-                                                @else
-                                                    {{ $declaration->hasParentDeclaration() ? __('patients.status.resigned') : __('forms.not_applicable') }}
-                                                @endif
-                                            @else
-                                                {{ __('forms.not_applicable') }}
-                                            @endif
-                                        </td>
-                                    @endif
-
-                                    <td x-data="{ openDropdown: false }"
+                                    <td
+                                        x-data="{ openDropdown: false }"
                                         class="relative td-input text-center overflow-visible"
                                     >
-                                        @if($declaration->type === 'declaration' || $declaration->status === Status::REJECTED)
+                                        @if(
+                                            $declaration->status === Status::REJECTED ||
+                                            $declaration->status === Status::TERMINATED ||
+                                            $declaration->status === Status::CANCELLED ||
+                                            ($declaration->type === 'declaration' && !$declaration->reorganizedEmployeeDeclaration)
+                                        )
                                             @can('view', $declaration)
                                                 <a href="{{ route('declaration.view', [legalEntity(), $declaration->id]) }}"
                                                    class="cursor-pointer"
@@ -228,6 +225,31 @@
                                                             @icon('delete', 'w-5 h-5')
                                                             {{ __('declarations.reject_declaration_request') }}
                                                         </button>
+                                                    @endcan
+                                                @endif
+                                            @else
+                                                @if($hasLegators)
+                                                    @can('resign', $declaration)
+                                                        <button
+                                                            @click="
+                                                                openDropdown = false;
+                                                                $wire.resign({{ $declaration->id }});
+                                                            "
+                                                            class="cursor-pointer text-[#222222] text-nowrap flex gap-3 items-center py-2 pl-4 pr-19 hover:bg-gray-100 w-full text-left"
+                                                        >
+                                                            @icon('check-circle', 'w-5 h-5 text-green-500')
+                                                            {{ __('declarations.resign') }}
+                                                        </button>
+                                                    @endcan
+
+                                                    @can('view', $declaration)
+                                                        <a type="button" @click="openDropdown = false"
+                                                            href="{{ route('declaration.view', [legalEntity(), $declaration->id]) }}"
+                                                            class="cursor-pointer text-[#222222] text-nowrap flex gap-3 items-center py-2 pl-4 pr-19 hover:bg-gray-100 w-full text-left"
+                                                        >
+                                                            @icon('eye', 'w-6 h-6 text-gray-800 dark:text-white')
+                                                            {{ __('declarations.show_declaration') }}
+                                                        </a>
                                                     @endcan
                                                 @endif
                                             @endif

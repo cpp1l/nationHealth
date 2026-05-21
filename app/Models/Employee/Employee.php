@@ -71,6 +71,11 @@ class Employee extends BaseEmployee
         return $this->morphMany(Speciality::class, 'specialityable');
     }
 
+    public function reorganizedEmployeeDeclarations(): HasMany
+    {
+        return $this->hasMany(ReorganizationEmployeeDeclaration::class, 'employee_id');
+    }
+
     /**
      * Get the declarations associated with this employee through the reorganization process.
      *

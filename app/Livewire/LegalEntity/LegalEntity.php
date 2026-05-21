@@ -953,12 +953,12 @@ abstract class LegalEntity extends Component
 
     protected function modifyLegalEntity(array $data): LegalEntityModel|null
     {
-        $legalEntityData = $this->persistLegalEntity($data);
+        ['addressData' => $addressData, 'phones' => $phones] = $this->persistLegalEntity($data);
 
         try {
-            $this->addressRepository->syncAddresses($this->legalEntity, $legalEntityData['addressData']);
+            $this->addressRepository->syncAddresses($this->legalEntity, $addressData);
 
-            $this->phoneRepository->syncPhones($this->legalEntity, $legalEntityData['phones']);
+            $this->phoneRepository->syncPhones($this->legalEntity, $phones);
 
             $this->legalEntity->refresh();
 

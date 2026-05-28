@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\Person;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Exceptions\CipherApiException;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Enums\Person\Status;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
 use App\Exceptions\EHealth\EHealthResponseException;
@@ -21,7 +22,6 @@ use App\Traits\Addresses\AddressSearch;
 use App\Traits\FormTrait;
 use Carbon\CarbonImmutable;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -29,7 +29,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use JsonException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -609,8 +608,8 @@ class PersonComponent extends Component
                 $validated['password'],
                 Auth::user()->party->taxId
             );
-        } catch (ConnectionException|CipherApiException|JsonException $exception) {
-            $this->handleCipherExceptions($exception, 'Error when signing data with Cipher');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when signing data with Cipher');
 
             return;
         }

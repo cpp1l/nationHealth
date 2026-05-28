@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Classes\Cipher\Api;
 
-use App\Classes\Cipher\Exceptions\CipherApiException;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherEncodingException;
+use App\Exceptions\Cipher\CipherResponseException;
+use App\Exceptions\Cipher\CipherValidationException;
 use Carbon\Carbon;
 use Illuminate\Http\Client\Factory;
 use App\Classes\Cipher\CipherResponse;
@@ -46,7 +49,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $taxId
      * @param  string|null  $edrpou
      * @return CipherResponse|PromiseInterface
-     * @throws CipherApiException|ConnectionException|JsonException
+     * @throws CipherConnectionException|CipherResponseException|CipherValidationException|CipherEncodingException
      */
     public function signData(
         array $dataSignature,
@@ -58,7 +61,17 @@ class CipherRequest extends PendingRequest
     ): CipherResponse|PromiseInterface {
         $ticketUuid = $this->createSession()->getTicketUuid();
 
-        $this->loadSessionData($ticketUuid, base64_encode(json_encode($dataSignature, JSON_THROW_ON_ERROR)));
+        try {
+            $encodedSignature = json_encode($dataSignature, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new CipherEncodingException(
+                'Failed to encode data signature: ' . $exception->getMessage(),
+                $exception->getCode(),
+                $exception
+            );
+        }
+
+        $this->loadSessionData($ticketUuid, base64_encode($encodedSignature));
         $this->setSessionParameters($ticketUuid, $knedp);
 
         $base64File = $this->convertFileToBase64($uploadedFile);
@@ -82,7 +95,7 @@ class CipherRequest extends PendingRequest
      * @param  TemporaryUploadedFile  $uploadedFile
      * @param  string  $password
      * @return CipherResponse|PromiseInterface|null
-     * @throws CipherApiException|ConnectionException|JsonException
+     * @throws CipherConnectionException|CipherResponseException|CipherEncodingException
      */
     public function getPersonalData(
         string $knedp,
@@ -91,7 +104,17 @@ class CipherRequest extends PendingRequest
     ): null|CipherResponse|PromiseInterface {
         $ticketUuid = $this->createSession()->getTicketUuid();
 
-        $this->loadSessionData($ticketUuid, base64_encode(json_encode([], JSON_THROW_ON_ERROR)));
+        try {
+            $encodedEmpty = json_encode([], JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new CipherEncodingException(
+                'Failed to encode empty payload: ' . $exception->getMessage(),
+                $exception->getCode(),
+                $exception
+            );
+        }
+
+        $this->loadSessionData($ticketUuid, base64_encode($encodedEmpty));
         $this->setSessionParameters($ticketUuid, $knedp);
 
         $base64File = $this->convertFileToBase64($uploadedFile);
@@ -107,11 +130,15 @@ class CipherRequest extends PendingRequest
      * @param  string  $url
      * @param  array  $options
      * @return CipherResponse|Response
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     public function send(string $method, string $url, array $options = []): CipherResponse|Response
     {
-        $response = parent::send($method, $url, $options);
+        try {
+            $response = parent::send($method, $url, $options);
+        } catch (ConnectionException $exception) {
+            throw new CipherConnectionException($exception->getMessage(), $exception->getCode(), $exception);
+        }
 
         $cipherResponse = new CipherResponse($response);
 
@@ -126,7 +153,7 @@ class CipherRequest extends PendingRequest
      * Create a separate session for a separate resource (file).
      *
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function createSession(): CipherResponse|PromiseInterface
     {
@@ -139,7 +166,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $ticketUuid
      * @param  string  $base64File
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function loadSessionData(string $ticketUuid, string $base64File): CipherResponse|PromiseInterface
     {
@@ -152,7 +179,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $ticketUuid
      * @param  string  $knedpId
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function setSessionParameters(string $ticketUuid, string $knedpId): CipherResponse|PromiseInterface
     {
@@ -170,7 +197,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $ticketUuid
      * @param  string  $base64File
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function uploadKeyFile(string $ticketUuid, string $base64File): CipherResponse|PromiseInterface
     {
@@ -185,7 +212,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $taxId
      * @param  string|null  $edrpou
      * @return void
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException|CipherValidationException
      */
     protected function verifyWithFileContainer($ticketUuid, $password, string $taxId, ?string $edrpou = null): void
     {
@@ -194,7 +221,7 @@ class CipherRequest extends PendingRequest
 
         // If KEP key is not valid (ex. very old one)
         if (!$response['signature']['canBeUsed']) {
-            throw new CipherApiException(__('validation.custom.cipher.kepNotValid'), $response);
+            throw new CipherValidationException(__('validation.custom.cipher.kepNotValid'), $response);
         }
 
         $keyData = Arr::get($response, 'signature.certificateInfo.extensionsCertificateInfo.value.personalData.value');
@@ -210,12 +237,12 @@ class CipherRequest extends PendingRequest
         $expirationDate = Carbon::parse($endDate);
 
         if ($expirationDate <= Carbon::now()) {
-            throw new CipherApiException(__('validation.custom.cipher.kepTimeExpired'), $response);
+            throw new CipherValidationException(__('validation.custom.cipher.kepTimeExpired'), $response);
         }
 
         // Compare the provided taxId with the one in the key
         if ($inKeyDrfou !== $taxId) {
-            throw new CipherApiException(__('validation.custom.cipher.drfouDiffer'), $response);
+            throw new CipherValidationException(__('validation.custom.cipher.drfouDiffer'), $response);
         }
 
         /**
@@ -223,7 +250,7 @@ class CipherRequest extends PendingRequest
          * this will be determined later by the service provider response
          */
         if ($edrpou && !empty($inKeyEdrpou) && $inKeyEdrpou !== $edrpou) {
-            throw new CipherApiException(__('validation.custom.cipher.edrpouDiffer'), $response);
+            throw new CipherValidationException(__('validation.custom.cipher.edrpouDiffer'), $response);
         }
     }
 
@@ -233,7 +260,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $ticketUuid
      * @param  string  $password
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function initiateSignatureCreation(string $ticketUuid, string $password): CipherResponse|PromiseInterface
     {
@@ -246,7 +273,7 @@ class CipherRequest extends PendingRequest
      * @param  string  $ticketUuid
      * @param  string  $password
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function verifyKeyContainer(string $ticketUuid, string $password): CipherResponse|PromiseInterface
     {
@@ -258,7 +285,7 @@ class CipherRequest extends PendingRequest
      *
      * @param  string  $ticketUuid
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function getSignedData(string $ticketUuid): CipherResponse|PromiseInterface
     {
@@ -270,7 +297,7 @@ class CipherRequest extends PendingRequest
      *
      * @param  string  $ticketUuid
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     protected function deleteSession(string $ticketUuid): CipherResponse|PromiseInterface
     {
@@ -281,7 +308,7 @@ class CipherRequest extends PendingRequest
      * Obtain information about KNEDP, which is supported by the Service.
      *
      * @return CipherResponse|PromiseInterface
-     * @throws ConnectionException|CipherApiException
+     * @throws CipherConnectionException|CipherResponseException
      */
     public function getCertificateAuthority(): CipherResponse|PromiseInterface
     {

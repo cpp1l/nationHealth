@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Exceptions\EHealth;
+namespace App\Exceptions\Cipher;
 
 use Exception;
 
-abstract class EHealthException extends Exception
+abstract class CipherException extends Exception
 {
     /**
      * Log the exception and flash a user-facing error message.

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Livewire\Encounter;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Exceptions\CipherApiException;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
 use App\Models\LegalEntity;
@@ -16,12 +17,10 @@ use App\Repositories\MedicalEvents\Repository;
 use App\Services\MedicalEvents\EncounterPackageBuilder;
 use App\Services\MedicalEvents\EnsureEntityExistsService;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
-use JsonException;
 use Throwable;
 
 class EncounterCreate extends EncounterComponent
@@ -135,8 +134,8 @@ class EncounterCreate extends EncounterComponent
                 $validated['password'],
                 Auth::user()->party->taxId
             );
-        } catch (ConnectionException|CipherApiException|JsonException $exception) {
-            $this->handleCipherExceptions($exception, 'Error when signing data with Cipher');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when signing data with Cipher');
 
             return;
         }

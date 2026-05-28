@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Person;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Exceptions\CipherApiException;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Enums\Person\AuthStep;
@@ -13,6 +12,8 @@ use App\Enums\Person\ConfidantPersonRelationshipRequestStatus;
 use App\Models\ConfidantPersonRelationshipRequest;
 use App\Models\Relations\AuthenticationMethod as AuthenticationMethodModel;
 use App\Enums\Person\AuthenticationMethod;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
 use App\Exceptions\EHealth\EHealthResponseException;
@@ -24,14 +25,12 @@ use App\Models\Relations\ConfidantPerson;
 use App\Repositories\Repository;
 use App\Rules\PhoneNumber;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use JsonException;
 use Livewire\Attributes\Locked;
 use Throwable;
 
@@ -991,8 +990,8 @@ class PersonUpdate extends PersonComponent
                 $validated['password'],
                 Auth::user()->party->taxId
             );
-        } catch (ConnectionException|CipherApiException|JsonException $exception) {
-            $this->handleCipherExceptions($exception, 'Error when signing data with Cipher');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when signing data with Cipher');
 
             return;
         }

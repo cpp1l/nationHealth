@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Classes\Cipher;
 
-use App\Classes\Cipher\Exceptions\CipherApiException;
+use App\Exceptions\Cipher\CipherResponseException;
 use Illuminate\Http\Client\Response;
 
 class CipherResponse
@@ -24,16 +24,12 @@ class CipherResponse
     }
 
     /**
-     * @throws CipherApiException
+     * @throws CipherResponseException
      */
     public function throw(): self
     {
         if ($this->response->failed()) {
-            $message = $this->response->json('failureCause')
-                ?? $this->response->json('message')
-                ?? $this->response->json('error.message', 'An unknown Cipher API error occurred.');
-
-            throw new CipherApiException($message, $this->response, $this->response->status());
+            throw new CipherResponseException($this->response);
         }
 
         return $this;

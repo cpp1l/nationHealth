@@ -19,9 +19,10 @@ class EHealthValidationException extends EHealthException
      * Log the exception and flash a user-facing error message.
      *
      * @param  string  $logMessage
+     * @param  string|null  $flashMessage  Optional override for the user-facing flash message
      * @return void
      */
-    public function handle(string $logMessage): void
+    public function handle(string $logMessage, ?string $flashMessage = null): void
     {
         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? [];
 
@@ -32,7 +33,7 @@ class EHealthValidationException extends EHealthException
             'error_message' => $this->getDetails()
         ]);
 
-        Session::flash('error', $this->getFormattedMessage());
+        Session::flash('error', $flashMessage ?? $this->getFormattedMessage());
     }
 
     /**

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Livewire\Auth;
 
-use JsonException;
 use App\Enums\Status;
 use Livewire\Component;
 use App\Models\LegalEntity;
@@ -14,14 +13,13 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use App\Events\EhealthUserVerified;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use App\Enums\Employee\RequestStatus;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\Employee\EmployeeRequest;
 use App\Classes\Cipher\Api\CipherRequest;
-use Illuminate\Http\Client\ConnectionException;
-use App\Classes\Cipher\Exceptions\CipherApiException;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 #[Layout('layouts.guest')]
@@ -44,14 +42,8 @@ class VerifyPersonality extends Component
 
         try {
             $response = new CipherRequest()->getPersonalData($this->knedp, $this->keyContainerUpload, $this->password);
-        } catch (ConnectionException|CipherApiException $exception) {
-            Log::channel('api_errors')->error($exception->getMessage(), ['context' => $exception->getContext()]);
-            Session::flash('error', 'Сталася помилка під час завантаження ключа');
-
-            return;
-        } catch (JsonException $exception) {
-            Log::channel('api_errors')->error($exception->getMessage());
-            Session::flash('error', 'Сталася помилка під час завантаження ключа');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when loading KEP key', 'Сталася помилка під час завантаження ключа');
 
             return;
         }
@@ -103,7 +95,8 @@ class VerifyPersonality extends Component
 
         // Get all EmployeeRequests for the user's email that are APPROVED and have a start_date, ordered by most recent
         $employeeRequests = EmployeeRequest::where('email', $user->email)
-            ->where(fn(Builder $query) =>
+            ->where(
+                fn (Builder $query) =>
                 $query->where('status', RequestStatus::APPROVED)
                     ->whereNotNull('start_date')
             )
@@ -124,10 +117,11 @@ class VerifyPersonality extends Component
             ->whereNull('user_id')
             ->where(function (Builder $query) use ($employeeRequests) {
                 foreach ($employeeRequests as $request) {
-                    $query->orWhere(fn(Builder $q) => $q
-                        ->where('employee_type', $request->employee_type)
-                        ->where('position', $request->position)
-                        ->where('start_date', $request->getRawOriginal('start_date'))
+                    $query->orWhere(
+                        fn (Builder $q) => $q
+                            ->where('employee_type', $request->employee_type)
+                            ->where('position', $request->position)
+                            ->where('start_date', $request->getRawOriginal('start_date'))
                     );
                 }
             })
@@ -141,10 +135,11 @@ class VerifyPersonality extends Component
                 ->whereUserId($user->id)
                 ->where(function ($query) use ($employeeRequests) {
                     foreach ($employeeRequests as $request) {
-                        $query->orWhere(fn($q) => $q
-                            ->where('employee_type', $request->employee_type)
-                            ->where('position', $request->position)
-                            ->where('start_date', $request->getRawOriginal('start_date'))
+                        $query->orWhere(
+                            fn ($q) => $q
+                                ->where('employee_type', $request->employee_type)
+                                ->where('position', $request->position)
+                                ->where('start_date', $request->getRawOriginal('start_date'))
                         );
                     }
                 })

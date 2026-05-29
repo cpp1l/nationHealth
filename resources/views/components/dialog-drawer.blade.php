@@ -1,4 +1,4 @@
-@props(['maxWidth' => null, 'noBackdrop' => false, 'backdropClickThrough' => false])
+@props(['maxWidth' => null, 'noBackdrop' => false, 'backdropClickThrough' => false, 'stopClickPropagation' => false])
 
 @php
     $maxWidth = [
@@ -26,7 +26,14 @@
         @endif
 
         <!-- Panel Container -->
-        <div class="fixed inset-y-0 right-0 max-h-screen min-h-screen flex {{ $maxWidth }} pointer-events-auto">
+        <div class="fixed inset-y-0 right-0 max-h-screen min-h-screen flex {{ $maxWidth }} pointer-events-auto"
+             @if($stopClickPropagation)
+                 @click.stop
+                 @mousedown.stop
+                 @mouseup.stop
+                 @pointerdown.stop
+             @endif
+        >
             <div
                 x-dialog:panel
                 x-transition:enter="transition ease-out duration-300 transform"

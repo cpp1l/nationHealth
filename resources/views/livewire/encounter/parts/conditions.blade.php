@@ -17,7 +17,7 @@
              icd10Descriptions: {},
 
              openEvidenceDrawer: false,
-             evidenceSelectedType: 'condition',
+             evidenceSelectedType: '',
              evidenceSelectedEpisodeId: '',
              evidenceIsLoading: false,
              evidenceSearchResults: [],
@@ -68,7 +68,7 @@
                  this.$watch('evidenceSelectedType', () => this.fetchEvidenceRecords());
                  this.$watch('openEvidenceDrawer', (val) => {
                      if (val) {
-                         this.evidenceSelectedType = 'condition';
+                         this.evidenceSelectedType = '';
                          this.evidenceSelectedEpisodeId = '';
                          this.evidenceSearchResults = [];
                          this.fetchEvidenceRecords();
@@ -770,7 +770,7 @@
     </div>
 
     {{-- Evidence Search Drawer (Restored Essence) --}}
-    <x-dialog-drawer x-model="openEvidenceDrawer" maxWidth="3/5" backdropClickThrough="true" wire:ignore>
+    <x-dialog-drawer x-model="openEvidenceDrawer" maxWidth="3/5" backdropClickThrough="true" stopClickPropagation="true" wire:ignore>
         <x-slot name="title">
             {{ __('patients.add_observations_reports_conditions') }}
         </x-slot>
@@ -788,6 +788,7 @@
                         id="evidenceDrawerSelectedType"
                         class="input-select peer w-full"
                 >
+                    <option value="">{{ __('forms.select') }}</option>
                     <option value="condition">{{ __('patients.condition_or_diagnosis') }}</option>
                     <option value="observation">{{ __('patients.evidence_observations') }}</option>
                 </select>

@@ -5,20 +5,19 @@ declare(strict_types=1);
 namespace App\Livewire\Encounter;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Exceptions\CipherApiException;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 use App\Models\LegalEntity;
 use App\Models\MedicalEvents\Sql\Encounter;
 use App\Repositories\MedicalEvents\Repository;
 use App\Services\MedicalEvents\Fhir;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
-use JsonException;
 use Livewire\Attributes\Locked;
 use Throwable;
 
@@ -99,8 +98,7 @@ class EncounterEdit extends EncounterComponent
                 array_map($this->fhirToSync(...), $fhirClinicalImpressions)
             );
         } catch (Throwable $exception) {
-            $this->logDatabaseErrors($exception, 'Failed to sync encounter package data');
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, 'Failed to sync encounter package data');
 
             return null;
         }
@@ -155,8 +153,8 @@ class EncounterEdit extends EncounterComponent
                 $validated['password'],
                 Auth::user()->party->taxId
             );
-        } catch (ConnectionException|CipherApiException|JsonException $exception) {
-            $this->handleCipherExceptions($exception, 'Error when signing data with Cipher');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when signing data with Cipher');
 
             return;
         }
@@ -171,8 +169,8 @@ class EncounterEdit extends EncounterComponent
             ]);
 
             logger()->debug('Job ID to further debug', $resp->getData());
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Error while submitting encounter');
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error while submitting encounter');
 
             return;
         }

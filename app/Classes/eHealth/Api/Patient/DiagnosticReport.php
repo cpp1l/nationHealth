@@ -10,7 +10,7 @@ use App\Enums\Person\DiagnosticReportStatus;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -23,7 +23,7 @@ class DiagnosticReport extends PatientApiBase
      * @param  string  $uuid  Person UUID
      * @param  array  $data
      * @return EHealthResponse|PromiseInterface
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/diagnostic-report-data-package/submit-diagnostic-report-package
      */
@@ -38,12 +38,14 @@ class DiagnosticReport extends PatientApiBase
      * @param  string  $patientId
      * @param  string  $diagnosticReportId
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/diagnostic-report/get-diagnostic-report-by-id
      */
     public function getById(string $patientId, string $diagnosticReportId): PromiseInterface|EHealthResponse
     {
+        $this->setValidator($this->validateDiagnosticReport(...));
+
         return $this->get(self::URL . "/$patientId/diagnostic_reports/$diagnosticReportId");
     }
 
@@ -65,7 +67,7 @@ class DiagnosticReport extends PatientApiBase
      *     page_size?: int
      *     }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/diagnostic-report/get-diagnostic-report-by-search-params
      */
@@ -85,7 +87,7 @@ class DiagnosticReport extends PatientApiBase
      * @param  string  $patientId
      * @param  array{code?: string, issued_from?: string, issued_to?: string, page?: int, page_size?: int}  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/patient-summary/get-diagnostic-report-by-search-params
      */
@@ -99,7 +101,20 @@ class DiagnosticReport extends PatientApiBase
     }
 
     /**
-     * Validate diagnostic reports response from eHealth API.
+     * Validate a single diagnostic report from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
+    protected function validateDiagnosticReport(EHealthResponse $response): array
+    {
+        $replaced = [$this->replaceEHealthPropNames($response->getData())];
+
+        return $this->runDiagnosticReportValidation($replaced)[0];
+    }
+
+    /**
+     * Validate a list of diagnostic reports from eHealth API response.
      *
      * @param  EHealthResponse  $response
      * @return array
@@ -111,11 +126,22 @@ class DiagnosticReport extends PatientApiBase
             $replaced[] = $this->replaceEHealthPropNames($data);
         }
 
+        return $this->runDiagnosticReportValidation($replaced);
+    }
+
+    /**
+     * Apply diagnostic report validation rules to a pre-processed list of diagnostic report data.
+     *
+     * @param  array  $replacedItems
+     * @return array
+     */
+    private function runDiagnosticReportValidation(array $replacedItems): array
+    {
         $rules = collect($this->diagnosticReportValidationRules())
             ->mapWithKeys(static fn ($rule, $key) => ["*.$key" => $rule])
             ->toArray();
 
-        $validator = Validator::make($replaced, $rules);
+        $validator = Validator::make($replacedItems, $rules);
 
         if ($validator->fails()) {
             Log::channel('e_health_errors')->error(

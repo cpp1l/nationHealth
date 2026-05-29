@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\License;
 
 use App\Classes\eHealth\EHealth;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 use App\Models\LegalEntity;
 use App\Models\License;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
@@ -54,24 +53,12 @@ class LicenseEdit extends LicenseComponent
                 Session::flash('success', __('licenses.success.updated'));
                 $this->redirectRoute('license.index', [legalEntity()], navigate: true);
             } catch (Exception $exception) {
-                $this->logDatabaseErrors($exception, 'Error while updating license');
-                Session::flash('error', __('messages.database_error'));
+                $this->handleDatabaseErrors($exception, 'Error while updating license');
 
                 return;
             }
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when updating a license');
-            Session::flash('error', "Виникла помилка. Відсутній зв'язок із ЕСОЗ");
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when updating a license');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when updating a license');
 
             return;
         }

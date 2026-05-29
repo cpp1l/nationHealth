@@ -4,14 +4,36 @@ declare(strict_types=1);
 
 namespace App\Exceptions\EHealth;
 
-use App\Core\Arr as AppArr;
-use Illuminate\Support\Arr;
+use App\Core\Arr;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class EHealthValidationException extends EHealthException
 {
     public function __construct(public readonly array $details)
     {
         parent::__construct('eHealth API returned a validation error.');
+    }
+
+    /**
+     * Log the exception and flash a user-facing error message.
+     *
+     * @param  string  $logMessage
+     * @param  string|null  $flashMessage  Optional override for the user-facing flash message
+     * @return void
+     */
+    public function handle(string $logMessage, ?string $flashMessage = null): void
+    {
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? [];
+
+        Log::channel('e_health_errors')->error($logMessage, [
+            'class' => $caller['class'] ?? 'unknown_class',
+            'method' => $caller['function'] ?? 'unknown_method',
+            'exception_type' => static::class,
+            'error_message' => $this->getDetails()
+        ]);
+
+        Session::flash('error', $flashMessage ?? $this->getFormattedMessage());
     }
 
     /**
@@ -85,9 +107,9 @@ class EHealthValidationException extends EHealthException
         $invalidErrors = Arr::get($this->details, 'error.invalid') ?? Arr::get($this->details, 'invalid') ?? [];
 
         $errorList = collect($invalidErrors)->map(function ($detail) use ($eHealthFieldTranslations) {
-            $eHealthKey = AppArr::get($detail, 'entry') ?? AppArr::get($detail, 'param') ?? 'unknown';
-            $message = AppArr::get($detail, 'rules.0.description') ?? AppArr::get($detail, 'msg') ?? '';
-            $ruleName = AppArr::get($detail, 'rules.0.rule');
+            $eHealthKey = Arr::get($detail, 'entry') ?? Arr::get($detail, 'param') ?? 'unknown';
+            $message = Arr::get($detail, 'rules.0.description') ?? Arr::get($detail, 'msg') ?? '';
+            $ruleName = Arr::get($detail, 'rules.0.rule');
 
             if ($eHealthKey === 'status') {
                 return null;

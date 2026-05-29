@@ -6,15 +6,14 @@ namespace App\Livewire\Division\HealthcareService;
 
 use App\Classes\eHealth\EHealth;
 use App\Classes\eHealth\EHealthResponse;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Division\Forms\HealthcareServiceForm as Form;
 use App\Models\Division;
 use App\Models\LegalEntity;
 use App\Traits\FormTrait;
 use App\Traits\WorkTimeUtilities;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
@@ -105,19 +104,8 @@ class HealthcareServiceComponent extends Component
     {
         try {
             return EHealth::healthcareService()->create($this->form->formatForApi($validated));
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when creating a healthcare service');
-            Session::flash('error', "Виникла помилка. Відсутній зв'язок із ЕСОЗ.");
-
-            return null;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when creating a healthcare service');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when creating a healthcare service');
 
             return null;
         }

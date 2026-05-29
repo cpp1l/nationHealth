@@ -10,7 +10,7 @@ use App\Enums\Person\EpisodeStatus;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -23,9 +23,9 @@ class Episode extends PatientApiBase
      * @param  string  $id
      * @param  array  $data
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
-     * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/encounter-data-package/create-episode
+     * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/episode-of-care/create-episode
      */
     public function create(string $id, array $data): PromiseInterface|EHealthResponse
     {
@@ -38,12 +38,14 @@ class Episode extends PatientApiBase
      * @param  string  $patientId
      * @param  string  $episodeId
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
-     * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/encounter-data-package/get-episode-by-id
+     * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/episode-of-care/get-episode-by-id
      */
     public function getById(string $patientId, string $episodeId): PromiseInterface|EHealthResponse
     {
+        $this->setValidator($this->validateEpisode(...));
+
         return $this->get(self::URL . "/$patientId/episodes/$episodeId");
     }
 
@@ -62,7 +64,7 @@ class Episode extends PatientApiBase
      *     page_size?: int
      * }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/episode-of-care/get-episodes-by-search-params
      */
@@ -89,7 +91,7 @@ class Episode extends PatientApiBase
      *     page_size?: int
      *     }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/patient-summary/get-short-episodes-by-search-params
      */
@@ -131,6 +133,25 @@ class Episode extends PatientApiBase
         return $validator->validate();
     }
 
+    /**
+     * Validate a single episode from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
+    protected function validateEpisode(EHealthResponse $response): array
+    {
+        $replaced = [$this->replaceEHealthPropNames($response->getData())];
+
+        return $this->runEpisodeValidation($replaced)[0];
+    }
+
+    /**
+     * Validate a list of episodes from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
     protected function validateEpisodes(EHealthResponse $response): array
     {
         $replaced = [];
@@ -138,11 +159,22 @@ class Episode extends PatientApiBase
             $replaced[] = $this->replaceEHealthPropNames($data);
         }
 
+        return $this->runEpisodeValidation($replaced);
+    }
+
+    /**
+     * Apply episode validation rules to a pre-processed list of episode data.
+     *
+     * @param  array  $replacedItems
+     * @return array
+     */
+    private function runEpisodeValidation(array $replacedItems): array
+    {
         $rules = collect($this->episodeValidationRules())
             ->mapWithKeys(static fn ($rule, $key) => ["*.$key" => $rule])
             ->toArray();
 
-        $validator = Validator::make($replaced, $rules);
+        $validator = Validator::make($replacedItems, $rules);
 
         if ($validator->fails()) {
             Log::channel('e_health_errors')->error(

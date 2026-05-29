@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Livewire\Declaration;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Exceptions\CipherApiException;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Enums\Declaration\Status;
 use App\Enums\Person\AuthenticationMethod;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Declaration\Forms\DeclarationForm as Form;
@@ -23,13 +26,11 @@ use App\Repositories\Repository;
 use App\Traits\FormTrait;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
-use JsonException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -184,8 +185,7 @@ abstract class DeclarationComponent extends Component
             }
         } catch (Exception $exception) {
             $action = $this->declarationRequestId ? 'updating' : 'creating';
-            $this->logDatabaseErrors($exception, "Error $action declaration request");
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, "Error $action declaration request");
 
             return;
         }
@@ -196,8 +196,7 @@ abstract class DeclarationComponent extends Component
             try {
                 Repository::declarationRequest()->update($declarationRequest->id, $response->getData());
             } catch (Exception $exception) {
-                $this->logDatabaseErrors($exception, 'Error updating declaration request after response');
-                Session::flash('error', __('messages.database_error'));
+                $this->handleDatabaseErrors($exception, 'Error updating declaration request after response');
 
                 return;
             }
@@ -209,19 +208,8 @@ abstract class DeclarationComponent extends Component
             }
 
             $this->showInformationMessageModal = true;
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when creating a declaration');
-            Session::flash('error', __('validation.custom.connection_exception'));
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when creating a declaration');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when creating a declaration');
 
             return;
         }
@@ -276,8 +264,7 @@ abstract class DeclarationComponent extends Component
                     $toBeSignedData = $response->getData()['data_to_be_signed'];
                     DB::transaction(fn () => $this->syncDeclarationRelatedData($toBeSignedData));
                 } catch (Exception|Throwable $exception) {
-                    $this->logDatabaseErrors($exception, 'Error while approving declaration request');
-                    Session::flash('error', __('messages.database_error'));
+                    $this->handleDatabaseErrors($exception, 'Error while approving declaration request');
 
                     return;
                 }
@@ -287,19 +274,8 @@ abstract class DeclarationComponent extends Component
                 $this->showAuthModal = false;
                 $this->showSignModal = true;
             }
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when approving a declaration');
-            Session::flash('error', __('validation.custom.connection_exception'));
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when approving a declaration');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when approving a declaration');
 
             return;
         }
@@ -360,9 +336,10 @@ abstract class DeclarationComponent extends Component
                     logger()?->error('Error while uploading document', ['body' => $response->getBody()]);
                     Session::flash('error', __('messages.database_error'));
                 }
-            } catch (ConnectionException $exception) {
-                $this->logConnectionError($exception, 'Error while uploading document');
-                Session::flash('error', __('validation.custom.connection_exception'));
+            } catch (EHealthException|EHealthConnectionException $exception) {
+                $exception->handle('Error while uploading document');
+
+                return;
             }
         }
 
@@ -370,22 +347,8 @@ abstract class DeclarationComponent extends Component
         if ($successCount === $totalFiles) {
             try {
                 $this->approveUploadedFiles();
-            } catch (ConnectionException $exception) {
-                $this->logConnectionError(
-                    $exception,
-                    'Error connecting when approving a declaration request after sending files'
-                );
-                Session::flash('error', __('validation.custom.connection_exception'));
-
-                return;
-            } catch (EHealthValidationException|EHealthResponseException $exception) {
-                $this->logEHealthException($exception, 'Error when approving a declaration after sending files');
-
-                if ($exception instanceof EHealthValidationException) {
-                    Session::flash('error', $exception->getFormattedMessage());
-                } else {
-                    Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-                }
+            } catch (EHealthException|EHealthConnectionException $exception) {
+                $exception->handle('Error when approving a declaration after sending files');
 
                 return;
             }
@@ -407,19 +370,8 @@ abstract class DeclarationComponent extends Component
 
         try {
             $response = EHealth::declarationRequest()->resendAuthOtp($this->declarationRequestUuid);
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when resending sms to person');
-            Session::flash('error', __('validation.custom.connection_exception'));
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when resending sms to person');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when resending sms to person');
 
             return;
         }
@@ -434,7 +386,7 @@ abstract class DeclarationComponent extends Component
      * Send approve request if all files were uploaded successfully
      *
      * @return void
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      */
     protected function approveUploadedFiles(): void
     {
@@ -450,8 +402,7 @@ abstract class DeclarationComponent extends Component
                 $toBeSignedData = $response->getData()['data_to_be_signed'];
                 DB::transaction(fn () => $this->syncDeclarationRelatedData($toBeSignedData));
             } catch (Exception|Throwable $exception) {
-                $this->logDatabaseErrors($exception, 'Error while approving uploaded declaration request');
-                Session::flash('error', __('messages.database_error'));
+                $this->handleDatabaseErrors($exception, 'Error while approving uploaded declaration request');
 
                 return;
             }
@@ -494,8 +445,8 @@ abstract class DeclarationComponent extends Component
                 $validated['password'],
                 Auth::user()->party->taxId
             );
-        } catch (ConnectionException|CipherApiException|JsonException $exception) {
-            $this->handleCipherExceptions($exception, 'Error when signing data with Cipher');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when signing data with Cipher');
 
             return;
         }
@@ -514,27 +465,15 @@ abstract class DeclarationComponent extends Component
                     $context = 'creating declaration';
                     Repository::declaration()->store($response->getData());
                 } catch (Exception $exception) {
-                    $this->logDatabaseErrors($exception, "Error while $context");
-                    Session::flash('error', __('messages.database_error'));
+                    $this->handleDatabaseErrors($exception, "Error while $context");
 
                     return;
                 }
 
                 $this->redirectRoute('declaration.index', [legalEntity()], navigate: true);
             }
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when signing declaration request');
-            Session::flash('error', __('validation.custom.connection_exception'));
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when signing declaration request');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when signing declaration request');
 
             return;
         }
@@ -574,14 +513,8 @@ abstract class DeclarationComponent extends Component
     {
         try {
             return EHealth::person()->getAuthMethods($this->patientUuid)->getData();
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when getting auth methods');
-            Session::flash('error', __('validation.custom.connection_exception'));
-
-            return [];
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when getting auth methods');
-            Session::flash('error', __('messages.database_error'));
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when getting auth methods');
 
             return [];
         }

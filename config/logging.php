@@ -147,6 +147,12 @@ return [
             'level' => 'error'
         ],
 
+        'cipher_errors' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/cipher_errors.log'),
+            'level' => 'error'
+        ],
+
         'task_scheduling' => [
             'driver' => 'single',
             'path' => storage_path('logs/task_scheduling.log'),

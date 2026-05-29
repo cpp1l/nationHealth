@@ -6,13 +6,12 @@ namespace App\Livewire\License;
 
 use App\Classes\eHealth\EHealth;
 use App\Enums\JobStatus;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 use App\Models\LegalEntity;
 use App\Models\License;
 use App\Traits\FormTrait;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
@@ -47,14 +46,8 @@ class LicenseIndex extends Component
     {
         try {
             $response = EHealth::license()->getMany();
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when getting licenses');
-            Session::flash('error', "Виникла помилка. Відсутній зв'язок із ЕСОЗ");
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when getting licenses');
-            Session::flash('error', __('messages.database_error'));
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when getting licenses');
 
             return;
         }
@@ -64,8 +57,7 @@ class LicenseIndex extends Component
         try {
             License::upsert($response->map($licences), uniqueBy: ['uuid'], update: new License()->getFillable());
         } catch (Exception $exception) {
-            Session::flash('error', __('messages.database_error'));
-            $this->logDatabaseErrors($exception, 'Error while synchronizing licenses with eHealth: ');
+            $this->handleDatabaseErrors($exception, 'Error while synchronizing licenses with eHealth: ');
 
             return;
         }

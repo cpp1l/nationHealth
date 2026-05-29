@@ -10,7 +10,7 @@ use App\Enums\Person\ObservationStatus;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -25,7 +25,7 @@ class Observation extends PatientApiBase
      * @param  string  $episodeUuid
      * @param  array  $data
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      */
     public function getInEpisodeContext(
         string $patientUuid,
@@ -41,12 +41,14 @@ class Observation extends PatientApiBase
      * @param  string  $patientId
      * @param  string  $observationId
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/observation/get-observation-by-id
      */
     public function getById(string $patientId, string $observationId): PromiseInterface|EHealthResponse
     {
+        $this->setValidator($this->validateObservation(...));
+
         return $this->get(self::URL . "/$patientId/episodes/$observationId");
     }
 
@@ -56,7 +58,7 @@ class Observation extends PatientApiBase
      * @param  string  $patientId
      * @param  array{code?: string, issued_from?: string, issued_to?: string, page?: int, page_size?: int}  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/patient-summary/get-observations
      */
@@ -87,7 +89,7 @@ class Observation extends PatientApiBase
      *     page_size?: int
      * }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/observation/get-observations-by-searh-params
      */
@@ -107,7 +109,7 @@ class Observation extends PatientApiBase
      * @param  string  $patientId
      * @param  string  $id  Observation ID
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/patient-summary/get-observation-by-id
      */
@@ -117,7 +119,20 @@ class Observation extends PatientApiBase
     }
 
     /**
-     * Validate observations response from eHealth API.
+     * Validate a single observation from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
+    protected function validateObservation(EHealthResponse $response): array
+    {
+        $replaced = [$this->replaceEHealthPropNames(Arr::toSnakeCase($response->getData()))];
+
+        return $this->runObservationValidation($replaced)[0];
+    }
+
+    /**
+     * Validate a list of observations from eHealth API response.
      *
      * @param  EHealthResponse  $response
      * @return array
@@ -129,11 +144,22 @@ class Observation extends PatientApiBase
             $replaced[] = $this->replaceEHealthPropNames(Arr::toSnakeCase($data));
         }
 
+        return $this->runObservationValidation($replaced);
+    }
+
+    /**
+     * Apply observation validation rules to a pre-processed list of observation data.
+     *
+     * @param  array  $replacedItems
+     * @return array
+     */
+    private function runObservationValidation(array $replacedItems): array
+    {
         $rules = collect($this->observationValidationRules())
             ->mapWithKeys(static fn ($rule, $key) => ["*.$key" => $rule])
             ->toArray();
 
-        $validator = Validator::make($replaced, $rules);
+        $validator = Validator::make($replacedItems, $rules);
 
         if ($validator->fails()) {
             Log::channel('e_health_errors')->error(

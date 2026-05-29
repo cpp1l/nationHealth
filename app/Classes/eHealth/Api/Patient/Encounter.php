@@ -10,7 +10,7 @@ use App\Enums\Person\EncounterStatus;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -23,7 +23,7 @@ class Encounter extends PatientApiBase
      * @param  string  $id  Person ID
      * @param  array{visit: array{id: string, period: array{start: string, end: string}}, signed_data: string}  $data
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/encounter-data-package/submit-encounter-package
      */
@@ -50,7 +50,7 @@ class Encounter extends PatientApiBase
      *     page_size?: int
      *     }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/patient-summary/get-short-encounters-by-search-params
      */
@@ -71,12 +71,14 @@ class Encounter extends PatientApiBase
      * @param  string  $encounterId
      * @param  array  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/immunization/get-encounter-by-id
      */
     public function getById(string $patientId, string $encounterId, array $query = []): PromiseInterface|EHealthResponse
     {
+        $this->setValidator($this->validateEncounter(...));
+
         return $this->get(self::URL . "/$patientId/encounters/$encounterId", $query);
     }
 
@@ -97,7 +99,7 @@ class Encounter extends PatientApiBase
      *     page_size?: int
      * }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/encounter/get-encounters-by-search-params
      */
@@ -112,7 +114,7 @@ class Encounter extends PatientApiBase
     }
 
     /**
-     * Validate encounters data from eHealth API.
+     * Validate a list of short encounters from eHealth API response.
      *
      * @param  EHealthResponse  $response
      * @return array
@@ -139,6 +141,25 @@ class Encounter extends PatientApiBase
         return $validator->validate();
     }
 
+    /**
+     * Validate a single encounter from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
+    protected function validateEncounter(EHealthResponse $response): array
+    {
+        $replaced = [$this->replaceEHealthPropNames($response->getData())];
+
+        return $this->runEncounterValidation($replaced)[0];
+    }
+
+    /**
+     * Validate a list of encounters from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
     protected function validateEncounters(EHealthResponse $response): array
     {
         $replaced = [];
@@ -146,11 +167,22 @@ class Encounter extends PatientApiBase
             $replaced[] = $this->replaceEHealthPropNames($data);
         }
 
+        return $this->runEncounterValidation($replaced);
+    }
+
+    /**
+     * Apply encounter validation rules to a pre-processed list of encounter data.
+     *
+     * @param  array  $replacedItems
+     * @return array
+     */
+    private function runEncounterValidation(array $replacedItems): array
+    {
         $rules = collect($this->encounterValidationRules())
             ->mapWithKeys(static fn ($rule, $key) => ["*.$key" => $rule])
             ->toArray();
 
-        $validator = Validator::make($replaced, $rules);
+        $validator = Validator::make($replacedItems, $rules);
 
         if ($validator->fails()) {
             Log::channel('e_health_errors')->error(

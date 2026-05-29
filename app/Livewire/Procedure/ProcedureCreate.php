@@ -5,23 +5,20 @@ declare(strict_types=1);
 namespace App\Livewire\Procedure;
 
 use App\Classes\eHealth\EHealth;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 use App\Models\MedicalEvents\Sql\Procedure;
 use App\Core\Arr;
 use App\Repositories\MedicalEvents\Repository;
-use App\Traits\HandlesReasonReferences;
-use Illuminate\Http\Client\ConnectionException;
+use App\Services\MedicalEvents\EnsureEntityExistsService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Throwable;
 
 class ProcedureCreate extends ProcedureComponent
 {
-    use HandlesReasonReferences;
-
     /**
      * Validate and save data.
      *
@@ -30,7 +27,7 @@ class ProcedureCreate extends ProcedureComponent
      */
     public function save(array $data): void
     {
-        if (Auth::user()?->cannot('create', Procedure::class)) {
+        if (Auth::user()->cannot('create', Procedure::class)) {
             Session::flash('error', 'У вас немає дозволу на створення процедури.');
 
             return;
@@ -52,8 +49,7 @@ class ProcedureCreate extends ProcedureComponent
         try {
             $this->storeValidatedData($formattedData);
         } catch (Throwable $exception) {
-            Session::flash('error', __('messages.database_error'));
-            $this->logDatabaseErrors($exception, 'Error saving procedure');
+            $this->handleDatabaseErrors($exception, 'Error saving procedure');
 
             return;
         }
@@ -70,7 +66,7 @@ class ProcedureCreate extends ProcedureComponent
      */
     public function sign(array $data): void
     {
-        if (Auth::user()?->cannot('create', Procedure::class)) {
+        if (Auth::user()->cannot('create', Procedure::class)) {
             Session::flash('error', 'У вас немає дозволу на створення процедури.');
 
             return;
@@ -93,8 +89,7 @@ class ProcedureCreate extends ProcedureComponent
         try {
             $this->storeValidatedData($formattedData);
         } catch (Throwable $exception) {
-            Session::flash('error', __('messages.database_error'));
-            $this->logDatabaseErrors($exception, 'Error saving procedure');
+            $this->handleDatabaseErrors($exception, 'Error saving procedure');
 
             return;
         }
@@ -112,19 +107,8 @@ class ProcedureCreate extends ProcedureComponent
 
             Session::flash('success', 'Заявку на створення процедури успішно відправлено.');
             $this->redirectRoute('persons.index', [legalEntity()], navigate: true);
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when creating a procedure');
-            Session::flash('error', "Виникла помилка. Відсутній зв'язок із ЕСОЗ.");
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when creating a procedure');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when creating a procedure');
 
             return;
         }
@@ -142,8 +126,8 @@ class ProcedureCreate extends ProcedureComponent
         DB::transaction(function () use ($formattedData) {
             Repository::procedure()->store([$formattedData], $this->personId);
 
-            // Save the selected condition and observation locally if they don't exist in our database.
-            $this->processReasonReferences($formattedData);
+            app(EnsureEntityExistsService::class, [$this->patientUuid, $this->personId])
+                ->processReasonReferences($formattedData);
         });
     }
 }

@@ -8,5 +8,12 @@ use Exception;
 
 abstract class EHealthException extends Exception
 {
-    // Base class for all eHealth API related exceptions.
+    /**
+     * Log the exception and flash a user-facing error message.
+     *
+     * @param  string  $logMessage
+     * @param  string|null  $flashMessage  Optional override for the user-facing flash message
+     * @return void
+     */
+    abstract public function handle(string $logMessage, ?string $flashMessage = null): void;
 }

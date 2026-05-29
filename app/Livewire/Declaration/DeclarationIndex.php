@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\Declaration;
 
 use Throwable;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Exception;
 use App\Models\User;
 use Livewire\Component;
@@ -36,10 +38,7 @@ use App\Traits\BatchLegalEntityQueries;
 use Illuminate\Database\Eloquent\Builder;
 use App\Enums\Declaration\ReorganizedStatus;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Http\Client\ConnectionException;
 use App\Notifications\DeclarationSyncCompleted;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 
 class DeclarationIndex extends Component
 {
@@ -290,6 +289,26 @@ class DeclarationIndex extends Component
                 });
             }
 
+            // Filter by reorganization type
+            if (!empty($this->reorganizationFilter)) {
+                $allItems = $allItems->filter(function (DeclarationRequest|Declaration $item) {
+                    if ($item instanceof DeclarationRequest) {
+                        return false;
+                    }
+
+                    if ($item->reorganizedEmployeeDeclaration) {
+                        if ($item->hasParentDeclaration()) {
+                            return \in_array(ReorganizedStatus::RESIGNED->value, $this->reorganizationFilter, true);
+                        }
+
+                        return \in_array(ReorganizedStatus::TO_BE_RESIGNED->value, $this->reorganizationFilter, true);
+
+                    }
+
+                    return false;
+                });
+            }
+
             // Search by first and last name
             if (!empty($this->searchByName)) {
                 $searchTerm = Str::lower(trim($this->searchByName));
@@ -334,9 +353,9 @@ class DeclarationIndex extends Component
                     if ($item->reorganizedEmployeeDeclaration) {
                         if ($item->hasParentDeclaration()) {
                             return \in_array(ReorganizedStatus::RESIGNED->value, $this->reorganizationFilter, true);
-                        } else {
-                            return \in_array(ReorganizedStatus::TO_BE_RESIGNED->value, $this->reorganizationFilter, true);
                         }
+
+                        return \in_array(ReorganizedStatus::TO_BE_RESIGNED->value, $this->reorganizationFilter, true);
                     }
 
                     return false;
@@ -417,19 +436,12 @@ class DeclarationIndex extends Component
             $declarations = $response->validate();
 
             Repository::declaration()->storeMany($declarations);
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error while syncing declaration requests');
-            Session::flash('error', __('forms.errors.esoz_error'));
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error while syncing declaration requests');
-            Session::flash('error', __('messages.database_error'));
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error while syncing declaration requests');
 
             return;
         } catch (Exception $exception) {
-            $this->logDatabaseErrors($exception, 'Error while syncing declaration requests');
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, 'Error while syncing declaration requests');
 
             return;
         }
@@ -582,24 +594,12 @@ class DeclarationIndex extends Component
             ['status' => $status, 'statusReason' => $statusReason] = $response->getData();
 
             Repository::declarationRequest()->updateStatuses($declarationUuid, $status, $statusReason);
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error while rejecting declaration request');
-            Session::flash('error', "Виникла помилка. Відсутній зв'язок із ЕСОЗ");
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error while rejecting declaration request');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error while rejecting declaration request');
 
             return;
         } catch (Exception $exception) {
-            $this->logDatabaseErrors($exception, 'Error updating status in declaration request');
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, 'Error updating status in declaration request');
 
             return;
         }
@@ -622,8 +622,7 @@ class DeclarationIndex extends Component
         try {
             DeclarationRequest::destroy($declarationRequest->id);
         } catch (Exception $exception) {
-            $this->logDatabaseErrors($exception, 'Error while deleting declaration request');
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, 'Error while deleting declaration request');
 
             return;
         }

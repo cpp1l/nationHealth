@@ -10,17 +10,14 @@ use App\Classes\eHealth\Exceptions\ApiException as eHealthApiException;
 use App\Core\Arr;
 use App\Enums\Person\ObservationStatus;
 use App\Enums\Status;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Procedure\Forms\ProcedureForm as Form;
 use App\Models\LegalEntity;
 use App\Models\Person\Person;
 use App\Traits\FormTrait;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -155,8 +152,8 @@ class ProcedureComponent extends Component
                 ])->values()->all();
 
             $this->loadIcd10Descriptions($this->reasonReferenceResults);
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Error while searching conditions or observations');
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error while searching conditions or observations');
 
             return;
         }
@@ -192,19 +189,8 @@ class ProcedureComponent extends Component
             $this->episodes = collect($response->getData())
                 ->map(static fn (array $item) => Arr::only($item, ['id', 'name', 'status', 'inserted_at']))
                 ->toArray();
-        } catch (ConnectionException $exception) {
-            $this->logConnectionError($exception, 'Error connecting when getting episodes');
-            Session::flash('error', "Виникла помилка. Відсутній зв'язок із ЕСОЗ.");
-
-            return;
-        } catch (EHealthValidationException|EHealthResponseException $exception) {
-            $this->logEHealthException($exception, 'Error when getting episodes');
-
-            if ($exception instanceof EHealthValidationException) {
-                Session::flash('error', $exception->getFormattedMessage());
-            } else {
-                Session::flash('error', 'Помилка від ЕСОЗ: ' . $exception->getMessage());
-            }
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when getting episodes');
 
             return;
         }

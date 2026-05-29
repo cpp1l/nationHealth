@@ -5,32 +5,26 @@ declare(strict_types=1);
 namespace App\Livewire\Encounter;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Exceptions\CipherApiException;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
-use App\Exceptions\EHealth\EHealthResponseException;
-use App\Exceptions\EHealth\EHealthValidationException;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use App\Models\LegalEntity;
-use App\Models\MedicalEvents\Sql\DiagnosticReport;
 use App\Models\MedicalEvents\Sql\Encounter;
-use App\Models\MedicalEvents\Sql\Episode;
-use App\Models\MedicalEvents\Sql\Procedure;
 use App\Repositories\MedicalEvents\Repository;
 use App\Services\MedicalEvents\EncounterPackageBuilder;
-use App\Traits\HandlesReasonReferences;
+use App\Services\MedicalEvents\EnsureEntityExistsService;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
-use JsonException;
 use Throwable;
 
 class EncounterCreate extends EncounterComponent
 {
-    use HandlesReasonReferences;
-
     private EncounterPackageBuilder $packageBuilder;
 
     public function boot(): void
@@ -73,8 +67,7 @@ class EncounterCreate extends EncounterComponent
         try {
             $encounterId = $this->storeValidatedData($formattedData);
         } catch (Throwable $exception) {
-            $this->logDatabaseErrors($exception, 'Failed to store validated data');
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, 'Failed to store validated data');
 
             return;
         }
@@ -121,8 +114,7 @@ class EncounterCreate extends EncounterComponent
         try {
             $this->storeValidatedData($formattedData);
         } catch (Throwable $exception) {
-            $this->logDatabaseErrors($exception, 'Failed to store validated data');
-            Session::flash('error', __('messages.database_error'));
+            $this->handleDatabaseErrors($exception, 'Failed to store validated data');
 
             return;
         }
@@ -142,8 +134,8 @@ class EncounterCreate extends EncounterComponent
                 $validated['password'],
                 Auth::user()->party->taxId
             );
-        } catch (ConnectionException|CipherApiException|JsonException $exception) {
-            $this->handleCipherExceptions($exception, 'Error when signing data with Cipher');
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle('Error when signing data with Cipher');
 
             return;
         }
@@ -158,8 +150,8 @@ class EncounterCreate extends EncounterComponent
             ]);
 
             logger()->debug('Job ID to further debug', $resp->getData());
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Error while submitting encounter');
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error while submitting encounter');
 
             return;
         }
@@ -191,6 +183,8 @@ class EncounterCreate extends EncounterComponent
     protected function storeValidatedData(array $formattedData): int
     {
         return DB::transaction(function () use ($formattedData) {
+            $ensure = app(EnsureEntityExistsService::class, [$this->patientUuid, $this->personId]);
+
             $createdEncounterId = Repository::encounter()->store($formattedData['encounter'], $this->personId);
 
             if (isset($formattedData['episode'])) {
@@ -216,19 +210,19 @@ class EncounterCreate extends EncounterComponent
             if (isset($formattedData['procedures'])) {
                 Repository::procedure()->store($formattedData['procedures'], $this->personId);
 
-                // Save the selected condition and observation locally if they don't exist in our database.
                 foreach ($formattedData['procedures'] as $procedure) {
-                    $this->processReasonReferences($procedure);
-                    $this->processComplicationDetails($procedure);
+                    $ensure->processReasonReferences($procedure);
+                    $ensure->processComplicationDetails($procedure);
                 }
             }
 
             if (isset($formattedData['clinicalImpressions'])) {
                 Repository::clinicalImpression()->store($formattedData['clinicalImpressions'], $this->personId);
 
-                // Save the selected episode_of_care, procedure, diagnostic_report, encounter locally if they don't exist in our database.
                 foreach ($formattedData['clinicalImpressions'] as $clinicalImpression) {
-                    $this->processSupportingInfo($clinicalImpression);
+                    $ensure->processPrevious($clinicalImpression);
+                    $ensure->processSupportingInfo($clinicalImpression);
+                    $ensure->processFindings($clinicalImpression);
                 }
             }
 
@@ -246,147 +240,8 @@ class EncounterCreate extends EncounterComponent
     {
         try {
             EHealth::episode()->create($this->patientUuid, Arr::toSnakeCase($formattedEpisode));
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Error when create episode');
-
-            return;
-        }
-    }
-
-    /**
-     * Handles details of procedure complications
-     *
-     * @param  array  $procedure
-     * @return void
-     */
-    private function processComplicationDetails(array $procedure): void
-    {
-        if (!isset($procedure['complicationDetails'])) {
-            return;
-        }
-
-        foreach ($procedure['complicationDetails'] as $complicationDetail) {
-            $this->ensureConditionExists($complicationDetail['identifier']['value']);
-        }
-    }
-
-    /**
-     * Process supporting info of clinical impression.
-     *
-     * @param  array  $clinicalImpression
-     * @return void
-     */
-    private function processSupportingInfo(array $clinicalImpression): void
-    {
-        // todo: test it!
-        if (!isset($clinicalImpression['supportingInfo'])) {
-            return;
-        }
-
-        foreach ($clinicalImpression['supportingInfo'] as $supportingInfo) {
-            if ($supportingInfo['identifier']['type']['coding'][0]['code'] === 'episode_of_care') {
-                $this->ensureEpisodeExists($supportingInfo['identifier']['value']);
-            }
-
-            if ($supportingInfo['identifier']['type']['coding'][0]['code'] === 'procedure') {
-                $this->ensureProcedureExists($supportingInfo['identifier']['value']);
-            }
-
-            if ($supportingInfo['identifier']['type']['coding'][0]['code'] === 'diagnostic_report') {
-                $this->ensureDiagnosticReportExists($supportingInfo['identifier']['value']);
-            }
-
-            if ($supportingInfo['identifier']['type']['coding'][0]['code'] === 'encounter') {
-                $this->ensureEncounterExist($supportingInfo['identifier']['value']);
-            }
-        }
-    }
-
-    /**
-     * Search for episode and save if not founded in our DB.
-     *
-     * @param  string  $uuid
-     * @return void
-     */
-    private function ensureEpisodeExists(string $uuid): void
-    {
-        if (Episode::whereUuid($uuid)->exists()) {
-            return;
-        }
-
-        try {
-            $episodeData = EHealth::episode()->getById($this->patientUuid, $uuid)->getData();
-
-            try {
-                Repository::episode()->store(Arr::toCamelCase($episodeData), $this->personId);
-            } catch (Throwable $exception) {
-                $this->logDatabaseErrors($exception, 'Failed to store episode');
-                Session::flash('error', __('messages.database_error'));
-
-                return;
-            }
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Failed while ensuring diagnostic report existence');
-
-            return;
-        }
-    }
-
-    /**
-     * Search for procedure and save if not founded in our DB.
-     *
-     * @param  string  $uuid
-     * @return void
-     */
-    private function ensureProcedureExists(string $uuid): void
-    {
-        if (Procedure::whereUuid($uuid)->exists()) {
-            return;
-        }
-
-        try {
-            $procedureData = EHealth::procedure()->getById($this->patientUuid, $uuid)->getData();
-
-            try {
-                Repository::procedure()->store([Arr::toCamelCase($procedureData)], $this->personId);
-            } catch (Throwable $exception) {
-                $this->logDatabaseErrors($exception, 'Failed to store procedure');
-                Session::flash('error', __('messages.database_error'));
-
-                return;
-            }
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Failed while ensuring procedure existence');
-
-            return;
-        }
-    }
-
-    /**
-     * Search for diagnostic report and save if not founded in our DB.
-     *
-     * @param  string  $uuid
-     * @return void
-     */
-    private function ensureDiagnosticReportExists(string $uuid): void
-    {
-        if (DiagnosticReport::whereUuid($uuid)->exists()) {
-            return;
-        }
-
-        try {
-            $diagnosticReportData = EHealth::diagnosticReport()->getById($this->patientUuid, $uuid)->getData();
-
-            try {
-                Repository::diagnosticReport()->store([Arr::toCamelCase($diagnosticReportData)], $this->personId);
-            } catch (Throwable $exception) {
-                $this->logDatabaseErrors($exception, 'Failed to store diagnostic report');
-                Session::flash('error', __('messages.database_error'));
-
-                return;
-            }
-        } catch (ConnectionException|EHealthValidationException|EHealthResponseException $exception) {
-            $this->handleEHealthExceptions($exception, 'Failed while ensuring diagnostic report existence');
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error when create episode');
 
             return;
         }

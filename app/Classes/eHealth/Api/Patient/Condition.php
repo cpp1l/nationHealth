@@ -11,7 +11,7 @@ use App\Enums\Person\ConditionVerificationStatus;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\ConnectionException;
+use App\Exceptions\EHealth\EHealthConnectionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -24,7 +24,7 @@ class Condition extends PatientApiBase
      * @param  string  $patientId
      * @param  array{code?: string, onset_date_from?: string, onset_date_to?: string, page?: int, page_size?: int}  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/patient-summary/get-conditions
      */
@@ -44,7 +44,7 @@ class Condition extends PatientApiBase
      * @param  string  $episodeId
      * @param  array  $data
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/conditions/get-condition-context
      */
@@ -62,12 +62,14 @@ class Condition extends PatientApiBase
      * @param  string  $patientId
      * @param  string  $conditionId
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/conditions/get-condition-by-id
      */
     public function getById(string $patientId, string $conditionId): PromiseInterface|EHealthResponse
     {
+        $this->setValidator($this->validateCondition(...));
+
         return $this->get(self::URL . "/$patientId/conditions/$conditionId");
     }
 
@@ -86,7 +88,7 @@ class Condition extends PatientApiBase
      *     page_size?: int
      * }  $query
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      *
      * @see https://medicaleventsmisapi.docs.apiary.io/#reference/medical-events/conditions/get-conditions-by-search-params
      */
@@ -101,7 +103,20 @@ class Condition extends PatientApiBase
     }
 
     /**
-     * Validate conditions data from eHealth API.
+     * Validate a single condition from eHealth API response.
+     *
+     * @param  EHealthResponse  $response
+     * @return array
+     */
+    protected function validateCondition(EHealthResponse $response): array
+    {
+        $replaced = [$this->replaceEHealthPropNames($response->getData())];
+
+        return $this->runConditionValidation($replaced)[0];
+    }
+
+    /**
+     * Validate a list of conditions from eHealth API response.
      *
      * @param  EHealthResponse  $response
      * @return array
@@ -113,11 +128,22 @@ class Condition extends PatientApiBase
             $replaced[] = $this->replaceEHealthPropNames($data);
         }
 
+        return $this->runConditionValidation($replaced);
+    }
+
+    /**
+     * Apply condition validation rules to a pre-processed list of condition data.
+     *
+     * @param  array  $replacedItems
+     * @return array
+     */
+    private function runConditionValidation(array $replacedItems): array
+    {
         $rules = collect($this->conditionValidationRules())
             ->mapWithKeys(static fn ($rule, $key) => ["*.$key" => $rule])
             ->toArray();
 
-        $validator = Validator::make($replaced, $rules);
+        $validator = Validator::make($replacedItems, $rules);
 
         if ($validator->fails()) {
             Log::channel('e_health_errors')->error(

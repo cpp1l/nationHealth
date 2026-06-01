@@ -1,17 +1,5 @@
-
 <div class="relative"> {{-- This required for table overflow scrolling --}}
-    <fieldset class="fieldset"
-              {{-- Binding evidence detail to Alpine, it will be re-used in the modal.
-                Note that it's necessary for modal to work properly --}}
-              x-data="{
-                  openModal: false,
-                  modalEvidenceDetail: new EvidenceDetail(),
-                  newEvidenceDetail: false,
-                  item: 0,
-                  searchResults: [],
-                  selectedEvidenceDetailIds: []
-              }"
-    >
+    <fieldset class="fieldset">
         <legend class="legend">
             <h2>{{ __('patients.evidence') }}</h2>
         </legend>
@@ -27,9 +15,7 @@
             <tbody>
             <template x-for="(detail, index) in modalCondition.evidenceDetails">
                 <tr>
-                    <td class="td-input"
-                        x-text="detail.ehealthInsertedAt || ''"
-                    ></td>
+                    <td class="td-input" x-text="detail.ehealthInsertedAt || ''"></td>
                     <td class="td-input"
                         x-text="`${ detail.codeCode } - ${
                             $wire.dictionaries['eHealth/LOINC/observation_codes'][detail.codeCode] ||
@@ -76,7 +62,7 @@
                                      viewBox="0 0 24 24">
                                     <path stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"
                                           stroke-width="2"
-                                          d="M7 19H5a1 1 0 0 1-1-1v-1a3 3 0 0 1 3-3h1m4-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm7.441 1.559a1.907 1.907 0 0 1 0 2.698l-6.069 6.069L10 19l.674-3.372 6.07-6.07a1.907 1.907 0 0 1 2.697 0Z"/>
+                                          d="M7 19H5a1 1 0 0 1-1-1v-1a3 3 0 0 1 3-3h1m4-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm7.441 1.559a1.907 1.907 0 0 1 0 2.698l-6.069 6.069L10 19l.674-3.372 6.07-6.07a1.907 1.907 0 0 1 2.697 0Z" />
                                 </svg>
                             </button>
 
@@ -91,22 +77,8 @@
                                      class="dropdown-panel relative"
                                      style="left: -50%" {{-- Center a dropdown panel --}}
                                 >
-
-                                    <button @click="
-                                                openModal = true;
-                                                item = index;
-                                                modalEvidenceDetail = new EvidenceDetail(detail);
-                                                newEvidenceDetail = false;
-                                                searchResults = modalCondition.evidenceDetails;
-                                            "
-                                            @click.prevent
-                                            class="dropdown-button"
-                                    >
-                                        {{ __('forms.edit') }}
-                                    </button>
-
-                                    <button @click.prevent="modalCondition.evidenceDetails.splice(index, 1); close($refs.button);"
-                                            class="dropdown-button dropdown-delete"
+                                    <button class="dropdown-button dropdown-delete"
+                                            @click.prevent="modalCondition.evidenceDetails.splice(index, 1); close($refs.button);"
                                     >
                                         {{ __('forms.delete') }}
                                     </button>
@@ -120,185 +92,10 @@
         </table>
 
         <div>
-            {{-- Button to trigger the modal --}}
-            <button @click.prevent="
-                        openModal = true;
-                        newEvidenceDetail = true;
-                        modalEvidenceDetail = new EvidenceDetail();
-                        searchResults = [];
-                        selectedEvidenceDetailIds = [];
-                    "
-                    class="item-add my-5"
-            >
+            {{-- Button to trigger the evidence search drawer --}}
+            <button @click.prevent="openEvidenceDrawer = true" class="item-add my-5">
                 {{ __('forms.add') }}
             </button>
-
-            {{-- Modal --}}
-            <template x-teleport="body"> {{-- This moves the modal at the end of the body tag --}}
-                <div x-show="openModal"
-                     style="display: none"
-                     @keydown.escape.prevent.stop="openModal = false"
-                     role="dialog"
-                     aria-modal="true"
-                     x-id="['modal-title']"
-                     :aria-labelledby="$id('modal-title')" {{-- This associates the modal with unique ID --}}
-                     class="modal"
-                >
-
-                    {{-- Overlay --}}
-                    <div x-show="openModal" x-transition.opacity class="fixed inset-0 bg-black/25"></div>
-
-                    {{-- Panel --}}
-                    <div x-show="openModal"
-                         x-transition
-                         @click="openModal = false"
-                         class="relative flex min-h-screen items-center justify-center p-4"
-                    >
-                        <div @click.stop
-                             x-trap.noscroll.inert="openModal"
-                             class="modal-content h-fit w-full lg:max-w-4xl"
-                        >
-                            {{-- Title --}}
-                            <h3 class="modal-header" :id="$id('modal-title')">{{ __('forms.add') }}</h3>
-
-                            {{-- Content --}}
-                            <form>
-                                {{-- Episode info in which the search happens --}}
-                                <div class="form-row-modal">
-                                    <div class="form-group group">
-                                        <select id="evidenceType" class="input-modal peer" x-model="modalEvidenceDetail.type">
-                                            <option value="" selected>
-                                                {{ __('forms.select') }} {{ mb_strtolower(__('forms.type')) }}
-                                            </option>
-                                            <option value="condition">{{ __('patients.condition') }}</option>
-                                            <option value="observation">{{ __('patients.observation') }}</option>
-                                        </select>
-                                    </div>
-
-                                    {{-- Search button --}}
-                                    <div>
-                                        <button @click.prevent="
-                                                $wire.searchConditionsOrObservations(modalEvidenceDetail.type).then(() => {
-                                                    searchResults = JSON.parse(JSON.stringify($wire.evidenceDetails));
-                                                    selectedEvidenceDetailIds = [];
-                                                })"
-                                        class="flex items-center gap-2 button-primary"
-                                                :disabled="!modalEvidenceDetail.type"
-                                        >
-                                            @icon('search', 'w-4 h-4')
-                                            <span>{{ __('patients.search') }}</span>
-                                        </button>
-                                    </div>
-
-                                    <x-forms.loading/>
-                                </div>
-
-                                {{-- A table that shows the results of the found data --}}
-                                <template x-if="searchResults.length > 0">
-                                    <div class="table-container">
-                                        <div class="overflow-visible">
-                                            <table class="table-base">
-                                                <thead class="table-header">
-                                                <tr>
-                                                    <th scope="col" class="th-input">{{ __('forms.date') }}</th>
-                                                    <th scope="col" class="th-input">
-                                                        {{ __('patients.code_and_name') }}
-                                                    </th>
-                                                    <th scope="col" class="th-input">{{ __('forms.action') }}</th>
-                                                </tr>
-                                                </thead>
-                                                <tbody>
-                                                <template x-for="condition in searchResults" :key="condition.id">
-                                                    <tr class="border-b dark:border-gray-700">
-                                                        <th scope="row" class="table-cell-primary">
-                                                            <div class="text-base"
-                                                                 x-text="condition.ehealthInsertedAt || ''"
-                                                            ></div>
-                                                        </th>
-                                                        <td class="td-input"
-                                                            x-text="`${ condition.codeCode } - ${
-                                                                $wire.dictionaries['eHealth/LOINC/observation_codes'][condition.codeCode] ||
-                                                                $wire.dictionaries['eHealth/ICF/classifiers'][condition.codeCode] ||
-                                                                $wire.dictionaries['eHealth/ICPC2/condition_codes'][condition.codeCode]
-                                                            }`"
-                                                        ></td>
-                                                        <td class="td-input">
-                                                            <button @click.prevent="
-                                                                        const id = condition.id;
-                                                                        const index = selectedEvidenceDetailIds.indexOf(id);
-
-                                                                        if (index === -1) {
-                                                                            selectedEvidenceDetailIds.push(id);
-                                                                        } else {
-                                                                            selectedEvidenceDetailIds.splice(index, 1);
-                                                                        }
-                                                                    "
-                                                                    class="button-primary w-28"
-                                                                    x-text="selectedEvidenceDetailIds.includes(condition.id)
-                                                                        ? '{{ __('patients.added') }}'
-                                                                        : '{{ __('forms.add') }}'"
-                                                            >
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                </template>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <template x-if="searchResults.length <= 0">
-                                    <p class="default-p">{{ __('forms.nothing_found') }}</p>
-                                </template>
-
-                                {{-- Action buttons --}}
-                                <div class="mt-6 flex justify-between space-x-2">
-                                    <button @click.prevent
-                                            type="button"
-                                            @click="openModal = false"
-                                            class="button-minor"
-                                    >
-                                        {{ __('forms.cancel') }}
-                                    </button>
-
-                                    <button @click.prevent
-                                            @click="
-                                                const existingIds = modalCondition.evidenceDetails.map(detail => detail.id);
-
-                                                const newDetails = searchResults
-                                                    .filter(detail => selectedEvidenceDetailIds.includes(detail.id) && !existingIds.includes(detail.id));
-
-                                                modalCondition.evidenceDetails = modalCondition.evidenceDetails.concat(newDetails);
-
-                                                openModal = false;
-                                                searchResults = [];
-                                            "
-                                            class="button-primary"
-                                    >
-                                        {{ __('forms.save') }}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </template>
         </div>
     </fieldset>
 </div>
-
-<script>
-    /**
-     * Representation of the user's personal EvidenceDetail
-     */
-    class EvidenceDetail {
-        constructor(obj = null) {
-            this.type = '';
-
-            if (obj) {
-                Object.assign(this, JSON.parse(JSON.stringify(obj)));
-            }
-        }
-    }
-</script>

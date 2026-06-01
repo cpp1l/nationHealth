@@ -152,18 +152,12 @@
                                 <div class="form-row-modal">
                                     <div>
                                         <label for="evidenceCode" class="label-modal">
-                                            {{ __('patients.icpc-2_status_code') }}
+                                            {{ __('patients.icpc-2_status_code') }}<span class="text-red-600"> *</span>
                                         </label>
                                         <x-select2 modelPath="modalEvidenceCode.code"
                                                    dictionaryName="eHealth/ICPC2/condition_codes"
                                                    id="evidenceCode"
                                         />
-
-                                        <p class="text-error text-xs"
-                                           x-show="!Object.keys(dictionary).includes(modalEvidenceCode.code)"
-                                        >
-                                            {{ __('forms.field_empty') }}
-                                        </p>
                                     </div>
                                 </div>
 

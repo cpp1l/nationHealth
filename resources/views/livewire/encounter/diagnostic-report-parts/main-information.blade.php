@@ -246,6 +246,8 @@
                            if ((isEnglish && value.length >= 1) || (!isEnglish && value.length >= 3)) {
                                $wire.searchICD10(value);
                                showResults = true;
+                           } else {
+                               showResults = false;
                            }
                        "
                        @focus="if ((modalDiagnosticReport.conclusionCode?.length ?? 0) >= 1) showResults = true"

@@ -17,7 +17,7 @@
            role="combobox"
     />
 
-    <div class="relative">
+    <div class="relative w-full">
         <div x-show="optionsVisible"
              x-transition:enter="transition ease-out duration-100"
              x-transition:enter-start="opacity-0 scale-95"
@@ -25,7 +25,7 @@
              x-transition:leave="transition ease-in duration-75"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="absolute z-50 border p-2 overflow-y-auto bg-white dark:bg-gray-800 dark:text-white max-h-60 grid shadow-lg rounded-md"
+             class="absolute w-full z-50 border p-2 overflow-y-auto bg-white dark:bg-gray-800 dark:text-white max-h-60 grid shadow-lg rounded-md"
         >
             <template x-for="(option, index) in paginatedOptions" :key="`${option.value}-${index}`">
                 <a @click="selectOption(option)"
@@ -194,6 +194,7 @@
                 if (!searchTerm) {
                     this.filteredOptions = [];
                     this.updatePaginatedOptions();
+                    this.optionsVisible = false;
                     return;
                 }
 
@@ -230,7 +231,11 @@
             },
 
             showOptions() {
-                this.optionsVisible = true;
+                if (this.search.trim() === '') {
+                    this.optionsVisible = false;
+                } else {
+                    this.optionsVisible = true;
+                }
             },
 
             hideOptions() {

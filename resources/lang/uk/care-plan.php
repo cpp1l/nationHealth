@@ -256,6 +256,11 @@ return [
     'diagnostic_reports' => 'Діагностичні звіти',
     'home' => 'Головна',
     'patients' => 'Пацієнти',
+    'activity_kind' => [
+        'service_request' => 'Призначення послуги',
+        'medication_request' => 'Призначення лікарського засобу',
+        'device_request' => 'Призначення медичного виробу',
+    ],
 
     'status' => [
         'draft' => 'Чернетка',
@@ -266,5 +271,7 @@ return [
         'completed' => 'Завершено',
         'entered-in-error' => 'Внесено помилково',
         'unknown' => 'Невідомо',
+        'scheduled' => 'Заплановано',
+        'processed' => 'Оброблено',
     ],
 ];

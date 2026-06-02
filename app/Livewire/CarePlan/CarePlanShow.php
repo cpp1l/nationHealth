@@ -1048,53 +1048,17 @@ class CarePlanShow extends Component
             ]
         ];
 
-        $matchingActivity = null;
-        try {
-            $eHealthActivities = EHealth::carePlanActivity()->getSummary(
-                $this->carePlan->person->uuid,
-                $this->carePlan->uuid
-            )->getData();
+        // Generate the base payload locally to guarantee that it strictly matches the structure and types
+        // of the activity that was originally created. This prevents cryptographic mismatch issues
+        // and avoids pulling server-computed fields from eHealth that were not in the original payload.
+        $payload = $activityRepository->formatCarePlanActivityRequest($activity);
 
-            $activitiesList = $eHealthActivities['activities'] ?? $eHealthActivities['data'] ?? (is_array($eHealthActivities) ? $eHealthActivities : []);
-            foreach ($activitiesList as $act) {
-                if (($act['id'] ?? null) === $activity->uuid) {
-                    $matchingActivity = $act;
-                    break;
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning('CarePlanActivityStatus: failed to fetch original activity from eHealth: ' . $e->getMessage());
-        }
-
-        if ($matchingActivity) {
-            // To satisfy eHealth's strict cryptographic signature matching and schema validation rules:
-            // 
-            // 1. **Signed Content Exact Match**: The signed JSON payload must match the original database record
-            //    in eHealth (including key ordering, nulls, and data types). To ensure this, we start with the raw
-            //    activity object ($matchingActivity) directly returned by eHealth and only strip system metadata fields
-            //    ('inserted_at', 'inserted_by', 'updated_at', 'updated_by') which are not part of the schema definition.
-            // 
-            // 2. **Status and Transition Fields**: eHealth validates the target schema state of the activity inside
-            //    the signed data. However, the cancel/complete transition rules dictate:
-            //    - The activity 'status' in the signed data MUST remain its current state ('scheduled') as stored in eHealth.
-            //    - The dynamic transition parameters (like 'status_reason' for cancellations, or 'outcome_codeable_concept' 
-            //      for completion) MUST be updated inside the signed content detail to satisfy target schema validation.
-            //    Since eHealth excludes 'status' and transition fields during signature matching, we can safely inject the
-            //    transition parameters (like 'status_reason') in the signed content.
-            $payload = $matchingActivity;
-            unset(
-                $payload['inserted_at'],
-                $payload['inserted_by'],
-                $payload['updated_at'],
-                $payload['updated_by']
-            );
-        } else {
-            // Fallback to locally generated payload if the activity was not found in eHealth
-            $payload = $activityRepository->formatCarePlanActivityRequest($activity);
-        }
-
-        // Apply target transition parameters to the signed payload's detail, but retain original status
+        // Keep the status inside the detail equal to the current status of the activity in eHealth.
+        // During cancellation or completion, eHealth expects the signed content's status to reflect the
+        // current state (e.g. 'scheduled' or 'active'), which is synchronized in our local DB status field.
         if (isset($payload['detail'])) {
+            $payload['detail']['status'] = $activity->status;
+
             if ($this->actionType === 'cancel_activity') {
                 $payload['detail']['status_reason'] = $statusReasonCodeableConcept;
             } elseif ($this->actionType === 'complete_activity') {

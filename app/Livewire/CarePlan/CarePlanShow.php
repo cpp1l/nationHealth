@@ -141,6 +141,10 @@ class CarePlanShow extends Component
                 ?->asCodeDescription()
                 ?->toArray() ?? [];
 
+            $this->dictionaries['care_plan_activity_cancel_reasons'] = $basics->byName('eHealth/care_plan_activity_cancel_reasons')
+                ?->asCodeDescription()
+                ?->toArray() ?? [];
+
             // Load medical programs
             $this->dictionaries['medical_programs'] = app(\App\Services\Dictionary\DictionaryManager::class)
                 ->medicalPrograms()
@@ -181,8 +185,14 @@ class CarePlanShow extends Component
 
     public function getStatusReasonsProperty(): array
     {
-        if (in_array($this->actionType, ['complete', 'complete_activity'])) {
+        if ($this->actionType === 'complete') {
             return $this->dictionaries['care_plan_complete_reasons'] ?? [];
+        }
+        if ($this->actionType === 'complete_activity') {
+            return $this->dictionaries['care_plan_activity_complete_reasons'] ?? [];
+        }
+        if ($this->actionType === 'cancel_activity') {
+            return $this->dictionaries['care_plan_activity_cancel_reasons'] ?? [];
         }
         return $this->dictionaries['care_plan_cancel_reasons'] ?? [];
     }
@@ -383,11 +393,20 @@ class CarePlanShow extends Component
         }
 
         try {
-            $response = EHealth::service()->getMany([
-                'name' => $this->searchQuery,
+            $query = trim($this->searchQuery);
+            $params = [
                 'page' => $this->searchPage,
                 'page_size' => 15,
-            ]);
+            ];
+
+            // If the query looks like a code (alphanumeric/hyphens/dots, contains digits, no spaces)
+            if (preg_match('/^[\p{L}0-9\-\.]+$/u', $query) && preg_match('/[0-9]/', $query) && !str_contains($query, ' ')) {
+                $params['code'] = $query;
+            } else {
+                $params['name'] = $query;
+            }
+
+            $response = EHealth::service()->getMany($params);
 
             $this->searchResults = $this->flattenServices($response->getData());
         } catch (\Exception $e) {
@@ -986,7 +1005,7 @@ class CarePlanShow extends Component
                 'errors' => method_exists($exception, 'getErrors') ? $exception->getErrors() : null
             ]);
             $msg = $exception instanceof EHealthValidationException
-                ? $exception->getFormattedMessage()
+                ? $exception->getTranslatedMessage()
                 : __('care-plan.ehealth_error_prefix') . $exception->getMessage();
             Session::flash('error', $msg);
             $this->showSignatureModal = false;
@@ -1029,29 +1048,73 @@ class CarePlanShow extends Component
             ]
         ];
 
-        $payload = [
-            'status' => $statusMap[$this->actionType] ?? 'cancelled',
-            'status_reason' => $statusReasonCodeableConcept,
-        ];
+        $matchingActivity = null;
+        try {
+            $eHealthActivities = EHealth::carePlanActivity()->getSummary(
+                $this->carePlan->person->uuid,
+                $this->carePlan->uuid
+            )->getData();
 
-        if ($this->actionType === 'complete_activity') {
-            if ($this->outcomeCode) {
-                $payload['outcome_codeable_concept'] = [
-                    'coding' => [
-                        [
-                            'system' => 'eHealth/care_plan_activity_outcomes',
-                            'code' => $this->outcomeCode,
-                        ]
-                    ]
-                ];
+            $activitiesList = $eHealthActivities['activities'] ?? $eHealthActivities['data'] ?? (is_array($eHealthActivities) ? $eHealthActivities : []);
+            foreach ($activitiesList as $act) {
+                if (($act['id'] ?? null) === $activity->uuid) {
+                    $matchingActivity = $act;
+                    break;
+                }
             }
-            
-            if (!empty($this->outcomeReferences)) {
-                $payload['outcome_reference'] = collect($this->outcomeReferences)->map(fn($id) => [
-                    'identifier' => [
-                        'value' => $id, // Assuming these are UUIDs of clinical documents
-                    ]
-                ])->toArray();
+        } catch (\Throwable $e) {
+            Log::warning('CarePlanActivityStatus: failed to fetch original activity from eHealth: ' . $e->getMessage());
+        }
+
+        if ($matchingActivity) {
+            // To satisfy eHealth's strict cryptographic signature matching and schema validation rules:
+            // 
+            // 1. **Signed Content Exact Match**: The signed JSON payload must match the original database record
+            //    in eHealth (including key ordering, nulls, and data types). To ensure this, we start with the raw
+            //    activity object ($matchingActivity) directly returned by eHealth and only strip system metadata fields
+            //    ('inserted_at', 'inserted_by', 'updated_at', 'updated_by') which are not part of the schema definition.
+            // 
+            // 2. **Status and Transition Fields**: eHealth validates the target schema state of the activity inside
+            //    the signed data. However, the cancel/complete transition rules dictate:
+            //    - The activity 'status' in the signed data MUST remain its current state ('scheduled') as stored in eHealth.
+            //    - The dynamic transition parameters (like 'status_reason' for cancellations, or 'outcome_codeable_concept' 
+            //      for completion) MUST be updated inside the signed content detail to satisfy target schema validation.
+            //    Since eHealth excludes 'status' and transition fields during signature matching, we can safely inject the
+            //    transition parameters (like 'status_reason') in the signed content.
+            $payload = $matchingActivity;
+            unset(
+                $payload['inserted_at'],
+                $payload['inserted_by'],
+                $payload['updated_at'],
+                $payload['updated_by']
+            );
+        } else {
+            // Fallback to locally generated payload if the activity was not found in eHealth
+            $payload = $activityRepository->formatCarePlanActivityRequest($activity);
+        }
+
+        // Apply target transition parameters to the signed payload's detail, but retain original status
+        if (isset($payload['detail'])) {
+            if ($this->actionType === 'cancel_activity') {
+                $payload['detail']['status_reason'] = $statusReasonCodeableConcept;
+            } elseif ($this->actionType === 'complete_activity') {
+                if ($this->outcomeCode) {
+                    $payload['detail']['outcome_codeable_concept'] = [
+                        'coding' => [
+                            [
+                                'system' => 'eHealth/care_plan_activity_outcomes',
+                                'code' => $this->outcomeCode,
+                            ]
+                        ]
+                    ];
+                }
+                if (!empty($this->outcomeReferences)) {
+                    $payload['detail']['outcome_reference'] = collect($this->outcomeReferences)->map(fn($id) => [
+                        'identifier' => [
+                            'value' => $id,
+                        ]
+                    ])->toArray();
+                }
             }
         }
 
@@ -1075,10 +1138,11 @@ class CarePlanShow extends Component
             $payloadData = [
                 'signed_data'          => $signedContent,
                 'signed_data_encoding' => 'base64',
-                'status_reason'        => $statusReasonCodeableConcept,
             ];
 
-            if ($this->actionType === 'complete_activity') {
+            if ($this->actionType === 'cancel_activity') {
+                $payloadData['status_reason'] = $statusReasonCodeableConcept;
+            } elseif ($this->actionType === 'complete_activity') {
                 if ($this->outcomeCode) {
                     $payloadData['outcome_codeable_concept'] = [
                         'coding' => [
@@ -1170,12 +1234,17 @@ class CarePlanShow extends Component
             Session::flash('success', __('care-plan.activity_updated'));
             $this->showSignatureModal = false;
 
+        } catch (EHealthValidationException $exception) {
+            Log::error('CarePlanActivityStatus: eHealth validation error: ' . $exception->getMessage());
+            Session::flash('error', $exception->getTranslatedMessage());
+            $this->showSignatureModal = false;
         } catch (\Throwable $exception) {
             Log::error('CarePlanActivityStatus: error: ' . $exception->getMessage());
             Session::flash('error', $exception->getMessage());
             $this->showSignatureModal = false;
         }
     }
+
 
     public function openMethodSelectionModal(): void
     {

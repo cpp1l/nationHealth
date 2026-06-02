@@ -141,7 +141,12 @@ class EHealthValidationException extends EHealthException
             } elseif (str_contains($message, 'speciality') && str_contains($message, 'not allowed for doctor')) {
                 $translatedMessage = __('errors.ehealth.messages.speciality not allowed for doctor');
             } elseif (str_contains($message, 'type mismatch')) {
-                $translatedMessage = __('errors.ehealth.messages.type mismatch. Expected integer but got string');
+                $messages = trans('errors.ehealth.messages');
+                $translatedMessage = is_array($messages) && isset($messages[$message])
+                    ? $messages[$message]
+                    : $message;
+            } elseif (str_contains($message, 'Another activity with status') && str_contains($message, 'already exists')) {
+                $translatedMessage = __('errors.ehealth.messages.another_activity_exists');
             }
 
             if (empty($translatedMessage) && !empty($ruleName)) {

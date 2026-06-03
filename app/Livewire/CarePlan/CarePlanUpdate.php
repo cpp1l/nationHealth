@@ -54,7 +54,7 @@ class CarePlanUpdate extends CarePlanCreate
         $this->form->note = $carePlan->note ?? '';
         $this->form->informWith = $carePlan->inform_with ?? '';
         $this->form->episodes = $carePlan->supporting_info['episodes'] ?? [];
-        $this->form->medical_records = $carePlan->supporting_info['medical_records'] ?? [];
+        $this->form->medicalRecords = $carePlan->supporting_info['medical_records'] ?? [];
         $this->form->knedp = '';
         $this->form->keyContainerUpload = null;
         $this->form->password = '';
@@ -139,7 +139,7 @@ class CarePlanUpdate extends CarePlanCreate
             'addresses' => $encounterData['addresses'],
             'supporting_info' => [
                 'episodes' => $this->form->episodes,
-                'medical_records' => $this->form->medical_records,
+                'medical_records' => $this->form->medicalRecords,
             ],
             'description' => $this->form->description ?: null,
             'note' => $this->form->note ?: null,
@@ -264,35 +264,24 @@ class CarePlanUpdate extends CarePlanCreate
                 'addresses' => $encounterData['addresses'],
             ]);
 
-            if ($carePlanUuid) {
-                try {
-                    $detailsResponse = EHealth::carePlan()->getDetails($this->patientUuid ?: $this->uuid, $carePlanUuid);
-                    $repository->syncCarePlans($detailsResponse->validate(), $this->carePlan->person_id);
-                } catch (\Throwable $e) {
-                    Log::warning('CarePlanUpdate: failed to sync care plan after update: ' . $e->getMessage());
-                    // Fallback update
-                    $repository->updateById($this->carePlan->id, [
-                        'uuid' => $carePlanUuid,
-                        'status' => $carePlanStatus,
-                        'requisition' => $carePlanRequisition,
-                        'category' => $this->form->category,
-                        'title' => $this->form->title,
-                        'period_start' => convertToYmd($this->form->periodStart),
-                        'period_end' => !empty($this->form->periodEnd) ? convertToYmd($this->form->periodEnd) : null,
-                        'encounter_id' => $encounterData['id'],
-                        'addresses' => $encounterData['addresses'],
-                        'supporting_info' => [
-                            'episodes' => $this->form->episodes,
-                            'medical_records' => $this->form->medical_records,
-                        ],
-                    ]);
-                }
-            } else {
-                $repository->updateById($this->carePlan->id, [
-                    'status' => $carePlanStatus,
-                    'requisition' => $carePlanRequisition,
-                ]);
-            }
+            // Update local model with eHealth response
+            $repository->updateById($this->carePlan->id, [
+                'uuid' => $carePlanUuid,
+                'status' => $carePlanStatus,
+                'requisition' => $carePlanRequisition,
+                // Update other fields too just in case they were changed before signing
+                'category' => $this->form->category,
+                'title' => $this->form->title,
+                'period_start' => convertToYmd($this->form->periodStart),
+                'period_end' => !empty($this->form->periodEnd)
+                    ? convertToYmd($this->form->periodEnd) : null,
+                'encounter_id' => $encounterData['id'],
+                'addresses' => $encounterData['addresses'],
+                'supporting_info' => [
+                    'episodes' => $this->form->episodes,
+                    'medical_records' => $this->form->medicalRecords,
+                ],
+            ]);
 
             session()->flash('success', __('care-plan.signed_and_sent'));
 

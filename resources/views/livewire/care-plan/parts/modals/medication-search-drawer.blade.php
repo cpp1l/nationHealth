@@ -1,23 +1,37 @@
-@php
-    $searchQuery = $searchQuery ?? '';
-    $searchResults = $searchResults ?? [];
-@endphp
+{{-- Medication Search Drawer Overlay (below header z-60) --}}
+<div x-show="showMedicationSearchDrawer"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     x-cloak
+     @click="showMedicationSearchDrawer = false"
+     aria-controls="medication-search-drawer-right"
+     class="fixed top-0 right-0 h-screen pt-20 w-4/5 bg-gray-900/50"
+     style="z-index: 44;"
+></div>
 
-<x-dialog-drawer
-    x-model="showMedicationSearchDrawer"
-    noTeleport="true"
-    topClass="top-[57px]"
-    zIndex="42"
-    customWidth="w-full sm:w-[calc(80%-15%)]"
-    overlayWidth="80%"
-    hasClose="true"
-    onCloseClick="showMedicationSearchDrawer = false"
+{{-- Medication Search Drawer (30px gap on the LEFT) --}}
+<div id="medication-search-drawer-right"
+     x-show="showMedicationSearchDrawer"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="translate-x-full"
+     x-transition:enter-end="translate-x-0"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="translate-x-0"
+     x-transition:leave-end="translate-x-full"
+     x-cloak
+     class="fixed top-0 right-0 h-screen pt-20 p-4 overflow-y-auto bg-white dark:bg-gray-800 shadow-2xl"
+     style="z-index: 45; width: calc(80% - 30px);"
+     tabindex="-1"
+     aria-labelledby="medication-search-drawer-label"
+     x-data="{ showFilter: false }"
 >
-    <x-slot name="title">
+    <h3 class="modal-header" id="medication-search-drawer-label">
         {{ __('care-plan.new_medication_prescription') }}
-    </x-slot>
-
-    <div x-data="{ showFilter: false }" class="flex flex-col h-full w-full">
+    </h3>
 
     {{-- Search Input --}}
     <div class="mb-4">
@@ -121,12 +135,10 @@
     <div class="mt-6">
         <button type="button"
                 class="button-minor"
-                data-drawer-hide="medication-search-drawer-right"
                 aria-controls="medication-search-drawer-right"
                 @click="showMedicationSearchDrawer = false"
         >
             {{ __('forms.cancel') }}
         </button>
     </div>
-    </div>
-</x-dialog-drawer>
+</div>

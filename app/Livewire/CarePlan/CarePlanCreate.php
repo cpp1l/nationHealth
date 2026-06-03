@@ -32,7 +32,7 @@ class CarePlanCreate extends BasePatientComponent
     public bool $showMethodSelectionModal = false;
     public string $patientUuid = '';
     public string $conditionUuid = '';
-    public string $medical_record_type = 'CONDITION';
+    public string $medicalRecordType = 'CONDITION';
     public ?string $carePlanUuid = null;
 
     // Care Plan form data
@@ -440,7 +440,7 @@ class CarePlanCreate extends BasePatientComponent
             'addresses' => $encounterData['addresses'],
             'supporting_info' => [
                 'episodes' => $this->form->episodes,
-                'medical_records' => $this->form->medical_records,
+                'medical_records' => $this->form->medicalRecords,
             ],
             'description' => $this->form->description ?: null,
             'note' => $this->form->note ?: null,

@@ -412,13 +412,6 @@ class EncounterComponent extends Component
             $this->evidenceDetails = $this->fetchConditionsOrObservations($type);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while getting evidence details');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when getting evidence details", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when getting evidence details", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
         }
     }
 
@@ -434,13 +427,6 @@ class EncounterComponent extends Component
             $this->findingResults = $this->fetchConditionsOrObservations($type);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while getting findings');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when getting findings", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when getting findings", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
         }
     }
 
@@ -455,13 +441,6 @@ class EncounterComponent extends Component
             $this->complicationDetailResults = $this->fetchConditionsOrObservations('condition');
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while getting complication details');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when getting complication details", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when getting complication details", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
         }
     }
 
@@ -477,13 +456,6 @@ class EncounterComponent extends Component
             $this->reasonReferenceResults = $this->fetchConditionsOrObservations($type);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while getting reason references');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when getting reason references", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when getting reason references", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
         }
     }
 
@@ -545,13 +517,8 @@ class EncounterComponent extends Component
             })->all();
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while getting clinical impressions');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when getting clinical impressions", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when getting clinical impressions", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
+
+            return;
         }
     }
 
@@ -584,13 +551,6 @@ class EncounterComponent extends Component
             $this->loadIcd10Descriptions($this->problems);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while searching for problems');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when searching for problems", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when searching for problems", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
         }
     }
 
@@ -670,13 +630,6 @@ class EncounterComponent extends Component
             };
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle("Error while searching for $type in Encounter Component");
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when searching for $type", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when searching for $type", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
         }
     }
 
@@ -755,13 +708,8 @@ class EncounterComponent extends Component
             $this->episodes = Arr::toCamelCase($this->episodes);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error when getting episodes');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $errors = json_encode($exception->errors(), JSON_UNESCAPED_UNICODE);
-            \Illuminate\Support\Facades\Log::channel('e_health_errors')->error("EncounterComponent: Local validation failed when getting episodes", ['errors' => $exception->errors()]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Помилка валідації даних від ЕСОЗ: ' . $errors);
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error("EncounterComponent: Unexpected error when getting episodes", ['exception' => $exception]);
-            \Illuminate\Support\Facades\Session::flash('error', 'Неочікувана помилка: ' . $exception->getMessage());
+
+            return;
         }
     }
 

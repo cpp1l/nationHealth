@@ -470,7 +470,17 @@
             </div>
         </div>
 
-        @include('components.signature-modal', ['method' => 'sign'])
+        @if($actionType === 'cancel')
+            @include('livewire.care-plan.parts.modals.cancel-care-plan-modal', ['method' => 'sign'])
+        @elseif($actionType === 'complete')
+            @include('livewire.care-plan.parts.modals.complete-care-plan-modal', ['method' => 'sign'])
+        @elseif($actionType === 'cancel_activity')
+            @include('livewire.care-plan.parts.modals.cancel-activity-modal', ['method' => 'sign'])
+        @elseif($actionType === 'complete_activity')
+            @include('livewire.care-plan.parts.modals.complete-activity-modal', ['method' => 'sign'])
+        @else
+            @include('components.signature-modal', ['method' => 'sign'])
+        @endif
         @if($showAuthModal)
             @include('livewire.care-plan.modals.authentication')
         @endif

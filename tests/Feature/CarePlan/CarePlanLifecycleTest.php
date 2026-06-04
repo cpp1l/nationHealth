@@ -497,6 +497,46 @@ class CarePlanLifecycleTest extends TestCase
         $mockSignatureService->shouldReceive('getCertificateAuthorities')->andReturn([]);
 
         // 1. Test Cancel Activity
+        $activityDetailsResponse = Mockery::mock(\App\Classes\eHealth\EHealthResponse::class);
+        $activityDetailsResponse->shouldReceive('getData')->andReturn([
+            'data' => [
+                'id' => $activity->uuid,
+                'author' => [
+                    [
+                        'identifier' => [
+                            'type' => [
+                                'coding' => [
+                                    [
+                                        'system' => 'eHealth/resources',
+                                        'code' => 'employee'
+                                    ]
+                                ]
+                            ],
+                            'value' => $this->employee->uuid
+                        ]
+                    ]
+                ],
+                'care_plan' => [
+                    'identifier' => [
+                        'type' => [
+                            'coding' => [
+                                [
+                                    'system' => 'eHealth/resources',
+                                    'code' => 'care_plan'
+                                ]
+                            ]
+                        ],
+                        'value' => $carePlan->uuid
+                    ]
+                ],
+                'detail' => [
+                    'kind' => 'ServiceRequest',
+                    'status' => 'scheduled',
+                ]
+            ]
+        ]);
+        $mockActivityApi->shouldReceive('getDetails')->andReturn($activityDetailsResponse);
+
         $activityCancelResponse = Mockery::mock(\App\Classes\eHealth\EHealthResponse::class);
         $activityCancelResponse->shouldReceive('getData')->andReturn([
             'links' => [['href' => '/jobs/cancel-123']]

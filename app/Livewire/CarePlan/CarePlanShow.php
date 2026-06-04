@@ -1048,10 +1048,30 @@ class CarePlanShow extends Component
             ]
         ];
 
-        // Generate the base payload locally to guarantee that it strictly matches the structure and types
-        // of the activity that was originally created. This prevents cryptographic mismatch issues
-        // and avoids pulling server-computed fields from eHealth that were not in the original payload.
-        $payload = $activityRepository->formatCarePlanActivityRequest($activity);
+        $payload = null;
+        try {
+            $eHealthActivityResponse = EHealth::carePlanActivity()->getDetails(
+                $this->carePlan->person->uuid,
+                $this->carePlan->uuid,
+                $activity->uuid
+            );
+            $matchingActivity = $eHealthActivityResponse->getData();
+            if (isset($matchingActivity['data'])) {
+                $matchingActivity = $matchingActivity['data'];
+            }
+            if ($matchingActivity && is_array($matchingActivity)) {
+                $payload = $this->cleanActivityPayload($matchingActivity);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('CarePlanActivityStatus: failed to fetch original activity from eHealth, falling back to local payload: ' . $e->getMessage());
+        }
+
+        if (!$payload) {
+            // Generate the base payload locally to guarantee that it strictly matches the structure and types
+            // of the activity that was originally created. This prevents cryptographic mismatch issues
+            // and avoids pulling server-computed fields from eHealth that were not in the original payload.
+            $payload = $this->cleanActivityPayload($activityRepository->formatCarePlanActivityRequest($activity));
+        }
 
         // Keep the status inside the detail equal to the current status of the activity in eHealth.
         // During cancellation or completion, eHealth expects the signed content's status to reflect the
@@ -1061,13 +1081,18 @@ class CarePlanShow extends Component
             if (strtolower((string)$currentStatus) === 'processed') {
                 $currentStatus = 'scheduled';
             }
-            $payload['detail']['status'] = $currentStatus;
+            $payload['detail']['status'] = $payload['detail']['status'] ?? $currentStatus;
+
+            // Map 'processed' to 'scheduled' if returned by eHealth
+            if (strtolower((string)($payload['detail']['status'] ?? '')) === 'processed') {
+                $payload['detail']['status'] = 'scheduled';
+            }
 
             if ($this->actionType === 'cancel_activity') {
                 $payload['detail']['status_reason'] = $statusReasonCodeableConcept;
             } elseif ($this->actionType === 'complete_activity') {
                 if ($this->outcomeCode) {
-                    $payload['detail']['outcome_codeable_concept'] = [
+                    $payload['outcome_codeable_concept'] = [
                         'coding' => [
                             [
                                 'system' => 'eHealth/care_plan_activity_outcomes',
@@ -1077,7 +1102,7 @@ class CarePlanShow extends Component
                     ];
                 }
                 if (!empty($this->outcomeReferences)) {
-                    $payload['detail']['outcome_reference'] = collect($this->outcomeReferences)->map(fn($id) => [
+                    $payload['outcome_reference'] = collect($this->outcomeReferences)->map(fn($id) => [
                         'identifier' => [
                             'value' => $id,
                         ]
@@ -1364,6 +1389,52 @@ class CarePlanShow extends Component
     {
         $this->carePlan->refresh();
         $this->carePlan->load(['person', 'author.party', 'categoryConcept', 'activities.kindConcept.coding']);
+    }
+
+    private function cleanActivityPayload(array $payload): array
+    {
+        $excludeKeys = [
+            'display_value',
+            'remaining_quantity',
+            'remaining_quantity_type',
+            'inserted_at',
+            'inserted_by',
+            'updated_at',
+            'updated_by',
+            'status_history',
+            'database_id',
+        ];
+
+        foreach ($payload as $key => $value) {
+            $snakeKey = \Illuminate\Support\Str::snake($key);
+            if (in_array($snakeKey, $excludeKeys, true)) {
+                unset($payload[$key]);
+                continue;
+            }
+
+            if ($snakeKey === 'author' && is_array($value)) {
+                // eHealth getDetails returns author as a list [ {identifier...} ], but creation / expected schema is a single object
+                if (isset($value[0])) {
+                    $value = $value[0];
+                } elseif (empty($value)) {
+                    unset($payload[$key]);
+                    continue;
+                }
+            }
+
+            if (is_array($value)) {
+                $payload[$key] = $this->cleanActivityPayload($value);
+                if (empty($payload[$key])) {
+                    unset($payload[$key]);
+                }
+            } elseif ($value === null || $value === '') {
+                unset($payload[$key]);
+            } else {
+                $payload[$key] = $value;
+            }
+        }
+
+        return $payload;
     }
 
     public function render()

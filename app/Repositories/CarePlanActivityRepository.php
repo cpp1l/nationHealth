@@ -103,12 +103,14 @@ class CarePlanActivityRepository
         $quantitySystem = $quantityRelation ? $quantityRelation->system : $activity->quantity_system;
         $quantityCode = $quantityRelation ? $quantityRelation->code : $activity->quantity_code;
         $quantityNormalizedCode = $this->normalizeUnitCode($quantitySystem, $quantityCode);
+        $quantityUnit = $quantityRelation ? $quantityRelation->unit : null;
 
         $dailyAmountRelation = $activity->dailyAmountQuantity;
         $dailyAmountValue = $dailyAmountRelation ? $dailyAmountRelation->value : $activity->daily_amount;
         $dailyAmountSystem = $dailyAmountRelation ? $dailyAmountRelation->system : ($activity->daily_amount_system ?? $quantitySystem);
         $dailyAmountCode = $dailyAmountRelation ? $dailyAmountRelation->code : ($activity->daily_amount_code ?? $quantityCode);
         $dailyAmountNormalizedCode = $this->normalizeUnitCode($dailyAmountSystem, $dailyAmountCode);
+        $dailyAmountUnit = $dailyAmountRelation ? $dailyAmountRelation->unit : null;
 
         $scheduledPeriod = $activity->scheduledPeriod;
         $startDate = $scheduledPeriod ? $scheduledPeriod->getRawOriginal('start') : $activity->scheduled_period_start;
@@ -180,11 +182,17 @@ class CarePlanActivityRepository
                     'start' => $formattedStart,
                     'end' => $formattedEnd,
                 ]),
-                'quantity' => $quantityValue ? ['value' => (float)$quantityValue, 'system' => $quantitySystem, 'code' => $quantityNormalizedCode] : null,
+                'quantity' => $quantityValue ? removeEmptyKeys([
+                    'value' => (float)$quantityValue,
+                    'system' => $quantitySystem,
+                    'code' => $quantityNormalizedCode,
+                    'unit' => $quantityUnit ?: null,
+                ]) : null,
                 'daily_amount' => $dailyAmountValue ? removeEmptyKeys([
                     'value' => (float)$dailyAmountValue,
                     'system' => $isMedication ? $dailyAmountSystem : null,
-                    'code' => $isMedication ? $dailyAmountNormalizedCode : null
+                    'code' => $isMedication ? $dailyAmountNormalizedCode : null,
+                    'unit' => $isMedication ? ($dailyAmountUnit ?: null) : null,
                 ]) : null,
                 'reason_code' => $activity->reason_code ? [['coding' => [['code' => $activity->reason_code]]]] : null,
                 'reason_reference' => !empty($activity->reason_reference) ? array_map(function($r) {
@@ -210,7 +218,14 @@ class CarePlanActivityRepository
                         ]
                     ];
                 }, $activity->reason_reference) : null,
-                'goal' => !empty($activity->goal) ? array_map(fn($g) => ['identifier' => ['value' => $g]], $activity->goal) : null,
+                'goal' => !empty($activity->goal) ? array_map(fn($g) => [
+                    'coding' => [
+                        [
+                            'system' => 'eHealth/care_plan_activity_goals',
+                            'code' => $g
+                        ]
+                    ]
+                ], $activity->goal) : null,
                 'program' => $activity->program ? [
                     'identifier' => [
                         'type' => [
@@ -334,7 +349,12 @@ class CarePlanActivityRepository
                 $goalArray = [];
                 if (isset($detail['goal'])) {
                     foreach ($detail['goal'] as $g) {
-                        $val = $g['identifier']['value'] ?? null;
+                        $val = null;
+                        if (isset($g['coding'][0]['code'])) {
+                            $val = $g['coding'][0]['code'];
+                        } elseif (isset($g['identifier']['value'])) {
+                            $val = $g['identifier']['value'];
+                        }
                         if ($val) {
                             $goalArray[] = $val;
                         }

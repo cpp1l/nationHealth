@@ -31,9 +31,9 @@ class Approval extends Request
      * Get approvals for a specific patient.
      *
      * @param  string  $patientId
-     * @param  array  $query
+     * @param  array  $query  query params: status (e.g. active), limit, etc.
      * @return PromiseInterface|EHealthResponse
-     * @throws ConnectionException|EHealthValidationException|EHealthResponseException
+     * @throws EHealthConnectionException|EHealthValidationException|EHealthResponseException
      */
     public function getPatientApprovals(string $patientId, array $query = []): PromiseInterface|EHealthResponse
     {

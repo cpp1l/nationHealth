@@ -338,7 +338,7 @@ class TestUserMigrate extends Seeder
                     'second_name' => 'Сергійович',
                     'birth_date' => new Carbon('1985-01-07'),
                     'birth_country' => 'Україна',
-                    'birth_settlement' => 'Київ',
+                    'birth_settlement' => null, // Here set to null to properly synchronization
                     'gender' => 'MALE',
                     'email' => 'test99@gmail.com',
                     'no_tax_id' => false,

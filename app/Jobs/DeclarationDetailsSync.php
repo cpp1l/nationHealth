@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Exceptions\EHealth\EHealthConnectionException;
 use Throwable;
 use App\Core\Arr;
 use Carbon\Carbon;
@@ -23,8 +22,10 @@ use Illuminate\Queue\SerializesModels;
 use App\Classes\eHealth\EHealthResponse;
 use App\Traits\BatchLegalEntityQueries;
 use GuzzleHttp\Promise\PromiseInterface;
+use App\Models\Relations\ConfidantPerson;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Middleware\RateLimited;
+use App\Exceptions\EHealth\EHealthConnectionException;
 
 class DeclarationDetailsSync extends EHealthJob
 {
@@ -109,7 +110,7 @@ class DeclarationDetailsSync extends EHealthJob
 
         echo "Person synced: " . $person['id'] . PHP_EOL;
 
-        if (!empty($confidantPerson)) {
+        if (!empty($confidantPerson) && ConfidantPerson::where('person_id', $this->declaration->person_id)->doesntExist()) {
             $confidantPerson['person_id'] = $this->declaration->person->id;
 
             Repository::confidantPerson()->addConfidantPerson($confidantPerson);

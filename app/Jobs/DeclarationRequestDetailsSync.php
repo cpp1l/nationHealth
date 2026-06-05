@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Exceptions\EHealth\EHealthConnectionException;
 use Throwable;
 use App\Core\Arr;
 use App\Core\EHealthJob;
 use App\Enums\JobStatus;
 use App\Models\LegalEntity;
+use App\Models\Person\Person;
+use App\Repositories\Repository;
 use App\Classes\eHealth\EHealth;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Collection;
@@ -21,6 +22,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use App\Classes\eHealth\EHealthResponse;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Middleware\RateLimited;
+use App\Exceptions\EHealth\EHealthConnectionException;
 
 class DeclarationRequestDetailsSync extends EHealthJob
 {
@@ -66,6 +68,7 @@ class DeclarationRequestDetailsSync extends EHealthJob
     protected function processResponse(?EHealthResponse $response): void
     {
         $validatedData = $response->validate();
+        $urgentData = $response->getUrgent();
 
         Log::info('Processing DeclarationRequestDetailsUpsert for declaration request:' . $this->declarationRequest->id . ', LE:' . ($this->legalEntity->id ?? 'N/A'));
 
@@ -78,6 +81,53 @@ class DeclarationRequestDetailsSync extends EHealthJob
             'declaration_uuid'
         ]);
 
+        $person = Arr::get($validatedData, 'data_to_be_signed.person', null); // Extract person data for separate processing
+        $personModel = Person::where('uuid', Arr::get($person, 'id'))->first();
+        $personId = Arr::get($person, 'id', null);
+
+        // Check if person exists and if any of the critical fields have changed to determine if we need to update or create the person record
+        $isToBeSaved = $personId && (!$personModel ||
+                (
+                    $personModel?->noTaxId !== $person['no_tax_id'] ||
+                    $personModel?->taxId !== $person['tax_id'] ||
+                    $personModel?->email !== $person['email'] ||
+                    $personModel?->emergencyContact !== $person['emergency_contact'] ||
+                    $personModel?->secret !== $person['secret'] ||
+                    $personModel?->unzr !== $person['unzr'] ||
+                    $personModel?->birthCountry !== $person['birth_country'] ||
+                    $personModel?->birthSettlement !== $person['birth_settlement']
+                )
+            );
+
+        if ($isToBeSaved) {
+            Log::warning('Person with UUID ' . $personId . ' does not exist in the database. It will be created during synchronization.');
+
+            $confidantPerson = $person['confidant_person'] ?? [];
+
+            $person['addresses'] ??= [];
+            $person['documents'] ??= [];
+            $person['phones'] ??= [];
+            $person['patient_signed'] ??= false; // default value if not provided
+            $person['process_disclosure_data_consent'] ??= true; // default value if not provided
+            $person['authentication_methods'] ??= [$urgentData['authentication_method_current'] ?? []];
+            // TODO: Check if we need to update authentication method with new URL from urgent data.
+            // if (!empty($urgentData['documents'][0]['url'])) {
+            //     $person['authentication_methods'][0]['url'] = Arr::get($urgentData, 'documents.0.url');
+            // }
+
+            Repository::declarationRequest()->syncPersonData($person);
+
+            echo "Person partially synced: " . $personId . PHP_EOL;
+
+            if (!empty($confidantPerson)) {
+                $confidantPerson['person_id'] = $this->declarationRequest->person->id;
+
+                Repository::confidantPerson()->addConfidantPerson($confidantPerson);
+
+                echo "Confidant Person for this person has been synced: " . PHP_EOL;
+            }
+        }
+    
         $validatedData['sync_status'] = JobStatus::COMPLETED->value;
 
         $this->declarationRequest->update($validatedData);

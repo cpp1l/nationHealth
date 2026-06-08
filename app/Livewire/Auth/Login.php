@@ -6,6 +6,8 @@ namespace App\Livewire\Auth;
 
 use App\Models\User;
 use App\Models\Role;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\View\View;
 use Livewire\Component;
 use App\Models\LegalEntity;
 use Illuminate\Support\Str;
@@ -26,9 +28,7 @@ use Livewire\Features\SupportRedirects\Redirector;
 #[Layout('layouts.guest')]
 class Login extends Component
 {
-    public string $legalEntityUUID = '';
-
-    protected ?LegalEntity $legalEntity;
+    public string $legalEntityUuid = '';
 
     /**
      * List of ALL founded Legal Entities
@@ -49,14 +49,23 @@ class Login extends Component
 
     public bool $isFirstLogin = false;
 
-    public $rolesList = [];
+    public array $rolesList = [];
 
     public bool $showRoleSelect = false;
+
+    public bool $isEmailLocked = false;
 
     public function mount(): void
     {
         $this->legalEntitiesList = Repository::legalEntity()->getLegalEntitiesList();
         $this->rolesList = Role::pluck('name', 'id')->unique()->toArray();
+
+        $misEmail = Session::get('mis_2fa.email');
+
+        if ($misEmail) {
+            $this->email = $misEmail;
+            $this->isEmailLocked = true;
+        }
     }
 
     /**
@@ -66,13 +75,20 @@ class Login extends Component
      */
     public function login(): RedirectResponse|Redirector
     {
+        // Email is fixed by the MIS two-factor step; ignore any client-side change
+        $lockedEmail = Session::get('mis_2fa.email');
+
+        if ($lockedEmail) {
+            $this->email = $lockedEmail;
+        }
+
         $key = $this->throttleKey();
 
         $credentials = $this->validate();
 
         // This need to avoid further user authentication for local auth
-        if (!empty($this->legalEntityUUID)) {
-            unset($credentials['legalEntityUUID']);
+        if (!empty($this->legalEntityUuid)) {
+            unset($credentials['legalEntityUuid']);
         }
 
         // Check if user doesn't block by attempts exceeding
@@ -94,14 +110,14 @@ class Login extends Component
 
             RateLimiter::hit($key, config('ehealth.auth.delay_seconds'));
 
-            return back();
+            return Redirect::back();
         }
 
         // If first login(user doesn't exist in users table, or user doesn't have roles for the selected legal entity)
         if (!$this->isLocalAuth && (!$user || !$this->userHasRolesForLegalEntity($user) || $this->isSingleRoleAuth)) {
             $this->showRoleSelect = true;
 
-            Log::info('[Login] Користувач не знайдений або не має ролей. Перехід до "першого входу" eHealth.', ['email' => $this->email, 'legalEntityUUID' => $this->legalEntityUUID]);
+            Log::info('[Login] Користувач не знайдений або не має ролей. Перехід до "першого входу" eHealth.', ['email' => $this->email, 'legalEntityUuid' => $this->legalEntityUuid]);
 
             if (empty($this->role)) {
                 $this->isFirstLogin = true;
@@ -109,7 +125,7 @@ class Login extends Component
                 return Redirect::back()->withInput();
             }
 
-            Session::put('selected_legal_entity_uuid_for_ehealth', $this->legalEntityUUID);
+            Session::put('selected_legal_entity_uuid_for_ehealth', $this->legalEntityUuid);
             Session::put('logined_guard', 'ehealth');
 
             return Redirect::to($this->buildFirstEHealthLoginUrl());
@@ -124,18 +140,18 @@ class Login extends Component
             // Save user's id to send a verification link again (if needed)
             Session::put('unverified_user_id', $user->id);
 
-            return redirect(route('verification.notice'));
+            return Redirect::route('verification.notice');
         }
 
         if (!$this->isLocalAuth) {
-            if (empty($this->legalEntityUUID)) {
+            if (empty($this->legalEntityUuid)) {
                 Log::error("Legal entity hasn't been choose for email $user->email");
 
-                return back();
+                return Redirect::back();
             }
 
             // Temporary save the UUID of the selected Legal Entity
-            Session::put('selected_legal_entity_uuid_for_ehealth', $this->legalEntityUUID);
+            Session::put('selected_legal_entity_uuid_for_ehealth', $this->legalEntityUuid);
 
             // Save the guard to understand that we need to use eHealth authorization flow
             Session::put('logined_guard', 'ehealth');
@@ -148,22 +164,13 @@ class Login extends Component
 
             $this->addError('email', __('auth.login.error.validation.credentials'));
 
-            return back();
+            return Redirect::back();
         }
 
         $this->clearLoginAttempts();
         Session::regenerate();
 
-        // Get an array of the LegalEntity id's connected to this $user
-        $accessibleLegalEntities = $user->accessibleLegalEntities()->toArray();
-
-        if (!empty($accessibleLegalEntities)) {
-            Session::flash('user_accessible_legal_entities', $accessibleLegalEntities);
-
-            return redirect(route('legalEntity.select'));
-        }
-
-        return redirect(route('legal-entity.new.create'));
+        return Redirect::route('legal-entity.new.create');
     }
 
     protected function rules(): array
@@ -173,7 +180,7 @@ class Login extends Component
         return array_filter([
             'email' => 'required|email',
             'password' => $this->isLocalAuth ? 'required|string' : 'nullable',
-            'legalEntityUUID' => !$this->isLocalAuth
+            'legalEntityUuid' => !$this->isLocalAuth
                 ? ['required', Rule::in($uuids)]
                 : null,
         ]);
@@ -182,8 +189,8 @@ class Login extends Component
     public function messages(): array
     {
         return [
-            'legalEntityUUID.required' => __('forms.choose_legal_entity'),
-            'legalEntityUUID.in' => __('forms.del_and_choose_value'),
+            'legalEntityUuid.required' => __('forms.choose_legal_entity'),
+            'legalEntityUuid.in' => __('forms.del_and_choose_value'),
         ];
     }
 
@@ -198,7 +205,7 @@ class Login extends Component
         $key = $this->throttleKey();
 
         // Check if already has blocking
-        if (cache()->has("login_lockout:$key")) {
+        if (Cache::has("login_lockout:$key")) {
             Log::warning(__('auth.login.error.lockout', [], 'en'), [
                 'ip' => request()->ip(),
                 'email' => $credentials['email']
@@ -215,7 +222,7 @@ class Login extends Component
 
         $seconds = RateLimiter::availableIn($key);
 
-        cache()->put("login_lockout:$key", true, now()->addSeconds($seconds));
+        Cache::put("login_lockout:$key", true, now()->addSeconds($seconds));
 
         $this->addError('email', __('auth.login.error.exceed_login_attempts'));
 
@@ -234,7 +241,7 @@ class Login extends Component
             return false;
         }
 
-        $legalEntityId = LegalEntity::where('uuid', $this->legalEntityUUID)->value('id');
+        $legalEntityId = LegalEntity::where('uuid', $this->legalEntityUuid)->value('id');
 
         return DB::table('model_has_roles')
             ->where('model_type', $user->getMorphClass())
@@ -254,7 +261,7 @@ class Login extends Component
 
         RateLimiter::clear($this->throttleKey());
 
-        cache()->forget("login_lockout:$key");
+        Cache::forget("login_lockout:$key");
     }
 
     /**
@@ -269,20 +276,18 @@ class Login extends Component
         $baseUrl = config('ehealth.api.auth_host');
         $redirectUri = config('ehealth.api.redirect_uri');
 
-        $selectedLegalEntityClientId = $this->getLegalEntityClientIdFromUuid($this->legalEntityUUID);
-
-        $legalEntityId = LegalEntity::whereUuid($this->legalEntityUUID)->first()->id;
+        $selectedLegalEntity = LegalEntity::whereUuid($this->legalEntityUuid)->firstOrFail();
 
         // Base query parameters
         $queryParams = [
-            'client_id' => $selectedLegalEntityClientId ?? '',
+            'client_id' => $selectedLegalEntity->clientId ?? '',
             'redirect_uri' => $redirectUri,
             'response_type' => 'code'
         ];
 
         // Set a temporary team/legalEntity ID, this should be overridden once a user actually logs in.
         // Spatie Permissions sets permissions globally, they can't be loaded by querying relations tables
-        setPermissionsTeamId($legalEntityId);
+        setPermissionsTeamId($selectedLegalEntity->id);
         $user->unsetRelation('roles')->unsetRelation('permissions');
 
         // Additional query parameters if email is provided
@@ -310,16 +315,14 @@ class Login extends Component
         $redirectUri = config('ehealth.api.redirect_uri');
         $loginedGuard = Session::get('logined_guard', 'web');
 
-        $selectedLegalEntityClientId = $this->getLegalEntityClientIdFromUuid($this->legalEntityUUID);
+        $selectedLegalEntity = LegalEntity::whereUuid($this->legalEntityUuid)->first();
 
         // TODO: check if setPermissionsTeamId is really needed here
         // Ensure Spatie team context is set so Role->permissions() is scoped by the selected Legal Entity type
-        $selectedLegalEntityId = LegalEntity::whereUuid($this->legalEntityUUID)->value('id');
-
         Auth::shouldUse($loginedGuard);
 
-        if ($selectedLegalEntityId) {
-            setPermissionsTeamId($selectedLegalEntityId);
+        if ($selectedLegalEntity) {
+            setPermissionsTeamId($selectedLegalEntity->id);
         }
 
         $role = Role::findByName($this->role)->loadMissing('permissions', 'legalEntityTypes');
@@ -330,7 +333,7 @@ class Login extends Component
 
         // Base query parameters
         $queryParams = [
-            'client_id' => $selectedLegalEntityClientId ?? '',
+            'client_id' => $selectedLegalEntity?->clientId ?? '',
             'redirect_uri' => $redirectUri,
             'response_type' => 'code',
             'email' => $this->email,
@@ -344,18 +347,6 @@ class Login extends Component
     }
 
     /**
-     * Helper to get client_id from selected record by legalEntityUUID.
-     * This is crucial if the user doesn't have a default LegalEntity assigned yet.
-     *
-     * @param  string  $uuid
-     * @return string|null
-     */
-    protected function getLegalEntityClientIdFromUuid(string $uuid): ?string
-    {
-        return LegalEntity::whereUuid($uuid)->first()?->clientId;
-    }
-
-    /**
      * Get the authentication rate limiting throttle key.
      *
      * @return string
@@ -365,11 +356,8 @@ class Login extends Component
         return Str::transliterate(Str::lower($this->email) . '|' . request()->ip());
     }
 
-    public function render()
+    public function render(): View
     {
-        return view('livewire.auth.login')->with([
-            'hasEmailError' => $this->getErrorBag()->has('email'),
-            'hasPasswordError' => $this->getErrorBag()->has('password'),
-        ]);
+        return view('livewire.auth.login');
     }
 }

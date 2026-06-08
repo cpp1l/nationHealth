@@ -22,7 +22,6 @@ use App\Models\Employee\EmployeeRequest;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\PermissionRegistrar;
-use Laravel\Fortify\TwoFactorAuthenticatable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Spatie\Permission\Models\Role as SpatieRole;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -35,7 +34,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class User extends Authenticatable implements MustVerifyEmail
 {
     use Notifiable,
-        TwoFactorAuthenticatable,
         HasCamelCasing,
         HasRoles {
             HasRoles::assignRole as assignRoleParent;                // Aliasing original assignRole
@@ -79,8 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
+        'two_factor_code'
     ];
 
     /**
@@ -90,6 +87,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'two_factor_code_expires_at' => 'immutable_datetime'
     ];
 
     /**
@@ -168,6 +166,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         if (!config('permission.teams')) {
             $doctor = $this->employees()->whereIn('employee_type', ['DOCTOR', 'SPECIALIST'])->first();
+
             return $doctor ?: $this->employees()->first();
         }
 

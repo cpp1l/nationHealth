@@ -8,6 +8,7 @@ use Exception;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\LegalEntity;
+use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Layout;
 use App\Classes\eHealth\EHealth;
@@ -23,6 +24,19 @@ class LoginDev extends Login
 {
     #[Locked]
     public bool $isLocalAuth = false;
+
+    /**
+     * Dev login is independent of the MIS two-factor flow, so the email
+     * must always stay selectable regardless of any leftover gate session.
+     *
+     * @return void
+     */
+    public function mount(): void
+    {
+        parent::mount();
+
+        $this->reset(['email', 'isEmailLocked']);
+    }
 
     /**
      * Handle an incoming authentication request.
@@ -47,16 +61,16 @@ class LoginDev extends Login
 
         try {
             $accessToken = EHealth::auth()->login($credentials['email'], $credentials['password']);
-        } catch (Exception $e) {
-            session()->flash('error', $e->getMessage());
+        } catch (Exception $exception) {
+            Session::flash('error', $exception->getMessage());
 
-            return back();
+            return Redirect::back();
         }
         $accessToken = $accessToken->validate();
-        $user = User::withLegalEntityAccess($accessToken['user_id'], $this->legalEntityUUID)->first();
+        $user = User::withLegalEntityAccess($accessToken['user_id'], $this->legalEntityUuid)->first();
 
         $accessToken = $accessToken['value'];
-        $selectedLegalEntityId = LegalEntity::whereUuid($this->legalEntityUUID)->value('id');
+        $selectedLegalEntityId = LegalEntity::whereUuid($this->legalEntityUuid)->value('id');
         setPermissionsTeamId($selectedLegalEntityId);
 
         if ($user && !$this->isSingleRoleAuth) {
@@ -79,13 +93,13 @@ class LoginDev extends Login
         }
 
         try {
-            $code = EHealth::auth()->authorize($accessToken, $scopes, $credentials['legalEntityUUID']);
-        } catch (Exception $e) {
-            Log::channel('e_health_errors')->error('Authorization error: ' . $e->details['error']['message'] ?? $e->getMessage(), ['exception' => $e]);
+            $code = EHealth::auth()->authorize($accessToken, $scopes, $credentials['legalEntityUuid']);
+        } catch (Exception $exception) {
+            Log::channel('e_health_errors')->error('Authorization error: ' . (data_get($exception, 'details.error.message') ?? $exception->getMessage()), ['exception' => $exception]);
 
-            session()->flash('error', $e->getMessage());
+            Session::flash('error', $exception->getMessage());
 
-            return back();
+            return Redirect::back();
         }
 
         $code = $code->validate();
@@ -111,11 +125,8 @@ class LoginDev extends Login
         return $rules;
     }
 
-    public function render()
+    public function render(): View
     {
-        return view('livewire.auth.login-dev')->with([
-            'hasEmailError' => $this->getErrorBag()->has('email'),
-            'hasPasswordError' => $this->getErrorBag()->has('password'),
-        ]);
+        return view('livewire.auth.login-dev');
     }
 }

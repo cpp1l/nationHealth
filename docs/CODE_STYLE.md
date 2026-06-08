@@ -6,6 +6,8 @@ Conventions for contributors. Link to a specific rule from code review when need
 
 - View file names: `kebab-case` (e.g. `add-confidant-person.blade.php`).
 - Language keys: `snake_case`.
+- Acronyms inside identifiers are treated as a single word — capitalize only the first letter:
+  `Uuid`, `Id`, `Url`, `Html`. Write `legalEntityUuid` (not `legalEntityUUID`), `clientId` (not `clientID`).
 
 ## Livewire
 

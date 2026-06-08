@@ -2,9 +2,7 @@
     <img class="mx-auto" src="{{ Vite::asset('resources/images/logo.webp') }}" alt="OpenHealth Logo">
 
     <fieldset class="fieldset">
-        <legend class="legend">
-            {{ __('forms.enter') }}
-        </legend>
+        <legend class="legend">{{ __('forms.enter') }}</legend>
 
         <div class="bg-blue-100 rounded-lg">
             <div class="p-4">
@@ -30,9 +28,7 @@
                     @endforeach
                 </select>
 
-                @error('knedp')
-                <p class="text-error">{{ $message }}</p>
-                @enderror
+                @error('knedp') <p class="text-error">{{ $message }}</p> @enderror
             </div>
 
             {{-- Key File --}}
@@ -50,24 +46,21 @@
                 </div>
             </div>
 
-            @error('keyContainerUpload')
-            <p class="text-error">{{ $message }}</p>
-            @enderror
+            @error('keyContainerUpload') <p class="text-error">{{ $message }}</p> @enderror
 
             {{-- Password --}}
             <div class="form-group">
-                <input wire:model="password"
-                       class="input peer @error('form.patient.firstName') input-error @enderror"
-                       type="password"
-                       id="password"
-                       placeholder=" "
+                <input
+                    wire:model="password"
+                    class="input peer @error('form.patient.firstName') input-error @enderror"
+                    type="password"
+                    id="password"
+                    placeholder=" "
                 >
                 <label for="password" class="label">{{ __('forms.password') }} *</label>
             </div>
 
-            @error('password')
-            <p class="text-error">{{ $message }}</p>
-            @enderror
+            @error('password') <p class="text-error">{{ $message }}</p> @enderror
 
             {{-- Action buttons --}}
             <div class="flex gap-8 mt-6">
@@ -75,11 +68,12 @@
                     {{ __('forms.cancel') }}
                 </button>
 
-                <button wire:click="login"
-                        type="button"
-                        class="button-primary"
-                        wire:loading.attr="disabled"
-                        wire:target="login"
+                <button
+                    wire:click="login"
+                    type="button"
+                    class="button-primary"
+                    wire:loading.attr="disabled"
+                    wire:target="login"
                 >
                     <span wire:loading.remove wire:target="login">{{ __('forms.to_enter') }}</span>
                     <span wire:loading wire:target="login">{{ __('general.loading') }}</span>

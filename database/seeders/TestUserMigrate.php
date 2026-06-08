@@ -264,7 +264,6 @@ class TestUserMigrate extends Seeder
                         'inserted_at' => new Carbon('2024-06-06T17:07:44Z'),
                         'created_at' => new Carbon('2024-09-11T10:00:52.000000Z'),
                         'updated_at' => new Carbon('2024-09-11T10:03:10.000000Z'),
-                        'two_factor_confirmed_at' => null,
                     ]
                 );
 

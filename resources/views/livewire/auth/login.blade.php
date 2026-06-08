@@ -15,15 +15,15 @@
                    placeholder=" "
                    autocomplete="off"
                    id="password"
-                   aria-describedby="{{ $hasPasswordError ? 'hasPasswordErrorHelp' : '' }}"
-                   class="input {{ $hasPasswordError ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
+                   aria-describedby="@error('password') hasPasswordErrorHelp @enderror"
+                   class="input @error('password') input-error border-red-500 focus:border-red-500 @enderror peer"
             />
 
-            @if($hasPasswordError)
+            @error('password')
                 <p id="hasPasswordErrorHelp" class="text-error">
-                    {{ $errors->first('password') }}
+                    {{ $message }}
                 </p>
-            @endif
+            @enderror
 
             <label for="password" class="label z-10">
                 {{ __('forms.password') }}
@@ -46,7 +46,7 @@
             >
 
             <label for="is_local_auth" class="ms-2 text-xs font-medium text-gray-500 dark:text-gray-300">
-                {{ __('auth.login.no_ehealth_login') }}
+                {{ __('auth.login.register_legal_entity') }}
             </label>
         </div>
 

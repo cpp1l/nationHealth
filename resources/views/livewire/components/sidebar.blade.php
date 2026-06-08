@@ -89,7 +89,7 @@
                 </li>
             @endif
 
-            @if(legalEntity())
+            @if(legalEntity() && Auth::user()->cannot('limitedAction', LegalEntity::class))
                 @can('viewAny', Division::class)
                     <li>
                         <a href="{{ route('division.index', [legalEntity()]) }}"

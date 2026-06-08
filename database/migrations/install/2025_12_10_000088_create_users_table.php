@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('users', static function (Blueprint $table) {
             $table->id();
             $table->foreignId('party_id')->nullable()->constrained('parties')->onDelete('set null');
             $table->uuid()->nullable()->unique();
@@ -18,11 +18,8 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
-
-            $table->text('two_factor_secret')->nullable();
-            $table->text('two_factor_recovery_codes')->nullable();
-            $table->timestamp('two_factor_confirmed_at')->nullable();
-
+            $table->string('two_factor_code')->nullable();
+            $table->timestamp('two_factor_code_expires_at')->nullable();
             $table->foreignId('current_team_id')->nullable();
             $table->string('profile_photo_path', 2048)->nullable();
             $table->jsonb('settings')->nullable();
@@ -31,7 +28,6 @@ return new class extends Migration
             $table->string('block_reason')->nullable();
             $table->foreignId('person_id')->nullable()->constrained('persons')->onDelete('set null');
             $table->timestamp('inserted_at')->nullable();
-
             $table->timestamps();
         });
     }

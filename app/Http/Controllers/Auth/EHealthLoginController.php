@@ -121,6 +121,8 @@ class EHealthLoginController extends Controller
 
         Auth::guard($loginedGuard)->login($user);
 
+        Session::forget('mis_2fa');
+
         $ehealthScopes = explode(
             ' ',
             trim(data_get($validatedEHealthTokenData, 'details.scope'))
@@ -279,8 +281,7 @@ class EHealthLoginController extends Controller
         }
 
         // Forget session data
-        Session::forget($authEhealth);
-        Session::forget('logined_guard');
+        Session::forget([$authEhealth, 'logined_guard', 'mis_2fa']);
 
         // Redirect to login page with error message
         $err = $err ?: 'auth.login.error.common';

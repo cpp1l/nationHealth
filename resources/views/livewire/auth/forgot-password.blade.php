@@ -1,10 +1,4 @@
-@php
-    $hasEmailError = $errors->has('email');
-@endphp
-
 <div class="fragment">
-    <livewire:components.x-message :key="now()->timestamp" />
-
     <x-authentication-card>
 
         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">
@@ -21,15 +15,15 @@
                     placeholder=" "
                     id="email"
                     wire:model="email"
-                    aria-describedby="{{ $hasEmailError ? 'hasEmailErrorHelp' : '' }}"
-                    class="input {{ $hasEmailError  ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
+                    aria-describedby="@error('email') hasEmailErrorHelp @enderror"
+                    class="input @error('email') input-error border-red-500 focus:border-red-500 @enderror peer"
                 />
 
-                @if($hasEmailError)
+                @error('email')
                     <p id="hasEmailErrorHelp" class="text-error">
-                        {{ $errors->first('email') }}
+                        {{ $message }}
                     </p>
-                @endif
+                @enderror
 
                 <p id="passwordResetEmailHelp" class="text-note">
                     {{ __('forms.reset_password_email') }}
@@ -64,7 +58,8 @@
             </p>
         </div>
 
-        <x-forms.loading />
-
     </x-authentication-card>
+
+    <x-forms.loading />
+    <livewire:components.x-message :key="now()->timestamp" />
 </div>

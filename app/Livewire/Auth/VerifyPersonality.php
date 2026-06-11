@@ -146,7 +146,7 @@ class VerifyPersonality extends Component
                 ->exists();
 
             if (!$isAlreadyVerified) {
-                Session::flash('error', 'Для вашого профілю не знайдено активних посад у цьому закладі. Зверніться до адміністратора.');
+                Session::flash('error', __('auth.login.error.no_active_positions'));
 
                 return;
             }

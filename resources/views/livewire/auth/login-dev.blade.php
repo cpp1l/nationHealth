@@ -2,25 +2,26 @@
 
 @section('showPassword')
     <div class="mt-4"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
     >
         <div class="form-group group pb-5">
-            <input wire:model="password"
-                   type="password"
-                   placeholder=" "
-                   autocomplete="off"
-                   id="password"
-                   aria-describedby="{{ $hasPasswordError ? 'hasPasswordErrorHelp' : '' }}"
-                   class="input {{ $hasPasswordError ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
+            <input
+                wire:model="password"
+                type="password"
+                placeholder=" "
+                autocomplete="off"
+                id="password"
+                aria-describedby="@error('password') hasPasswordErrorHelp @enderror"
+                class="input @error('password') input-error border-red-500 focus:border-red-500 @enderror peer"
             />
 
-            @if($hasPasswordError)
+            @error('password')
                 <p id="hasPasswordErrorHelp" class="text-error">
-                    {{ $errors->first('password') }}
+                    {{ $message }}
                 </p>
-            @endif
+            @enderror
 
             <label for="password" class="label z-10">
                 {{ __('forms.password') }}

@@ -1,11 +1,4 @@
-@php
-    $hasPasswordError = $errors->has('password');
-    $hasPasswordConfirmationError = $errors->has('passwordConfirmation');
-@endphp
-
 <div class="fragment">
-    <livewire:components.x-message :key="now()->timestamp"/>
-
     <x-authentication-card>
         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
             {{ __('forms.new_password') }}
@@ -24,15 +17,15 @@
                     placeholder=" "
                     id="password"
                     wire:model="password"
-                    aria-describedby="{{ $hasPasswordError ? 'hasPasswordErrorHelp' : '' }}"
-                    class="input {{ $hasPasswordError ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
+                    aria-describedby="@error('password') hasPasswordErrorHelp @enderror"
+                    class="input @error('password') input-error border-red-500 focus:border-red-500 @enderror peer"
                 />
 
-                @if($hasPasswordError)
+                @error('password')
                     <p id="hasPasswordErrorHelp" class="text-error">
-                        {{ $errors->first('password') }}
+                        {{ $message }}
                     </p>
-                @endif
+                @enderror
 
                 <p id="passwordResetNewOneHelp" class="text-note">
                     {{ __('forms.type_new_password') }}
@@ -50,15 +43,15 @@
                     placeholder=" "
                     id="passwordConfirmation"
                     wire:model="passwordConfirmation"
-                    aria-describedby="{{ $hasPasswordConfirmationError ? 'hasPasswordConfirmationErrorHelp' : '' }}"
-                    class="input {{ $hasPasswordConfirmationError ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
+                    aria-describedby="@error('passwordConfirmation') hasPasswordConfirmationErrorHelp @enderror"
+                    class="input @error('passwordConfirmation') input-error border-red-500 focus:border-red-500 @enderror peer"
                 />
 
-                @if($hasPasswordConfirmationError)
+                @error('passwordConfirmation')
                     <p id="hasPasswordConfirmationErrorHelp" class="text-error">
-                        {{ $errors->first('passwordConfirmation') }}
+                        {{ $message }}
                     </p>
-                @endif
+                @enderror
 
                 <label for="passwordConfirmation" class="label z-10">
                     {{ __('forms.password_confirmation') }}
@@ -78,7 +71,8 @@
         </form>
         <!-- ====== Forms Section End -->
 
-        <x-forms.loading />
-
     </x-authentication-card>
+
+    <x-forms.loading />
+    <livewire:components.x-message :key="now()->timestamp" />
 </div>

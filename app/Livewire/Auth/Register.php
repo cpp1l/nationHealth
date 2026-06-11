@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Auth;
 
 use App\Models\User;
@@ -33,7 +35,7 @@ class Register extends Component
         ]);
 
         try {
-            $user = DB::transaction(function() use($userData) {
+            $user = DB::transaction(function () use ($userData) {
                 $user = new User();
                 $user->password = Hash::make($userData['password']);
                 $user->email = $userData['email'];
@@ -48,9 +50,8 @@ class Register extends Component
             session()->flash('success', __('auth.login.success.new_user_create'));
 
             $this->redirect(route('login', absolute: false), navigate: true);
-
-        } catch (Exception $err) {
-            Log::error('Register: ', ['error' => $err->getMessage()]);
+        } catch (Exception $exception) {
+            Log::error('Register: ', ['error' => $exception->getMessage()]);
 
             session()->flash('error', __('Помилка при створенні користувача. Зверніться до адміністратора'));
 

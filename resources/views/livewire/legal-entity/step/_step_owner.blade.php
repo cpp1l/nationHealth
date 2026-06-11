@@ -14,7 +14,7 @@
 @endphp
 
 <fieldset
-    class="p-4 sm:p-8 sm:pb-10 mb-16 mt-6 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 max-w-[1280px]"
+    class="p-4 sm:p-8 sm:pb-10 mb-16 mt-6 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 max-w-7xl"
     xmlns="http://www.w3.org/1999/html"
     x-data="{
         title: '{{ __('forms.owner') }}',
@@ -66,7 +66,8 @@
                 wire:model="legalEntityForm.owner.firstName"
                 aria-describedby="{{ $hasOwnerFirstName ? 'ownerFirstNameErrorHelp' : '' }}"
                 class="input {{ $hasOwnerFirstName ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
-                :class='text-gray-900 border-gray-300'
+                :class="isDisabled ? 'text-gray-400 border-gray-200 dark:text-gray-500' : 'text-gray-900 border-gray-300'"
+                :disabled="isDisabled"
             />
 
             @if($hasOwnerFirstName)
@@ -89,7 +90,8 @@
                 wire:model="legalEntityForm.owner.secondName"
                 aria-describedby="{{ $hasOwnerSecondName ? 'ownerSecondNameErrorHelp' : '' }}"
                 class="input {{ $hasOwnerSecondName ? 'input-error border-red-500 focus:border-red-500' : ''}} peer"
-                :class='text-gray-900 border-gray-300'
+                :class="isDisabled ? 'text-gray-400 border-gray-200 dark:text-gray-500' : 'text-gray-900 border-gray-300'"
+                :disabled="isDisabled"
             />
 
             @if($hasOwnerSecondName)
@@ -105,8 +107,10 @@
 
         {{-- Owner Birth Date --}}
         <div class="form-group group">
-            <svg class="svg-input" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"/>
+            <svg class="svg-input" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                 viewBox="0 0 20 20">
+                <path
+                    d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z" />
             </svg>
 
             <input
@@ -135,10 +139,7 @@
 
         {{-- Owner Gender --}}
         <div class="form-group group">
-            <div
-                for="ownerGender"
-                class='label z-10'
-            >
+            <div for="ownerGender" class='label z-10'>
                 {{ __('forms.gender') }} *
             </div>
 
@@ -157,7 +158,8 @@
                                     class="steps-owner_radio"
                                     id="owner_gender_{{ $k }}"
                                     wire:model="legalEntityForm.owner.gender"
-                                    :class='text-gray-900 border-gray-300'
+                                    :class="isDisabled ? 'text-gray-400 border-gray-200 dark:text-gray-500' : 'text-gray-900 border-gray-300'"
+                                    :disabled="isDisabled"
                                 >
                                 <label
                                     name="label"
@@ -183,9 +185,12 @@
     {{-- Email --}}
     <div class='form-row-3'>
         <div class="form-group group">
-            <svg class="svg-input w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M2.038 5.61A2.01 2.01 0 0 0 2 6v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6c0-.12-.01-.238-.03-.352l-.866.65-7.89 6.032a2 2 0 0 1-2.429 0L2.884 6.288l-.846-.677Z"/>
-                <path d="M20.677 4.117A1.996 1.996 0 0 0 20 4H4c-.225 0-.44.037-.642.105l.758.607L12 10.742 19.9 4.7l.777-.583Z"/>
+            <svg class="svg-input w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                 viewBox="0 0 24 24">
+                <path
+                    d="M2.038 5.61A2.01 2.01 0 0 0 2 6v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6c0-.12-.01-.238-.03-.352l-.866.65-7.89 6.032a2 2 0 0 1-2.429 0L2.884 6.288l-.846-.677Z" />
+                <path
+                    d="M20.677 4.117A1.996 1.996 0 0 0 20 4H4c-.225 0-.44.037-.642.105l.758.607L12 10.742 19.9 4.7l.777-.583Z" />
             </svg>
 
             <input
@@ -252,7 +257,7 @@
             <div
                 class="form-row-3"
                 x-data="{errors: [] }"
-                x-init="errors =@js($errors->getMessages())"
+                x-init="errors = @js($errors->getMessages())"
                 :class="{ 'mb-2': index == phones.length - 1 }"
             >
                 {{-- Phone Type Select --}}
@@ -312,7 +317,11 @@
                 >
                     <!-- Add phone -->
                     <template x-if="phones.length > 1">
-                        <button type="button" @click.prevent="phones.splice(index, 1)" class="item-remove text-red-600 hover:text-red-800 justify-self-start">
+                        <button
+                            type="button"
+                            @click.prevent="phones.splice(index, 1)"
+                            class="item-remove text-red-600 hover:text-red-800 justify-self-start"
+                        >
                             <span>{{__('forms.remove_phone')}}</span>
                         </button>
                     </template>
@@ -392,7 +401,9 @@
                     :disabled="isDisabled"
                 >
 
-                <label for="noTaxId" class="ms-2 text-sm font-medium text-gray-500 dark:text-gray-300">{{ __('forms.no_tax_id') }}</label>
+                <label for="noTaxId" class="ms-2 text-sm font-medium text-gray-500 dark:text-gray-300">
+                    {{ __('forms.no_tax_id') }}
+                </label>
             </div>
         </div>
     </div>
@@ -474,8 +485,10 @@
 
         {{-- Owner Document Issued At --}}
         <div class="form-group group relative z-0">
-            <svg class="svg-input" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"/>
+            <svg class="svg-input" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                 viewBox="0 0 20 20">
+                <path
+                    d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z" />
             </svg>
 
             <input

@@ -51,11 +51,11 @@ class LegalEntityPolicy
     }
 
     /**
-     * Available for all unconnected users (to the LegalEntity)
+     * Determined if the user can only create LE
      */
     public function limitedAction(User $user): Response
     {
-        if ($user->accessibleLegalEntities()->isEmpty()) {
+        if (Auth::guard('web')->check()) {
             return Response::allow();
         }
 
@@ -77,6 +77,13 @@ class LegalEntityPolicy
         return Response::denyWithStatus(404);
     }
 
+    /**
+     * Determine if the user can edit data of a legal entities
+     *
+     * @param  User  $user
+     * @param  LegalEntity  $legalEntity
+     * @return Response
+     */
     public function edit(User $user, LegalEntity $legalEntity): Response
     {
         // Should belong to the same legal entity
@@ -84,7 +91,11 @@ class LegalEntityPolicy
             return Response::denyWithStatus(404);
         }
 
-        if ($user->hasAllowedRole([Role::OWNER]) && Auth::guard('ehealth')->check() && $legalEntity->status !== Status::REORGANIZED->value) {
+        if (
+            $legalEntity->status !== Status::REORGANIZED->value
+            && $user->hasAllowedRole([Role::OWNER])
+            && Auth::guard('ehealth')->check()
+        ) {
             return Response::allow();
         }
 
@@ -95,6 +106,7 @@ class LegalEntityPolicy
      * Determine if the user can sync data of a legal entities
      *
      * @param  User  $user
+     * @param  LegalEntity  $legalEntity
      * @return true|Response
      */
     public function sync(User $user, LegalEntity $legalEntity): true|Response
@@ -104,7 +116,10 @@ class LegalEntityPolicy
             return Response::denyWithStatus(404);
         }
 
-        if ($user->hasAllowedRole([Role::REORGANIZATION_OWNER, Role::OWNER, Role::ADMIN, Role::HR]) && Auth::guard('ehealth')->check()) {
+        if (
+            $user->hasAllowedRole([Role::REORGANIZATION_OWNER, Role::OWNER, Role::ADMIN, Role::HR])
+            && Auth::guard('ehealth')->check()
+        ) {
             return Response::allow();
         }
 

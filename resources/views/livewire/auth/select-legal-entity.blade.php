@@ -1,6 +1,4 @@
 <div class="fragment">
-    <livewire:components.x-message :key="now()->timestamp"/>
-
     <x-authentication-card>
 
         <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -15,9 +13,7 @@
             {{ __('forms.local_login_warning') }}
         </p>
 
-        <form
-            wire:submit.prevent="finalizeSelection"
-        >
+        <form wire:submit.prevent="finalizeSelection">
             <x-forms.combobox
                 :options="$accessibleLegalEntities"
                 is-required="true"
@@ -25,7 +21,7 @@
                 bindValue='id'
                 bindParam='name'
                 :label="__('Медичний Заклад')"
-                class="!z-[100] mt-6"
+                class="z-100! mt-6"
             />
 
             <div class="flex items-center justify-end mt-4">
@@ -40,4 +36,6 @@
         </form>
 
     </x-authentication-card>
+
+    <livewire:components.x-message :key="now()->timestamp" />
 </div>

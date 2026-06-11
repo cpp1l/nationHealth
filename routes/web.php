@@ -10,6 +10,7 @@ use App\Livewire\Actions\Logout;
 use App\Livewire\Auth\ForgotPassword;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\LoginDev;
+use App\Livewire\Auth\MisLogin;
 use App\Livewire\Auth\Register;
 use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Auth\SelectLegalEntity;
@@ -113,7 +114,8 @@ Route::post('/send-email', [EmailController::class, 'sendEmail'])->name('send.em
 Route::get('/ehealth/oauth', EHealthLoginController::class)->name('ehealth.oauth.callback');
 
 Route::middleware('guest')->group(function () {
-    Route::get('login', Login::class)->name('login');
+    Route::get('login', Login::class)->middleware('mis.2fa')->name('login');
+    Route::get('mis-login', MisLogin::class)->name('mis.login');
     Route::get('register', Register::class)->name('register');
     Route::get('forgot-password', ForgotPassword::class)->name('forgot.password');
     Route::get('reset-password/{token}', ResetPassword::class)->name('password.reset');
@@ -132,13 +134,7 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', Logout::class)->name('logout');
 
-/* Dashboard */
-Route::middleware(['auth:web,ehealth', 'verified'])->group(function () {
-
-    Route::get('/verify-personality', VerifyPersonality::class)->name('party.verify');
-
-    Route::get('/select-legal-entity', SelectLegalEntity::class)->name('legalEntity.select');
-
+Route::middleware(['auth:web', 'verified'])->group(function () {
     Route::prefix('/dashboard')->group(function () {
         Route::get('/', Dashboard::class)
             ->can('limitedAction', LegalEntity::class)
@@ -148,6 +144,11 @@ Route::middleware(['auth:web,ehealth', 'verified'])->group(function () {
             ->can('limitedAction', LegalEntity::class)
             ->name('legal-entity.new.create');
     });
+});
+
+/* Dashboard */
+Route::middleware(['auth:ehealth', 'verified'])->group(function () {
+    Route::get('/verify-personality', VerifyPersonality::class)->name('party.verify');
 
     Route::middleware(['can:access,legalEntity'])->prefix('/dashboard/{legalEntity}')
         ->whereNumber('legalEntity')

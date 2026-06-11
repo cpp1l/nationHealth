@@ -32,7 +32,7 @@ return [
     ],
 
     'auth' => [
-        'delay_seconds' => 300,     // Amount of the seconds to another login attempt
+        'delay_seconds' => 900,     // Amount of the seconds to another login attempt
         'max_login_attempts' => 5   // Amount of the wrong attempt before locking out
     ],
 

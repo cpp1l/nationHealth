@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repositories;
 
 use App\Enums\Status;
 use App\Models\LegalEntity;
 use App\Models\LegalEntityType;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class LegalEntityRepository
 {
@@ -16,7 +20,7 @@ class LegalEntityRepository
      *  ['<uuid-2>', 'Legal Entity 2 Name']
      * ]
      *
-     * @param array $legalEntityIds // Optional filter by specific legal entity IDs
+     * @param  array  $legalEntityIds  // Optional filter by specific legal entity IDs
      * @return array
      */
     public function getLegalEntitiesList(array $legalEntityIds = []): array
@@ -25,10 +29,10 @@ class LegalEntityRepository
 
         // Get list of Legal Entities grouped by their name
         $legalEntityList = LegalEntity::listByFields()
-            ->when(!empty($legalEntityIds), fn ($query) => $query->whereIn('id', $legalEntityIds))
+            ->when(!empty($legalEntityIds), fn (Builder $query) => $query->whereIn('id', $legalEntityIds))
             ->get()
-            ->groupBy(fn ($item) => data_get($item, 'edr.name') ?: data_get($item, 'edr.public_name'))
-            ->map(fn ($group) => $group->each->makeHidden(['edr'])) // Hide unnecessary fields
+            ->groupBy(fn (LegalEntity $item) => data_get($item, 'edr.name') ?: data_get($item, 'edr.public_name'))
+            ->map(fn (Collection $group) => $group->each->makeHidden(['edr'])) // Hide unnecessary fields
             ->toArray();
 
         $result = [];
@@ -62,23 +66,23 @@ class LegalEntityRepository
      *
      * Deletes existing legators and inserts the new ones derived from the provided data.
      *
-     * @param LegalEntity $legalEntity The legal entity to associate legators with.
-     * @param array $data Array of legator data from the eHealth API response.
-     *                    Each entry is expected to contain:
-     *                    - merged_from_legal_entity (array): { uuid, name, edrpou }
-     *                    - is_active (bool)
-     *                    - reason (string)
-     *                    - reason_date (string|null)
-     *                    - type (string)
-     *                    - ehealth_inserted_at (string)
-     *                    - inserted_by (string)
+     * @param  LegalEntity  $legalEntity  The legal entity to associate legators with.
+     * @param  array  $data  Array of legator data from the eHealth API response.
+     *                       Each entry is expected to contain:
+     *                       - merged_from_legal_entity (array): { uuid, name, edrpou }
+     *                       - is_active (bool)
+     *                       - reason (string)
+     *                       - reason_date (string|null)
+     *                       - type (string)
+     *                       - ehealth_inserted_at (string)
+     *                       - inserted_by (string)
      * @return void
      */
     public function saveLegators(LegalEntity $legalEntity, array $data): void
     {
         $legalEntityId = $legalEntity->id;
 
-        $legatorsData= [];
+        $legatorsData = [];
 
         foreach ($data as $legator) {
             $legatorsData[] = [

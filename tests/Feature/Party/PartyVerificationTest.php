@@ -84,6 +84,7 @@ class PartyVerificationTest extends TestCase
 
         // Mock EHealth Party API
         $mockPartyApi = Mockery::mock(PartyApi::class);
+        $mockPartyApi->shouldReceive('withToken')->andReturnSelf();
         $this->instance(PartyApi::class, $mockPartyApi);
 
         // Expect getMany call for list
@@ -109,25 +110,13 @@ class PartyVerificationTest extends TestCase
 
         $mockPartyApi->shouldReceive('getMany')
             ->with([], 1)
-            ->once()
+            ->twice()
             ->andReturn($mockResponse);
 
         // Livewire test the index component
         Livewire::test(\App\Livewire\Party\PartyVerificationIndex::class, ['legalEntity' => $legalEntity])
             ->assertSee($party->fullName)
-            ->assertSeeHtml('NOT_VERIFIED');
-
-        // Let's test filtering with NOT_VERIFIED
-        $mockResponseFiltered = Mockery::mock(EHealthResponse::class);
-        $mockResponseFiltered->shouldReceive('json')->andReturn($responseList);
-        $mockResponseFiltered->shouldReceive('getData')->andReturn($responseList);
-
-        $mockPartyApi->shouldReceive('getMany')
-            ->with([], 1)
-            ->once()
-            ->andReturn($mockResponseFiltered);
-
-        Livewire::test(\App\Livewire\Party\PartyVerificationIndex::class, ['legalEntity' => $legalEntity])
+            ->assertSeeHtml('NOT_VERIFIED')
             ->set('dracsDeathStatus', 'NOT_VERIFIED')
             ->assertHasNoErrors();
     }

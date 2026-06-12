@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Repositories\MedicalEvents;
 
-use App\Classes\eHealth\Api\PatientApi;
+use App\Models\Employee\Employee;
 use App\Models\MedicalEvents\Sql\DiagnosticReport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -20,93 +19,34 @@ class DiagnosticReportRepository extends BaseRepository
 {
     protected ?string $employeeUuid;
 
+    protected ?string $employeeFullName;
+
     public function __construct(Model $model)
     {
         parent::__construct($model);
 
-        $this->employeeUuid = Auth::user()?->getDiagnosticReportWriterEmployee()?->uuid;
+        $employee = Auth::user()?->getDiagnosticReportWriterEmployee();
+
+        $this->employeeUuid = $employee?->uuid;
+        $this->employeeFullName = $employee?->fullName;
     }
 
-    /**
-     * Format data before request.
-     *
-     * @param  array  $diagnosticReport
-     * @return array
-     */
-    public function formatEHealthRequest(array $diagnosticReport): array
+    private function getEmployeeDisplayValue(?string $employeeUuid): ?string
     {
-        $diagnosticReport['id'] = Str::uuid()->toString();
-        $diagnosticReport['status'] = 'final';
-
-        if ($diagnosticReport['referralType'] === '') {
-            unset($diagnosticReport['paperReferral'], $diagnosticReport['basedOn']);
+        if (!$employeeUuid) {
+            return null;
         }
 
-        if ($diagnosticReport['referralType'] === 'electronic') {
-            unset($diagnosticReport['paperReferral']);
+        if ($employeeUuid === $this->employeeUuid) {
+            return $this->employeeFullName;
         }
 
-        if ($diagnosticReport['referralType'] === 'paper') {
-            unset($diagnosticReport['basedOn']);
-        }
-
-        unset($diagnosticReport['referralType']);
-
-        if ($diagnosticReport['primarySource']) {
-            unset($diagnosticReport['reportOrigin']);
-
-            $diagnosticReport['performer']['reference']['identifier']['value'] = $this->employeeUuid;
-        } else {
-            unset($diagnosticReport['performer']);
-        }
-
-        if (empty($diagnosticReport['conclusionCode']['coding'][0]['code'])) {
-            unset($diagnosticReport['conclusionCode']);
-        }
-
-        $diagnosticReport['recordedBy']['identifier']['value'] = $this->employeeUuid;
-
-        $diagnosticReport['issued'] = convertToISO8601(
-            $diagnosticReport['issuedDate'] . $diagnosticReport['issuedTime']
-        );
-        unset($diagnosticReport['issuedDate'], $diagnosticReport['issuedTime']);
-
-        $diagnosticReport['managingOrganization'] = [
-            'identifier' => [
-                'type' => [
-                    'coding' => [['system' => 'eHealth/resources', 'code' => 'legal_entity']],
-                    'text' => ''
-                ],
-                'value' => legalEntity()->uuid
-            ],
-        ];
-
-        if (empty($diagnosticReport['division']['identifier']['value'])) {
-            unset($diagnosticReport['division']);
-        }
-
-        if (empty($diagnosticReport['resultsInterpreter']['reference']['identifier']['value'])) {
-            unset($diagnosticReport['resultsInterpreter']);
-        }
-
-        $normalizedData = schemaService()
-            ->setDataSchema(['diagnostic_report' => $diagnosticReport], app(PatientApi::class))
-            ->requestSchemaNormalize('schemaDiagnosticReportPackageRequest')
-            ->camelCaseKeys()
-            ->getNormalizedData();
-
-        // schema service delete effectivePeriod, so manually add it
-        $normalizedData['diagnosticReport']['effectivePeriod'] = [
-            'start' => convertToISO8601(
-                $diagnosticReport['effectivePeriodStartDate'] . $diagnosticReport['effectivePeriodStartTime']
-            ),
-            'end' => convertToISO8601(
-                $diagnosticReport['effectivePeriodEndDate'] . $diagnosticReport['effectivePeriodEndTime']
-            ),
-        ];
-        unset($diagnosticReport['effectivePeriodStartDate'], $diagnosticReport['effectivePeriodStartTime'], $diagnosticReport['effectivePeriodEndDate'], $diagnosticReport['effectivePeriodEndTime']);
-
-        return $normalizedData;
+        return Employee::query()
+            ->select(['uuid', 'party_id'])
+            ->with('party:id,last_name,first_name,second_name')
+            ->where('uuid', $employeeUuid)
+            ->first()
+            ?->fullName;
     }
 
     /**
@@ -121,14 +61,23 @@ class DiagnosticReportRepository extends BaseRepository
     {
         return DB::transaction(function () use ($data, $personId) {
             foreach ($data as $datum) {
-                $code = Repository::identifier()->store($datum['code']['identifier']['value']);
+                $codeValue = $datum['code']['identifier']['value'];
+                $code = Repository::identifier()->store($codeValue);
                 Repository::codeableConcept()->attach($code, $datum['code']);
 
-                $recordedBy = Repository::identifier()->store($datum['recordedBy']['identifier']['value']);
+                $recordedByValue = $datum['recordedBy']['identifier']['value'];
+                $recordedBy = Repository::identifier()->store(
+                    $recordedByValue,
+                    $this->getEmployeeDisplayValue($recordedByValue)
+                );
                 Repository::codeableConcept()->attach($recordedBy, $datum['recordedBy']);
 
-                $encounter = Repository::identifier()->store($datum['encounter']['identifier']['value']);
-                Repository::codeableConcept()->attach($encounter, $datum['encounter']);
+                $encounter = null;
+
+                if (isset($datum['encounter'])) {
+                    $encounter = Repository::identifier()->store($datum['encounter']['identifier']['value']);
+                    Repository::codeableConcept()->attach($encounter, $datum['encounter']);
+                }
 
                 $managingOrganization = Repository::identifier()
                     ->store($datum['managingOrganization']['identifier']['value']);
@@ -157,7 +106,9 @@ class DiagnosticReportRepository extends BaseRepository
                     'division_id' => $division?->id,
                     'report_origin_id' => isset($datum['reportOrigin'])
                         ? Repository::codeableConcept()->store($datum['reportOrigin'])->id
-                        : null
+                        : null,
+                    'ehealth_inserted_at' => now(),
+                    'ehealth_updated_at' => now(),
                 ]);
 
                 if (isset($datum['paperReferral'])) {
@@ -181,8 +132,11 @@ class DiagnosticReportRepository extends BaseRepository
                 if (isset($datum['performer'])) {
                     $reference = null;
                     if (isset($datum['performer']['reference'])) {
-                        $reference = Repository::identifier()
-                            ->store($datum['performer']['reference']['identifier']['value']);
+                        $performerValue = $datum['performer']['reference']['identifier']['value'];
+                        $reference = Repository::identifier()->store(
+                            $performerValue,
+                            $this->getEmployeeDisplayValue($performerValue)
+                        );
                         Repository::codeableConcept()->attach($reference, $datum['performer']['reference']);
                     }
 
@@ -195,8 +149,11 @@ class DiagnosticReportRepository extends BaseRepository
                 if (isset($datum['resultsInterpreter'])) {
                     $reference = null;
                     if (isset($datum['resultsInterpreter']['reference'])) {
-                        $reference = Repository::identifier()
-                            ->store($datum['resultsInterpreter']['reference']['identifier']['value']);
+                        $resultsInterpreterValue = $datum['resultsInterpreter']['reference']['identifier']['value'];
+                        $reference = Repository::identifier()->store(
+                            $resultsInterpreterValue,
+                            $this->getEmployeeDisplayValue($resultsInterpreterValue)
+                        );
                         Repository::codeableConcept()->attach(
                             $reference,
                             $datum['resultsInterpreter']['reference']

@@ -13,11 +13,10 @@
                     <input type="checkbox" class="default-checkbox w-5 h-5">
                 </div>
 
-                <div class="record-inner-column flex-1">
-                    <div class="record-inner-label">{{ __('patients.code_and_name') }}</div>
-                    <div
-                        class="record-inner-value text-[16px]">{{ data_get($diagnosticReport, 'code.dislayValue') }}</div>
-                </div>
+            <div class="record-inner-column flex-1">
+                <div class="record-inner-label">{{ __('patients.code_and_name') }}</div>
+                <div class="record-inner-value text-[16px]">{{ data_get($diagnosticReport, 'code.displayValue') }}</div>
+            </div>
 
                 <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                     <div class="record-inner-label">{{ __('forms.status.label') }}</div>

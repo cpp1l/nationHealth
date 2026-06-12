@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\MedicalEvents;
 
+use App\Enums\Person\DiagnosticReportStatus;
 use App\Enums\Person\EpisodeStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -62,7 +63,13 @@ class EncounterPackageBuilder
             ->toArray();
 
         $fhirDiagnosticReports = collect($data['diagnosticReports'] ?? [])
-            ->map(fn (array $diagnosticReport) => Fhir::diagnosticReport()->toFhir($diagnosticReport, $uuids))
+            ->map(fn (array $diagnosticReport) => Fhir::diagnosticReport()->toFhir(
+                $diagnosticReport,
+                array_merge($uuids, [
+                    'diagnosticReport' => $diagnosticReport['uuid'] ?? Str::uuid()->toString(),
+                ]),
+                DiagnosticReportStatus::FINAL
+            ))
             ->values()
             ->toArray();
 

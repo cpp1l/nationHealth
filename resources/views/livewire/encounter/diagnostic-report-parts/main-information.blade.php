@@ -1,3 +1,10 @@
+@php
+    $diagnosticReportErrorPath = $diagnosticReportErrorPath
+        ?? (($context ?? null) === 'diagnostic-report'
+            ? 'form.diagnosticReport'
+            : 'form.diagnosticReports.*');
+@endphp
+
 <fieldset class="fieldset">
     <legend class="legend">
         {{ __('forms.main_information') }}
@@ -21,7 +28,7 @@
                     @endforeach
                 </select>
 
-                @error('form.diagnosticReports.*.categoryCode')
+                @error($diagnosticReportErrorPath . '.categoryCode')
                     <p class="text-error">{{ $message }}</p>
                 @enderror
             </div>
@@ -40,8 +47,8 @@
                     {{ __('forms.select')}} {{ mb_strtolower(__('forms.services')) }} *
                 </label>
 
-                @error('form.diagnosticReports.*.codeValue')
-                <p class="text-error">{{ $message }}</p>
+                @error($diagnosticReportErrorPath . '.codeValue')
+                    <p class="text-error">{{ $message }}</p>
                 @enderror
             </div>
         </div>
@@ -118,8 +125,8 @@
                                         {{ __('forms.number') }}
                                     </label>
 
-                                    @error('form.diagnosticReports.*.paperReferralRequisition')
-                                    <p class="text-error">{{ $message }}</p>
+                                    @error($diagnosticReportErrorPath . '.paperReferralRequisition')
+                                        <p class="text-error">{{ $message }}</p>
                                     @enderror
                                 </div>
 
@@ -136,8 +143,8 @@
                                         {{ __('patients.author') }}
                                     </label>
 
-                                    @error('form.diagnosticReports.*.paperReferralRequesterEmployeeName')
-                                    <p class="text-error">{{ $message }}</p>
+                                    @error($diagnosticReportErrorPath . '.paperReferralRequesterEmployeeName')
+                                        <p class="text-error">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
@@ -158,8 +165,8 @@
                                         {{ __('patients.edrpou_of_the_issuing_institution') }}
                                     </label>
 
-                                    @error('form.diagnosticReports.*.paperReferralRequesterLegalEntityEdrpou')
-                                    <p class="text-error">{{ $message }}</p>
+                                    @error($diagnosticReportErrorPath . '.paperReferralRequesterLegalEntityEdrpou')
+                                        <p class="text-error">{{ $message }}</p>
                                     @enderror
                                 </div>
 
@@ -177,8 +184,8 @@
                                         {{ __('patients.name_of_the_institution_that_issued_it') }}
                                     </label>
 
-                                    @error('form.diagnosticReports.*.paperReferralRequesterLegalEntityName')
-                                    <p class="text-error">{{ $message }}</p>
+                                    @error($diagnosticReportErrorPath . '.paperReferralRequesterLegalEntityName')
+                                        <p class="text-error">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
@@ -199,8 +206,8 @@
                                             {{ __('forms.date') }}
                                         </label>
 
-                                        @error('form.diagnosticReports.*.paperReferralServiceRequestDate')
-                                        <p class="text-error">{{ $message }}</p>
+                                        @error($diagnosticReportErrorPath . '.paperReferralServiceRequestDate')
+                                            <p class="text-error">{{ $message }}</p>
                                         @enderror
                                     </div>
                                 </div>
@@ -218,8 +225,8 @@
                                         {{ __('patients.notes') }}
                                     </label>
 
-                                    @error('form.diagnosticReports.*.paperReferralNote')
-                                    <p class="text-error">{{ $message }}</p>
+                                    @error($diagnosticReportErrorPath . '.paperReferralNote')
+                                        <p class="text-error">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
@@ -231,15 +238,16 @@
 
         {{-- Conclusion code by ICD-10 --}}
         <div x-data="{
-                 selected: null,
-                 results: $wire.entangle('results'),
-                 showResults: false
+                selected: null,
+                results: $wire.entangle('results'),
+                showResults: false,
+                conclusionCodeLabel: '',               
              }"
              class="form-row-2 relative"
         >
             <div class="form-group group">
                 <input type="text"
-                       @input.debounce.300ms="
+                       @input.debounce.1000ms="
                            let value = $event.target.value;
                            let isEnglish = /^[a-zA-Z0-9.]+$/.test(value);
 
@@ -250,21 +258,21 @@
                                showResults = false;
                            }
                        "
-                       @focus="if ((modalDiagnosticReport.conclusionCode?.length ?? 0) >= 1) showResults = true"
+                       @focus="if (conclusionCodeLabel.length >= 1) showResults = true"
                        @click.away="showResults = false"
-                       x-model="modalDiagnosticReport.conclusionCode"
+                       x-model="conclusionCodeLabel"
                        id="conclusionCode"
                        name="conclusionCode"
                        class="input-select peer"
-                       placeholder=" "
+                       placeholder=""
                        autocomplete="off"
                 />
                 <label for="conclusionCode" class="label">
                     {{ __('patients.conclusion_code') }}
                 </label>
 
-                @error('form.diagnosticReports.*.conclusionCode')
-                <p class="text-error">{{ $message }}</p>
+                @error($diagnosticReportErrorPath . '.conclusionCode')
+                    <p class="text-error">{{ $message }}</p>
                 @enderror
 
                 <div x-show="showResults && results.length > 0"
@@ -275,6 +283,7 @@
                             <li class="group flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 transition-colors dark:bg-gray-800 dark:text-white"
                                 @click="
                                     selected = result;
+                                    conclusionCodeLabel = result.code + ' - ' + result.description;
                                     modalDiagnosticReport.conclusionCode = result.code;
                                     showResults = false;
                                 "
@@ -308,8 +317,8 @@
                           maxlength="1000"
                 ></textarea>
 
-                @error('form.diagnosticReports.*.conclusion')
-                <p class="text-error">{{ $message }}</p>
+                @error($diagnosticReportErrorPath . '.conclusion')
+                    <p class="text-error">{{ $message }}</p>
                 @enderror
             </div>
         </div>

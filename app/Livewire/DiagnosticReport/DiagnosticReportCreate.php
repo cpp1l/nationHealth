@@ -7,7 +7,9 @@ namespace App\Livewire\DiagnosticReport;
 use App\Classes\eHealth\EHealth;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
+use App\Enums\Person\DiagnosticReportStatus;
 use App\Models\MedicalEvents\Sql\DiagnosticReport;
+use App\Services\MedicalEvents\Fhir;
 use App\Core\Arr;
 use App\Repositories\MedicalEvents\Repository;
 use Exception;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use Throwable;
 
 class DiagnosticReportCreate extends DiagnosticReportComponent
@@ -28,8 +31,14 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
     public function save(array $diagnosticReportData): void
     {
         if (Auth::user()->cannot('create', DiagnosticReport::class)) {
-            Session::flash('error', 'У вас немає дозволу на створення діагностичного звіту.');
+            Session::flash('error', __('patients.policy.create_diagnostic_report'));
 
+            return;
+        }
+
+        $employee = Auth::user()->getDiagnosticReportWriterEmployee();
+        if (!$employee) {
+            Session::flash('error', __('patients.messages.diagnostic_report_writer_employee_not_found'));
             return;
         }
 
@@ -44,7 +53,7 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
             return;
         }
 
-        $formattedData = $this->prepareFormattedData($validated);
+        $formattedData = $this->prepareFormattedData($validated, DiagnosticReportStatus::DRAFT);
 
         try {
             $this->storeValidatedData($formattedData);
@@ -54,7 +63,7 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
             return;
         }
 
-        Session::flash('success', 'Чернетку на створення діагностичного звіту успішно збережено.');
+        Session::flash('success', __('patients.messages.diagnostic_report_draft_saved'));
         $this->redirectRoute('persons.index', [legalEntity()], navigate: true);
     }
 
@@ -67,7 +76,7 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
     public function sign(array $diagnosticReportData): void
     {
         if (Auth::user()->cannot('create', DiagnosticReport::class)) {
-            Session::flash('error', 'У вас немає дозволу на створення діагностичного звіту.');
+            Session::flash('error', __('patient.policy.create_diagnostic_report'));
 
             return;
         }
@@ -76,7 +85,7 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
 
         try {
             $validated = $this->form->validate();
-            $validatedCipher = $this->form->validate($this->form->rulesForSigning());
+            $validatedCipher = $this->form->validate($this->form->signingRules());
         } catch (ValidationException $exception) {
             Session::flash('error', $exception->validator->errors()->first());
             $this->setErrorBag($exception->validator->getMessageBag());
@@ -84,31 +93,35 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
             return;
         }
 
-        $formattedData = $this->prepareFormattedData($validated);
+        $formattedData = $this->prepareFormattedData($validated, DiagnosticReportStatus::FINAL);
 
         try {
-            $this->storeValidatedData($formattedData);
-        } catch (Exception|Throwable $exception) {
-            $this->handleDatabaseErrors($exception, 'Error while saving diagnostic report');
+            $signedContent = signatureService()->signData(
+                Arr::toSnakeCase($formattedData),
+                $validatedCipher['password'],
+                $validatedCipher['knedp'],
+                $validatedCipher['keyContainerUpload'],
+                Auth::user()->party->taxId
+            );
+        } catch (Throwable $exception) {
+            Session::flash('error', $exception->getMessage());
 
             return;
         }
 
-        $signedContent = signatureService()->signData(
-            Arr::toSnakeCase($formattedData),
-            $validatedCipher['password'],
-            $validatedCipher['knedp'],
-            $validatedCipher['keyContainerUpload'],
-            Auth::user()->party->taxId
-        );
-
         try {
             EHealth::diagnosticReport()->create($this->patientUuid, ['signed_data' => $signedContent]);
 
-            Session::flash('success', 'Заявку на створення діагностичного звіту успішно відправлено.');
+            $this->storeValidatedData($formattedData);
+
+            Session::flash('success', __('patients.messages.diagnostic_report_create_request_sent'));
             $this->redirectRoute('persons.index', [legalEntity()], navigate: true);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error when creating a diagnostic report');
+
+            return;
+        } catch (Throwable $exception) {
+            $this->handleDatabaseErrors($exception, 'Error while saving diagnostic report');
 
             return;
         }
@@ -118,22 +131,31 @@ class DiagnosticReportCreate extends DiagnosticReportComponent
      * Prepare formatted data.
      *
      * @param  array  $validatedData
+     * @param  DiagnosticReportStatus $status
      * @return array
      */
-    protected function prepareFormattedData(array $validatedData): array
+    protected function prepareFormattedData(array $validatedData, DiagnosticReportStatus $status): array
     {
-        // todo: use DR Mapper
-        $diagnosticReport = Repository::diagnosticReport()->formatEHealthRequest($validatedData['diagnosticReport']);
+        $uuids = [
+            'employee' => Auth::user()->getDiagnosticReportWriterEmployee()->uuid,
+            'diagnosticReport' => Str::uuid()->toString(),
+        ];
 
-        $observations = [];
-        if (isset($validatedData['observations'])) {
-            $observations = Repository::observation()->formatEHealthRequest(
-                $validatedData['observations'],
-                $diagnosticReport['diagnosticReport']['id']
-            );
-        }
+        $diagnosticReport = Fhir::diagnosticReport()->toFhir(
+            $validatedData['diagnosticReport'],
+            $uuids,
+            $status
+        );
 
-        return array_merge($diagnosticReport, $observations);
+        $observations = collect($validatedData['observations'] ?? [])
+            ->map(fn (array $observation) => Fhir::observation()->toFhir($observation, $uuids))
+            ->values()
+            ->toArray();
+
+        return [
+            'diagnosticReport' => $diagnosticReport,
+            'observations' => $observations,
+        ];
     }
 
     /**

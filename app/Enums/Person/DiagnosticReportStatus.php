@@ -15,12 +15,14 @@ enum DiagnosticReportStatus: string
 
     case ENTERED_IN_ERROR = 'entered_in_error';
     case FINAL = 'final';
+    case DRAFT = 'draft';
 
     public function label(): string
     {
         return match ($this) {
             self::ENTERED_IN_ERROR => __('patients.status.entered_in_error'),
-            self::FINAL => __('patients.status.final')
+            self::FINAL => __('patients.status.final'),
+            self::DRAFT => __('patients.status.draft')
         };
     }
 }

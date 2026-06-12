@@ -125,6 +125,7 @@ class DiagnosticReportComponent extends Component
         'eHealth/eye_colour',
         'eHealth/hair_color',
         'eHealth/hair_length',
+        'eHealth/custom/observation_codes',
         'GENDER',
         'eHealth/LOINC/LL360-9',
         'eHealth/LOINC/LL2419-1',

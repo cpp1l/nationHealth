@@ -25,9 +25,6 @@ class ObservationMapper implements FhirMapperContract
 
         $result = [
             'id' => $data['uuid'] ?? Str::uuid()->toString(),
-            'context' => FhirResource::make()
-                ->coding('eHealth/resources', 'encounter')
-                ->toIdentifier($uuids['encounter']),
             'status' => ObservationStatus::VALID->value,
             'categories' => [
                 FhirResource::make()
@@ -41,7 +38,17 @@ class ObservationMapper implements FhirMapperContract
             'primarySource' => $data['primarySource']
         ];
 
-        // todo: add diagnostic report
+        if (!empty($uuids['encounter'])) {
+            $result['context'] = FhirResource::make()
+                ->coding('eHealth/resources', 'encounter')
+                ->toIdentifier($uuids['encounter']);
+        }
+
+        if (!empty($uuids['diagnosticReport'])) {
+            $result['diagnosticReport'] = FhirResource::make()
+                ->coding('eHealth/resources', 'diagnostic_report')
+                ->toIdentifier($uuids['diagnosticReport']);
+        }
 
         if (!empty($data['effectiveDate']) && !empty($data['effectiveTime'])) {
             $result['effectiveDateTime'] = convertToEHealthISO8601(

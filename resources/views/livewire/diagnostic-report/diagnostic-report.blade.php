@@ -7,15 +7,14 @@
 
     <form class="form"
           x-data="{
-              diagnosticReports: $wire.entangle('form.diagnosticReport'),
-              modalDiagnosticReport: new DiagnosticReport(),
+              modalDiagnosticReport: Object.assign(new DiagnosticReport(), { primarySource: true }),
               diagnosticReportCategoriesDictionary: $wire.dictionaries['eHealth/diagnostic_report_categories'],
               servicesDictionary: $wire.dictionaries['custom/services'],
               showSignatureModal: false
           }"
     >
 
-        @include('livewire.encounter.diagnostic-report-parts.main-information')
+        @include('livewire.encounter.diagnostic-report-parts.main-information', ['context' => 'diagnostic-report'])
         @include('livewire.encounter.diagnostic-report-parts.additional-information', ['context' => 'diagnostic-report'])
         @include('livewire.encounter.parts.observations')
 
@@ -51,105 +50,52 @@
     /**
      * Representation of the user's personal diagnostic report.
      */
-    class DiagnosticReport {
-        category = [
-            {
-                coding: [{ system: 'eHealth/diagnostic_report_categories', code: '' }],
-                text: ''
-            }
-        ];
-        code = {
-            identifier: {
-                type: {
-                    coding: [{ system: 'eHealth/resources', code: 'service' }],
-                    text: ''
-                },
-                value: ''
-            }
-        };
-        isReferralAvailable = false;
-        referralType = '';
-        basedOn = {
-            identifier: {
-                type: {
-                    coding: [{ system: 'eHealth/resources', code: 'service_request' }],
-                    text: ''
-                }
-            }
-        };
-        paperReferral = {
-            requesterLegalEntityEdrpou: '',
-            requesterLegalEntityName: '',
-            serviceRequestDate: ''
-        };
-        conclusionCode = {
-            coding: [{ system: 'eHealth/ICD10_AM/condition_codes', code: '' }]
-        };
-        primarySource = true;
-        performer = {
-            reference: {
-                identifier: {
-                    type: {
-                        coding: [{ system: 'eHealth/resources', code: 'employee' }]
-                    }
-                }
-            }
-        };
-        reportOrigin = {
-            coding: [{ system: 'eHealth/immunization_report_origins', code: '' }],
-            text: ''
-        };
-        recordedBy = {
-            identifier: {
-                type: {
-                    coding: [{ system: 'eHealth/resources', code: 'employee' }],
-                    text: ''
-                }
-            }
-        };
-        division = {
-            identifier: {
-                type: {
-                    coding: [{ system: 'eHealth/resources', code: 'division' }],
-                    text: ''
-                },
-                value: ''
-            }
-        };
-        resultsInterpreter = {
-            reference: {
-                identifier: {
-                    type: {
-                        coding: [{ system: 'eHealth/resources', code: 'employee' }],
-                        text: ''
-                    },
-                    value: ''
-                }
-            }
-        };
-
-        // Create date
-        #now = new Date();
-        #endTime = new Date(this.#now.getTime() + 15 * 60 * 1000); // add 15 minutes
-
-        issuedDate = this.#now.toISOString().split('T')[0];
-        issuedTime = this.#now.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', hour12: false });
-        effectivePeriodStartDate = this.#now.toISOString().split('T')[0];
-        effectivePeriodStartTime = this.#now.toLocaleTimeString('uk-UA', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-        effectivePeriodEndDate = this.#endTime.toISOString().split('T')[0];
-        effectivePeriodEndTime = this.#endTime.toLocaleTimeString('uk-UA', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-
+    class DiagnosticReport{
         constructor(obj = null) {
+            const now = new Date();
+            const startTime = new Date(now.getTime() - 15 * 60 * 1000);
+
+            const toFormattedDate = (date) => {
+                const [yyyy, mm, dd] = date.toISOString().split('T')[0].split('-');
+                return `${dd}.${mm}.${yyyy}`;
+            };
+
+            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+
+            this.categoryCode = '';
+            this.codeValue = '';
+
+            this.isReferralAvailable = false;
+            this.referralType = '';
+
+            this.paperReferralRequisition = '';
+            this.paperReferralRequesterEmployeeName = '';
+            this.paperReferralRequesterLegalEntityEdrpou = '';
+            this.paperReferralRequesterLegalEntityName = '';
+            this.paperReferralServiceRequestDate = '';
+            this.paperReferralNote = '';
+
+            this.conclusionCode = '';
+            this.conclusion = '';
+
+            this.primarySource = true;
+            this.reportOriginCode = '';
+            this.reportOriginText = '';
+
+            this.divisionId = '';
+            this.resultsInterpreterEmployeeId = '';
+
+            this.issuedDate = toFormattedDate(now);
+            this.issuedTime = now.toLocaleTimeString('uk-UA', timeOptions);
+
+            this.effectivePeriodStartDate = toFormattedDate(startTime);
+            this.effectivePeriodStartTime = startTime.toLocaleTimeString('uk-UA', timeOptions);
+
+            this.effectivePeriodEndDate = toFormattedDate(now);
+            this.effectivePeriodEndTime = now.toLocaleTimeString('uk-UA', timeOptions);
+
             if (obj) {
-                this.diagnosticReports = JSON.parse(JSON.stringify(obj.diagnosticReports || obj));
+                Object.assign(this, JSON.parse(JSON.stringify(obj)));
             }
         }
     }

@@ -5,58 +5,59 @@ declare(strict_types=1);
 namespace App\Livewire\DiagnosticReport\Forms;
 
 use App\Rules\InDictionary;
+use App\Core\BaseForm;
 use Illuminate\Validation\Rule;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Livewire\Form;
 
-class DiagnosticReportForm extends Form
+class DiagnosticReportForm extends BaseForm
 {
-    public array $diagnosticReport;
+    public array $diagnosticReport = [];
 
-    public array $observations;
-
-    public string $knedp;
-
-    public TemporaryUploadedFile $keyContainerUpload;
-
-    public string $password;
+    public array $observations = [];
 
     protected function rules(): array
     {
         return [
             'diagnosticReport.referralType' => ['nullable', 'string'],
             'diagnosticReport.primarySource' => ['required', 'boolean:strict'],
-            'diagnosticReport.category.*.coding.*.system' => ['required', 'string'],
-            'diagnosticReport.category.*.coding.*.code' => [
+            'diagnosticReport.categoryCode' => [
                 'required',
                 'string',
                 new InDictionary('eHealth/diagnostic_report_categories')
             ],
-            'diagnosticReport.code.identifier.value' => ['required', 'uuid'],
-            'diagnosticReport.code.identifier.type.coding.*.system' => ['required', 'string'],
-            'diagnosticReport.code.identifier.type.coding.*.code' => [
+            'diagnosticReport.codeValue' => [
                 'required',
-                'string',
-                new InDictionary('eHealth/resources')
+                'uuid',
             ],
-            'diagnosticReport.paperReferral.requisition' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.paperReferral.requesterEmployeeName' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.paperReferral.requesterLegalEntityEdrpou' => [
-                Rule::requiredIf(data_get($this->diagnosticReport, 'referralType') === 'paper'),
+            'diagnosticReport.paperReferralRequisition' => ['nullable', 'string', 'max:255'],
+            'diagnosticReport.paperReferralRequesterEmployeeName' => ['nullable', 'string', 'max:255'],
+            'diagnosticReport.paperReferralRequesterLegalEntityEdrpou' => [
+                Rule::requiredIf(
+                    data_get($this->diagnosticReport, 'isReferralAvailable') === true
+                    && data_get($this->diagnosticReport, 'referralType') === 'paper'
+                ),
+                'nullable',
                 'digits_between:8,10',
                 'string',
-                'max:255'
+                'max:255',
             ],
-            'diagnosticReport.paperReferral.requesterLegalEntityName' => [
-                Rule::requiredIf(data_get($this->diagnosticReport, 'referralType') === 'paper'),
+            'diagnosticReport.paperReferralRequesterLegalEntityName' => [
+                Rule::requiredIf(
+                    data_get($this->diagnosticReport, 'isReferralAvailable') === true
+                    && data_get($this->diagnosticReport, 'referralType') === 'paper'
+                ),
+                'nullable',
                 'string',
-                'max:255'
+                'max:255',
             ],
-            'diagnosticReport.paperReferral.serviceRequestDate' => [
-                Rule::requiredIf(data_get($this->diagnosticReport, 'referralType') === 'paper'),
-                'date'
+            'diagnosticReport.paperReferralServiceRequestDate' => [
+                Rule::requiredIf(
+                    data_get($this->diagnosticReport, 'isReferralAvailable') === true
+                    && data_get($this->diagnosticReport, 'referralType') === 'paper'
+                ),
+                'nullable',
+                'date',
             ],
-            'diagnosticReport.paperReferral.note' => ['nullable', 'string', 'max:255'],
+            'diagnosticReport.paperReferralNote' => ['nullable', 'string', 'max:255'],
             'diagnosticReport.effectivePeriodStartDate' => ['nullable', 'date', 'before_or_equal:now',],
             'diagnosticReport.effectivePeriodStartTime' => ['nullable', 'date_format:H:i', 'before_or_equal:now'],
             'diagnosticReport.effectivePeriodEndDate' => [
@@ -78,144 +79,103 @@ class DiagnosticReportForm extends Form
             ],
             'diagnosticReport.issuedDate' => ['required', 'date', 'before_or_equal:now'],
             'diagnosticReport.issuedTime' => ['required', 'date_format:H:i', 'before_or_equal:now'],
-            'diagnosticReport.conclusionCode.coding.*.system' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.conclusionCode.coding.*.code' => [
+            'diagnosticReport.conclusionCode' => [
                 'nullable',
                 'string',
                 new InDictionary('eHealth/ICD10_AM/condition_codes')
             ],
             'diagnosticReport.conclusion' => [
-                // Must be filled when service category is diagnostic_procedure or imaging
                 Rule::requiredIf(function () {
-                    $codes = data_get($this->diagnosticReport, 'category.*.coding.*.code');
-
-                    return collect($codes)->flatten()->filter()->contains(
-                        fn ($code) => in_array($code, ['diagnostic_procedure', 'imaging'])
+                    return in_array(
+                        data_get($this->diagnosticReport, 'categoryCode'),
+                        ['diagnostic_procedure', 'imaging'],
+                        true
                     );
                 }),
-                'string',
-                'max:1000'
-            ],
-            'diagnosticReport.division.identifier.value' => ['nullable', 'uuid'],
-            'diagnosticReport.division.identifier.type.coding.*.system' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.division.identifier.type.coding.*.code' => [
                 'nullable',
                 'string',
-                new InDictionary('eHealth/resources')
+                'max:1000',
             ],
-            'diagnosticReport.division.identifier.type.text' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.resultsInterpreter.reference.identifier.value' => ['nullable', 'uuid'],
-            'diagnosticReport.resultsInterpreter.reference.identifier.type.coding.*.system' => [
-                'nullable',
+            'diagnosticReport.divisionId' => ['nullable', 'uuid'],
+            'diagnosticReport.resultsInterpreterEmployeeId' => ['nullable', 'uuid'],
+
+            'observations' => ['nullable', 'array'],
+            'observations.*.uuid' => ['nullable', 'uuid'],
+            'observations.*.categorySystem' => ['required_with:observations', 'string'],
+            'observations.*.categoryCode' => [
+                'required_with:observations',
                 'string',
-                'max:255'
+                new InDictionary(['eHealth/observation_categories', 'eHealth/ICF/observation_categories']),
             ],
-            'diagnosticReport.resultsInterpreter.reference.identifier.type.coding.*.code' => [
-                'nullable',
+            'observations.*.codeSystem' => ['required_with:observations', 'string'],
+            'observations.*.codeCode' => [
+                'required_with:observations',
                 'string',
-                new InDictionary('eHealth/resources')
-            ],
-            'diagnosticReport.resultsInterpreter.text' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.recordedBy.identifier.type.text' => ['nullable', 'string', 'max:255'],
-            'diagnosticReport.recordedBy.identifier.type.coding.*.system' => ['required', 'string', 'max:255'],
-            'diagnosticReport.recordedBy.identifier.type.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary('eHealth/resources')
-            ],
-            'diagnosticReport.performer.reference.identifier.type.coding.*.system' => ['required', 'string', 'max:255'],
-            'diagnosticReport.performer.reference.identifier.type.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary('eHealth/resources')
+                new InDictionary([
+                    'eHealth/LOINC/observation_codes',
+                    'eHealth/custom/observation_codes',
+                    'eHealth/ICF/classifiers',
+                ]),
             ],
 
-            'observations.*.primarySource' => ['required', 'boolean:strict'],
-            'observations.*.performer' => [
-                'required_if:observations.*.primarySource,true',
-                'array'
-            ],
-            'observations.*.performer.identifier.type.coding.*.system' => ['required', 'string', 'max:255'],
-            'observations.*.performer.identifier.type.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary('eHealth/resources')
-            ],
-            'observations.*.performer.identifier.type.text' => ['nullable', 'string', 'max:255'],
-            'observations.*.reportOrigin' => [
-                'required_if:observations.*.primarySource,false',
-                'array'
-            ],
-            'observations.*.categories' => ['required', 'array'],
-            'observations.*.categories.*.coding.*.system' => ['required', 'string', 'max:255'],
-            'observations.*.categories.*.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary(['eHealth/observation_categories', 'eHealth/ICF/observation_categories'])
-            ],
-            'observations.*.categories.*.text' => ['nullable', 'string', 'max:255'],
-            'observations.*.code' => ['required', 'array'],
-            'observations.*.code.coding.*.system' => ['required', 'string', 'max:255'],
-            'observations.*.code.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary(['eHealth/LOINC/observation_codes', 'eHealth/ICF/classifiers'])
-            ],
-            'observations.*.code.text' => ['nullable', 'string', 'max:255'],
-            'observations.*.valueQuantity' => ['sometimes', 'array'],
-            'observations.*.valueQuantity.value' => ['sometimes', 'numeric'],
-            'observations.*.valueQuantity.comparator' => ['sometimes', 'string'],
-            'observations.*.valueQuantity.unit' => ['sometimes', 'string'],
-            'observations.*.valueQuantity.system' => ['sometimes', 'string'],
-            'observations.*.valueQuantity.code' => ['sometimes', 'string'],
-            'observations.*.valueCodeableConcept' => ['sometimes', 'array'],
-            'observations.*.valueString' => ['sometimes', 'string'],
-            'observations.*.valueBoolean' => ['sometimes', 'boolean'],
-            'observations.*.valueDateTime' => ['sometimes', 'date'],
-            'observations.*.components' => ['nullable', 'array'],
-            'observations.*.method' => ['nullable', 'array'],
-            'observations.*.method.coding.*.system' => ['nullable', 'string', 'max:255'],
-            'observations.*.method.coding.*.code' => [
-                'nullable',
-                'string',
-                new InDictionary('eHealth/observation_methods')
-            ],
-            'observations.*.method.text' => ['nullable', 'string', 'max:255'],
-            'observations.*.bodySite' => ['nullable', 'array'],
-            'observations.*.bodySite.coding.*.system' => ['nullable', 'string', 'max:255'],
-            'observations.*.bodySite.coding.*.code' => [
-                'nullable',
-                'string',
-                new InDictionary('eHealth/body_sites')
-            ],
-            'observations.*.bodySite.text' => ['nullable', 'string', 'max:255'],
-            'observations.*.interpretation' => ['nullable', 'array'],
-            'observations.*.interpretation.coding.*.system' => ['nullable', 'string', 'max:255'],
-            'observations.*.interpretation.coding.*.code' => [
-                'nullable',
-                'string',
-                new InDictionary('eHealth/observation_interpretations')
-            ],
-            'observations.*.interpretation.text' => ['nullable', 'string', 'max:255'],
-            'observations.*.issuedDate' => ['required', 'date', 'before_or_equal:now'],
-            'observations.*.issuedTime' => ['required', 'date_format:H:i', 'before_or_equal:now'],
-            'observations.*.effectiveDate' => ['nullable', 'date', 'before_or_equal:now'],
+            'observations.*.issuedDate' => ['required_with:observations', 'date', 'before_or_equal:today'],
+            'observations.*.issuedTime' => ['required_with:observations', 'date_format:H:i'],
+            'observations.*.effectiveDate' => ['nullable', 'date', 'before_or_equal:today'],
             'observations.*.effectiveTime' => ['nullable', 'date_format:H:i'],
-            'observations.*.comment' => ['nullable', 'string', 'max:1000']
-        ];
-    }
 
-    /**
-     * List of rules for signing Cipher form.
-     *
-     * @return array[]
-     */
-    public function rulesForSigning(): array
-    {
-        return [
-            'knedp' => ['required', 'string'],
-            'password' => ['required', 'string'],
-            'keyContainerUpload' => ['required', 'file', 'extensions:dat,pfx,pk8,zs2,jks,p7s']
+            'observations.*.primarySource' => ['required_with:observations', 'boolean'],
+            'observations.*.reportOriginCode' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $primarySource = $this->observations[$index]['primarySource'] ?? true;
+
+                return [
+                    Rule::requiredIf($primarySource === false),
+                    $primarySource === true ? 'prohibited' : 'nullable',
+                    'string',
+                    new InDictionary('eHealth/report_origins'),
+                ];
+            }),
+            'observations.*.reportOriginText' => ['nullable', 'string', 'max:255'],
+            'observations.*.interpretationCode' => [
+                'nullable',
+                'string',
+                new InDictionary('eHealth/observation_interpretations'),
+            ],
+            'observations.*.bodySiteCode' => [
+                'nullable',
+                'string',
+                new InDictionary('eHealth/body_sites'),
+            ],
+            'observations.*.methodCode' => [
+                'nullable',
+                'string',
+                new InDictionary('eHealth/observation_methods'),
+            ],
+            'observations.*.dictionaryName' => ['nullable', 'string'],
+            'observations.*.comment' => ['nullable', 'string', 'max:1000'],
+
+            'observations.*.valueQuantityValue' => ['nullable', 'numeric'],
+            'observations.*.valueQuantityComparator' => ['nullable', 'string', Rule::in(['>', '>=', '=', '<=', '<'])],
+            'observations.*.valueQuantityUnit' => ['nullable', 'string', new InDictionary('eHealth/ucum/units')],
+            'observations.*.valueQuantitySystem' => ['nullable', 'string'],
+            'observations.*.valueQuantityCode' => ['nullable', 'string'],
+
+            'observations.*.valueCodeableConcept' => ['nullable', 'string'],
+            'observations.*.valueString' => ['nullable', 'string'],
+            'observations.*.valueBoolean' => ['nullable', 'boolean'],
+            'observations.*.valueDate' => ['nullable', 'date', 'before_or_equal:today'],
+            'observations.*.valueTime' => ['nullable', 'date_format:H:i'],
+
+            'observations.*.components' => ['nullable', 'array'],
+            'observations.*.components.*.codeCode' => ['nullable', 'string'],
+            'observations.*.components.*.codeSystem' => ['nullable', 'string'],
+            'observations.*.components.*.valueCode' => ['nullable', 'string'],
+            'observations.*.components.*.valueSystem' => ['nullable', 'string'],
+            'observations.*.components.*.interpretationCode' => [
+                'nullable',
+                'string',
+                new InDictionary('eHealth/observation_interpretations'),
+            ],
         ];
     }
 }

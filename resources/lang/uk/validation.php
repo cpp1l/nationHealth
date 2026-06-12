@@ -440,6 +440,10 @@ return [
         'division.location.latitude' => 'Широта',
         'division.location.longitude' => 'Довгота',
 
+        // Diagnostic report
+        'diagnosticReport.categoryCode' => 'категорія діагностичного звіту',
+        'diagnosticReport.codeValue' => 'послуга',
+
         // Healthcare Service
         'category.coding.*.code' => 'категорія послуги',
         'type.coding.*.code' => 'тип медичної послуги',

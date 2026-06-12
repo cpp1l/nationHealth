@@ -7,7 +7,6 @@ namespace App\Services\MedicalEvents\Mappers;
 use App\Contracts\FhirMapperContract;
 use App\Enums\Person\DiagnosticReportStatus;
 use App\Services\MedicalEvents\FhirResource;
-use Illuminate\Support\Str;
 
 class DiagnosticReportMapper implements FhirMapperContract
 {
@@ -15,16 +14,16 @@ class DiagnosticReportMapper implements FhirMapperContract
      * Convert a flat form diagnostic report to a FHIR structure for persistence/API.
      *
      * @param  array  $data  Flat diagnostic report form data
-     * @param  mixed  ...$context  [0] array $uuids  Shared UUIDs (encounter, employee, etc.)
+     * @param  mixed  ...$context  [0] array $uuids  Shared UUIDs (encounter, employee, etc.), [1] DiagnosticReportStatus $status
      * @return array
      */
     public function toFhir(array $data, mixed ...$context): array
     {
-        [$uuids] = $context;
+        [$uuids, $status] = $context;
 
         $result = [
-            'id' => $data['uuid'] ?? Str::uuid()->toString(),
-            'status' => DiagnosticReportStatus::FINAL->value,
+            'id' => $uuids['diagnosticReport'],
+            'status' => $status->value,
             'code' => FhirResource::make()
                 ->coding('eHealth/resources', 'service')
                 ->toIdentifier($data['codeValue']),
@@ -45,9 +44,6 @@ class DiagnosticReportMapper implements FhirMapperContract
             'recordedBy' => FhirResource::make()
                 ->coding('eHealth/resources', 'employee')
                 ->toIdentifier($uuids['employee']),
-            'encounter' => FhirResource::make()
-                ->coding('eHealth/resources', 'encounter')
-                ->toIdentifier($uuids['encounter']),
             'primarySource' => $data['primarySource'],
             'managingOrganization' => FhirResource::make()
                 ->coding('eHealth/resources', 'legal_entity')
@@ -57,6 +53,12 @@ class DiagnosticReportMapper implements FhirMapperContract
         $paperReferral = PaperReferralMapper::toFhir($data);
         if ($paperReferral !== null) {
             $result['paperReferral'] = $paperReferral;
+        }
+
+        if (!empty($uuids['encounter'])) {
+            $result['encounter'] = FhirResource::make()
+                ->coding('eHealth/resources', 'encounter')
+                ->toIdentifier($uuids['encounter']);
         }
 
         if (!empty($data['conclusion'])) {

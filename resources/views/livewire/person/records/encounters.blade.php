@@ -41,14 +41,14 @@
                 <p>{{ __('patients.encounter_search') }}</p>
             </div>
 
-            <div class="form-row-3 mb-6">
+            <div class="form-row-3 mb-6 relative z-10">
                 <div class="form-group group">
                     <div class="datepicker-wrapper">
                         <input wire:model="filterStartDateRange"
                                type="text"
                                name="filterStartDateRange"
                                id="filterStartDateRange"
-                               class="datepicker-input with-leading-icon input peer w-full"
+                               class="daterangepicker-uk with-leading-icon input peer w-full"
                                placeholder=" "
                                autocomplete="off"
                         />
@@ -64,7 +64,7 @@
                                type="text"
                                name="filterEndDateRange"
                                id="filterEndDateRange"
-                               class="datepicker-input with-leading-icon input peer w-full"
+                               class="daterangepicker-uk with-leading-icon input peer w-full"
                                placeholder=" "
                                autocomplete="off"
                         />
@@ -133,7 +133,7 @@
             </div>
 
             <div x-show="showAdditionalParams" x-transition x-cloak>
-                <div class="form-row-3 mb-9">
+                <div class="form-row-3 mb-9 relative z-10">
                     <x-forms.combobox :options="$incomingReferrals"
                                       bind="filterIncomingReferralId"
                                       bindValue="uuid"

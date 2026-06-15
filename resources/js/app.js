@@ -213,48 +213,36 @@ let isNavigating = false;
 
 function updatePreloader() {
     const preloader = document.getElementById('preloader');
-    console.log('[Preloader] updatePreloader called:', {
-        preloaderExists: !!preloader,
-        activeRequests,
-        isNavigating
-    });
     if (!preloader) return;
     if (activeRequests > 0 || isNavigating) {
-        console.log('[Preloader] Showing spinner');
         preloader.style.setProperty('display', 'block', 'important');
     } else {
-        console.log('[Preloader] Hiding spinner');
         preloader.style.setProperty('display', 'none', 'important');
     }
 }
 
 document.addEventListener('livewire:navigate', () => {
-    console.log('[Preloader] livewire:navigate event');
     isNavigating = true;
     updatePreloader();
 });
 
 document.addEventListener('livewire:navigating', () => {
-    console.log('[Preloader] livewire:navigating event');
     isNavigating = true;
     updatePreloader();
 });
 
 document.addEventListener('livewire:navigated', () => {
-    console.log('[Preloader] livewire:navigated event');
     isNavigating = false;
     activeRequests = 0; // Reset active requests on navigation
     updatePreloader();
 });
 
 window.addEventListener('beforeunload', () => {
-    console.log('[Preloader] beforeunload event');
     isNavigating = true;
     updatePreloader();
 });
 
 window.addEventListener('pageshow', (event) => {
-    console.log('[Preloader] pageshow event:', event.persisted);
     if (event.persisted) {
         isNavigating = false;
         activeRequests = 0;
@@ -285,26 +273,21 @@ document.addEventListener('click', (event) => {
         return;
     }
 
-    console.log('[Preloader] Normal link click transition detected:', href);
     isNavigating = true;
     updatePreloader();
 });
 
 function registerLivewireHooks() {
-    console.log('[Preloader] registering Livewire hooks');
     Livewire.hook('request', ({ succeed, fail }) => {
-        console.log('[Preloader] request hook: request started');
         activeRequests++;
         updatePreloader();
 
         succeed(() => {
-            console.log('[Preloader] request hook: request succeeded');
             activeRequests = Math.max(0, activeRequests - 1);
             updatePreloader();
         });
 
         fail(() => {
-            console.log('[Preloader] request hook: request failed');
             activeRequests = Math.max(0, activeRequests - 1);
             updatePreloader();
         });
@@ -466,10 +449,37 @@ function initUkTimepickers(root = document) {
     });
 }
 
+function initUkDateRangePickers(root = document) {
+    const inputs = root.querySelectorAll('input.daterangepicker-uk:not([data-drp-initialized])');
+
+    inputs.forEach((el) => {
+        if (el._flatpickr) return;
+
+        flatpickr(el, {
+            mode: "range",
+            showMonths: 2,
+            dateFormat: "d.m.Y",
+            locale: {
+                ...Ukrainian,
+                rangeSeparator: " — "
+            },
+            allowInput: true,
+            onChange: (selectedDates, dateStr, instance) => {
+                el.value = dateStr;
+                el.dispatchEvent(new Event("input", { bubbles: true }));
+                el.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        });
+        el.setAttribute('data-drp-initialized', 'true');
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initUkTimepickers();
+    initUkDateRangePickers();
     const tpObserver = new MutationObserver(() => {
         initUkTimepickers();
+        initUkDateRangePickers();
     });
     tpObserver.observe(document.body, { childList: true, subtree: true });
 });
@@ -478,6 +488,7 @@ if (window.Livewire) {
     document.addEventListener("livewire:load", () => {
         Livewire.hook("message.processed", (message, component) => {
             initUkTimepickers(component?.el || document);
+            initUkDateRangePickers(component?.el || document);
             initFlowbite();
         });
     });
@@ -488,6 +499,7 @@ if (window.Livewire) {
 
     document.addEventListener("livewire:navigated", () => {
         initUkTimepickers();
+        initUkDateRangePickers();
         initFlowbite();
     });
 }

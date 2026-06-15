@@ -21,7 +21,7 @@
 
     }"
 >
-    <div class="relative mt-2">
+    <div class="relative mt-2" :class="{ 'z-30': open }">
         <button @click="open = !open" type="button"
                 class="default-input text-left">
             <span class="block truncate" x-text="selectedOption ? selectedOption : 'Обрати '"></span>
@@ -34,12 +34,12 @@
             </span>
         </button>
         <div x-show="open" @click.away="open = false" x-cloak
-             class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg">
+             class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-700 py-1 text-base shadow-lg text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
             <input type="text" x-model="search" placeholder="Пошук..." class="default-input">
             <ul class="max-h-60 overflow-auto">
                 <template x-for="(option, index) in filteredOptions">
                     <li @click="selectOption(option, index)"
-                        class="cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-gray-100 hover:text-gray-800"
+                        class="cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-600 dark:hover:text-white"
                         :class="{'bg-sky-600 text-white': selectedId === index}">
                         <span x-text="option" class="font-normal block truncate"></span>
                     </li>

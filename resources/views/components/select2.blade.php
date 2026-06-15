@@ -5,6 +5,8 @@
      x-model="{{ $modelPath }}"
      @click.away="hideOptions"
      x-cloak
+     class="relative"
+     :class="{ 'z-30': optionsVisible }"
 >
     <input class="{{ $attributes->get('class', 'input-modal') }}"
            {{ $attributes->except('class') }}

@@ -27,7 +27,7 @@
         </div>
     </div>
 
-    <div class="shift-content w-full">
+    <div class="shift-content pl-3.5 mt-8 w-full">
         <fieldset class="fieldset">
             <legend class="legend">
                 {{ __('declarations.label') }} № {{ $declaration->declarationNumber }}

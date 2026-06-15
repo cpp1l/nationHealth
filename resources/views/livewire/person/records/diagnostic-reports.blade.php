@@ -264,33 +264,72 @@
             <div x-show="showAdditionalParams" x-transition x-cloak wire:key="diagnostic-reports-search-filters">
                 <div class="form-row-3 mb-6">
                     <div class="form-group group">
-                        <div class="datepicker-wrapper">
-                            <input wire:model="filterIssuedFrom"
+                        <div class="datepicker-wrapper"
+                             x-data="{
+                                 from: $wire.entangle('filterIssuedFrom'),
+                                 to: $wire.entangle('filterIssuedTo'),
+                                 rangeText: '',
+                                 init() {
+                                     flatpickr(this.$refs.rangeInput, {
+                                         mode: 'range',
+                                         showMonths: 2,
+                                         dateFormat: 'd.m.Y',
+                                         locale: {
+                                             firstDayOfWeek: 1,
+                                             rangeSeparator: ' — ',
+                                             weekdays: {
+                                                 shorthand: ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+                                                 longhand: ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота']
+                                             },
+                                             months: {
+                                                 shorthand: ['Січ', 'Лют', 'Бер', 'Квіт', 'Трав', 'Черв', 'Лип', 'Серп', 'Врес', 'Жовт', 'Лист', 'Груд'],
+                                                 longhand: ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень']
+                                             }
+                                         },
+                                         allowInput: true,
+                                         onReady: (selectedDates, dateStr, instance) => {
+                                             if (this.from && this.to) {
+                                                 instance.setDate([this.from, this.to]);
+                                                 this.rangeText = this.from + ' — ' + this.to;
+                                             }
+                                         },
+                                         onChange: (selectedDates, dateStr, instance) => {
+                                             this.rangeText = dateStr;
+                                             if (selectedDates.length === 2) {
+                                                 this.from = instance.formatDate(selectedDates[0], 'd.m.Y');
+                                                 this.to = instance.formatDate(selectedDates[1], 'd.m.Y');
+                                             } else if (selectedDates.length === 0) {
+                                                 this.from = '';
+                                                 this.to = '';
+                                             }
+                                         }
+                                     });
+                                     this.$watch('from', value => {
+                                         if (!value) {
+                                             this.rangeText = '';
+                                             const fp = this.$refs.rangeInput._flatpickr;
+                                             if (fp) fp.clear();
+                                         }
+                                     });
+                                     this.$watch('to', value => {
+                                         if (!value) {
+                                             this.rangeText = '';
+                                             const fp = this.$refs.rangeInput._flatpickr;
+                                             if (fp) fp.clear();
+                                         }
+                                     });
+                                 }
+                             }"
+                        >
+                            <input x-ref="rangeInput"
+                                   x-model="rangeText"
                                    type="text"
-                                   name="filterIssuedFrom"
-                                   id="filterIssuedFrom"
-                                   class="datepicker-input with-leading-icon input peer w-full"
+                                   class="with-leading-icon input peer w-full"
                                    placeholder=" "
                                    autocomplete="off"
                             />
-                            <label for="filterIssuedFrom" class="wrapped-label">
-                                {{ __('patients.date_from') }}
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group group">
-                        <div class="datepicker-wrapper">
-                            <input wire:model="filterIssuedTo"
-                                   type="text"
-                                   name="filterIssuedTo"
-                                   id="filterIssuedTo"
-                                   class="datepicker-input with-leading-icon input peer w-full"
-                                   placeholder=" "
-                                   autocomplete="off"
-                            />
-                            <label for="filterIssuedTo" class="wrapped-label">
-                                {{ __('patients.date_to') }}
+                            <label class="wrapped-label">
+                                Дата від - до
                             </label>
                         </div>
                     </div>

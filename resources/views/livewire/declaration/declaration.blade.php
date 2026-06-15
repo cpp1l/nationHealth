@@ -9,7 +9,7 @@
             {{ $isNeedToResign ? __('declarations.simplified_declaration_creation') : __('declarations.application_for_registration_of_declaration') }} - {{ $patientFullName }}
         </x-slot>
     </x-header-navigation>
-    <form class="form shift-content">
+    <form class="form shift-content pl-3.5 mt-8">
         @include('livewire.declaration.parts.main-information')
 
         @if (!$isNeedToResign)

@@ -13,7 +13,7 @@ if (empty($breadcrumbs)) {
 }
 @endphp
 
-<div {{ $attributes->merge(['class' => 'section-card shift-content']) }}>
+<div {{ $attributes->merge(['class' => 'section-card shift-content relative z-20']) }}>
     <div class="max-w-screen-xl w-full">
         <!-- Breadcrumbs at the very top -->
         <nav class="breadcrumb" aria-label="Breadcrumb">

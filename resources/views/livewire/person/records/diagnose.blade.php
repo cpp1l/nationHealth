@@ -147,7 +147,7 @@
                                    type="text"
                                    name="filterCreatedAtRange"
                                    id="filterCreatedAtRange"
-                                   class="datepicker-input with-leading-icon input peer w-full"
+                                   class="daterangepicker-uk with-leading-icon input peer w-full"
                                    placeholder=" "
                                    autocomplete="off"
                             />

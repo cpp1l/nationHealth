@@ -148,7 +148,7 @@
                                    type="text"
                                    name="filterStartDateRange"
                                    id="filterStartDateRange"
-                                   class="datepicker-input with-leading-icon input peer w-full"
+                                   class="daterangepicker-uk with-leading-icon input peer w-full"
                                    placeholder=" "
                                    autocomplete="off"
                             />
@@ -164,7 +164,7 @@
                                    type="text"
                                    name="filterEndDateRange"
                                    id="filterEndDateRange"
-                                   class="datepicker-input with-leading-icon input peer w-full"
+                                   class="daterangepicker-uk with-leading-icon input peer w-full"
                                    placeholder=" "
                                    autocomplete="off"
                             />

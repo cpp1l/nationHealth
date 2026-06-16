@@ -105,7 +105,7 @@
     </x-header-navigation>
 
     {{-- Filters --}}
-    <div class="shift-content flex flex-wrap items-end justify-between pl-2.5">
+    <div class="shift-content flex flex-wrap items-end justify-between pl-2.5 mt-6">
         <div class="ml-3.5 flex flex-col gap-4">
             <div class="form-group group">
                 <select wire:model="typeFilter"

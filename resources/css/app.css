@@ -590,6 +590,11 @@ input:-webkit-autofill {
     -webkit-box-shadow: 0 0 0 1000px white inset !important;
 }
 
+.dark input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #1f2937 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
 @layer components {
     /* Section Navigation Component */
     .section-card {
@@ -847,4 +852,94 @@ input:-webkit-autofill {
     &::-webkit-scrollbar-thumb:hover {
         @apply bg-gray-300 dark:bg-gray-500;
     }
+}
+
+/* Datepicker */
+body .flatpickr-calendar {
+    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-xl font-sans;
+}
+
+body .flatpickr-calendar.arrowTop:before,
+body .flatpickr-calendar.arrowTop:after,
+body .flatpickr-calendar.arrowBottom:before,
+body .flatpickr-calendar.arrowBottom:after {
+    @apply border-transparent;
+}
+
+body .flatpickr-months {
+    @apply flex items-center justify-between text-gray-900 dark:text-white p-2;
+}
+
+body .flatpickr-months .flatpickr-prev-month,
+body .flatpickr-months .flatpickr-next-month {
+    @apply text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-colors cursor-pointer;
+}
+
+body .flatpickr-months .flatpickr-prev-month svg,
+body .flatpickr-months .flatpickr-next-month svg {
+    @apply w-4 h-4 fill-current;
+}
+
+body .flatpickr-current-month {
+    @apply font-semibold text-sm text-gray-900 dark:text-white flex items-center justify-center gap-1 w-full left-0 right-0 text-center;
+}
+
+body .flatpickr-current-month .numInputWrapper {
+    @apply font-semibold;
+}
+
+body .flatpickr-current-month input.cur-year {
+    @apply text-gray-900 dark:text-white bg-transparent border-0 p-0 m-0 w-12 font-semibold focus:ring-0;
+}
+
+body .flatpickr-weekday {
+    @apply text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider py-2;
+}
+
+body .flatpickr-day {
+    @apply text-sm font-medium text-gray-900 dark:text-white rounded-lg flex items-center justify-center transition-colors cursor-pointer;
+}
+
+body .flatpickr-day:hover,
+body .flatpickr-day:focus {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white;
+}
+
+body .flatpickr-day.today {
+    @apply border border-blue-500;
+}
+
+body .flatpickr-day.selected,
+body .flatpickr-day.startRange,
+body .flatpickr-day.endRange {
+    @apply bg-blue-500 text-white rounded-lg hover:bg-blue-600;
+}
+
+body .flatpickr-day.inRange,
+body .flatpickr-day.prevMonthDay.inRange,
+body .flatpickr-day.nextMonthDay.inRange,
+body .flatpickr-day.today.inRange,
+body .flatpickr-day.prevMonthDay.today.inRange,
+body .flatpickr-day.nextMonthDay.today.inRange {
+    @apply bg-blue-500 border-blue-500 text-white rounded-none;
+    box-shadow: -5px 0 0 var(--color-blue-500), 5px 0 0 var(--color-blue-500);
+}
+
+body .flatpickr-day.inRange:hover,
+body .flatpickr-day.prevMonthDay.inRange:hover,
+body .flatpickr-day.nextMonthDay.inRange:hover,
+body .flatpickr-day.today.inRange:hover,
+body .flatpickr-day.prevMonthDay.today.inRange:hover,
+body .flatpickr-day.nextMonthDay.today.inRange:hover {
+    @apply bg-blue-600 border-blue-600 text-white;
+    box-shadow: -5px 0 0 var(--color-blue-600), 5px 0 0 var(--color-blue-600);
+}
+
+body .flatpickr-day.prevMonthDay,
+body .flatpickr-day.nextMonthDay {
+    @apply text-gray-300 dark:text-gray-600 cursor-default;
+}
+
+body .flatpickr-day.disabled {
+    @apply text-gray-200 dark:text-gray-700 cursor-not-allowed;
 }

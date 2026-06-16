@@ -2,28 +2,25 @@
 @use('App\Models\License')
 
 <div>
-    <x-header-navigation x-data="{ showFilter: false }" title="{{ __('forms.licenses') }}">
-        <div class="flex flex-col">
-            <div class="flex flex-wrap items-end justify-between gap-4 max-w-6xl">
-                <div class="flex items-end gap-4"></div>
-                <div class="ml-auto flex items-center gap-6 self-start -mt-9 translate-x-4">
-                    @can('create', License::class)
-                        <a href="{{ route('license.create', [legalEntity()]) }}"
-                           class="button-primary flex items-center gap-2"
-                        >
-                            @icon('plus', 'w-4 h-4')
-                            {{ __('licenses.create') }}
-                        </a>
-                    @endcan
+    <x-header-navigation class="items-start" x-data="{ showFilter: false }">
+        <x-slot name="title">{{ __('forms.licenses') }}</x-slot>
 
-                    @can('sync', License::class)
-                        <button wire:click="sync" class="button-sync flex items-center gap-2">
-                            @icon('refresh', 'w-4 h-4')
-                            {{ __('forms.synchronise_with_eHealth') }}
-                        </button>
-                    @endcan
-                </div>
-            </div>
+        <div class="mt-3 ml-0 flex flex-col sm:flex-row sm:flex-wrap gap-2 self-start">
+            @can('create', License::class)
+                <a href="{{ route('license.create', [legalEntity()]) }}"
+                   class="button-primary flex items-center gap-2"
+                >
+                    @icon('plus', 'w-4 h-4')
+                    {{ __('licenses.create') }}
+                </a>
+            @endcan
+
+            @can('sync', License::class)
+                <button wire:click="sync" class="button-sync flex items-center gap-2">
+                    @icon('refresh', 'w-4 h-4')
+                    {{ __('forms.synchronise_with_eHealth') }}
+                </button>
+            @endcan
         </div>
     </x-header-navigation>
 

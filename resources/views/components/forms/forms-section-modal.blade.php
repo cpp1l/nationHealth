@@ -3,7 +3,7 @@
 <div {{ $attributes->merge(['class' => '']) }}>
     <div class="flex flex-col gap-9">
 
-        <div class=" bg-white ">
+        <div class=" bg-white dark:bg-gray-800 ">
             <form  wire:submit.prevent="{{ $submit }}">
                     {{ $form }}
                     @if (isset($actions))

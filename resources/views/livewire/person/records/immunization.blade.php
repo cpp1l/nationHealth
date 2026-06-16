@@ -102,35 +102,37 @@
             <div x-show="showAdditionalParams" x-transition x-cloak wire:key="immunization-search-filters" class="mb-8">
                 <div class="form-row-3 mb-6">
                     <div class="form-group group">
-                        <div class="datepicker-wrapper">
-                            <input wire:model="filterDateFrom"
+                        <div class="datepicker-wrapper"
+                             x-data="{
+                                 from: $wire.entangle('filterDateFrom'),
+                                 to: $wire.entangle('filterDateTo'),
+                                 rangeText: ''
+                             }"
+                             x-init="
+                                 if (from && to) rangeText = from + ' — ' + to;
+                                 $watch('from', val => { if (!val) { rangeText = ''; const fp = $el.querySelector('input')._flatpickr; if (fp) fp.clear(); } });
+                                 $watch('to', val => { if (!val) { rangeText = ''; const fp = $el.querySelector('input')._flatpickr; if (fp) fp.clear(); } });
+                             "
+                        >
+                            <input x-model="rangeText"
+                                   @change="
+                                       const parts = $event.target.value.split(' — ');
+                                       if (parts.length === 2) {
+                                           from = parts[0];
+                                           to = parts[1];
+                                       } else if (!$event.target.value) {
+                                           from = '';
+                                           to = '';
+                                       }
+                                   "
                                    type="text"
-                                   name="filterDateFrom"
-                                   id="filterDateFrom"
-                                   class="datepicker-input with-leading-icon input peer w-full"
+                                   class="daterangepicker-uk with-leading-icon input peer w-full"
                                    placeholder=" "
                                    autocomplete="off"
                             />
 
-                            <label for="filterDateFrom" class="wrapped-label">
-                                {{ __('patients.date_from') }}
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group group">
-                        <div class="datepicker-wrapper">
-                            <input wire:model="filterDateTo"
-                                   type="text"
-                                   name="filterDateTo"
-                                   id="filterDateTo"
-                                   class="datepicker-input with-leading-icon input peer w-full"
-                                   placeholder=" "
-                                   autocomplete="off"
-                            />
-
-                            <label for="filterDateTo" class="wrapped-label">
-                                {{ __('patients.date_to') }}
+                            <label class="wrapped-label">
+                                {{ __('patients.filter_date_range') }}
                             </label>
                         </div>
                     </div>

@@ -176,7 +176,7 @@
                                    type="text"
                                    name="filterPeriodDateRange"
                                    id="filterPeriodDateRange"
-                                   class="datepicker-input with-leading-icon input peer"
+                                   class="daterangepicker-uk with-leading-icon input peer w-full"
                                    placeholder=" "
                                    autocomplete="off"
                             />

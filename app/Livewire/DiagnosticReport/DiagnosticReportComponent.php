@@ -10,6 +10,8 @@ use App\Models\Employee\Employee;
 use App\Models\Icd10;
 use App\Models\LegalEntity;
 use App\Models\Person\Person;
+use App\Repositories\ObservationConfigRepository;
+use App\Repositories\Repository;
 use App\Traits\FormTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -121,21 +123,9 @@ class DiagnosticReportComponent extends Component
         'eHealth/ICF/qualifiers/barrier_or_facilitator',
         'eHealth/observation_methods',
         'eHealth/body_sites',
-        'eHealth/stature',
-        'eHealth/eye_colour',
-        'eHealth/hair_color',
-        'eHealth/hair_length',
-        'eHealth/custom/observation_codes',
         'GENDER',
-        'eHealth/LOINC/LL360-9',
-        'eHealth/LOINC/LL2419-1',
-        'eHealth/LOINC/LL4129-4',
-        'eHealth/rankin_scale',
-        'eHealth/LOINC/LL2009-0',
-        'eHealth/LOINC/LL2021-5',
         'eHealth/vaccination_covid_groups',
-        'eHealth/LOINC/LL2451-4',
-        'eHealth/LOINC/LL3250-9',
+        'eHealth/custom/observation_codes',
         'POSITION'
     ];
 
@@ -147,11 +137,18 @@ class DiagnosticReportComponent extends Component
             throw new RuntimeException('Authenticated user not found');
         }
 
+        $observationConfigRepository = Repository::observationConfig();
+
+        $this->dictionaryNames = [
+            ...$this->dictionaryNames,
+            ...$observationConfigRepository->codeableConceptBindings()
+        ];
+
         $this->getDictionary();
 
         try {
             $this->dictionaries['custom/services'] = dictionary()->services()->flattened()->toArray();
-            $this->loadObservationDictionaries();
+            $this->loadObservationDictionaries($observationConfigRepository);
         } catch (RuntimeException) {
             Log::channel('e_health_errors')
                 ->error('Error while loading observation dictionary in DiagnosticReportComponent');
@@ -208,20 +205,21 @@ class DiagnosticReportComponent extends Component
     /**
      * Loads dictionaries and related mappings for observations.
      *
+     * @param  ObservationConfigRepository  $observationConfigRepository
      * @return void
      */
-    protected function loadObservationDictionaries(): void
+    protected function loadObservationDictionaries(ObservationConfigRepository $observationConfigRepository): void
     {
         $this->dictionaries['eHealth/ICF/classifiers'] = dictionary()->basics()
             ->byName('eHealth/ICF/classifiers')
             ->flattenedChildValues()
             ->toArray();
 
-        $this->observationLoincCodeMap = config('observation.category_codes.loinc', []);
-        $this->observationCustomCodeMap = config('observation.category_codes.custom', []);
-        $this->observationValueMap = config('observation.code_values');
+        $this->observationLoincCodeMap = $observationConfigRepository->loincCodeMap();
+        $this->observationCustomCodeMap = $observationConfigRepository->customCodeMap();
+        $this->observationValueMap = $observationConfigRepository->valueMap();
 
-        $this->codeableConceptValues = collect(config('observation.code_values'))
+        $this->codeableConceptValues = collect($this->observationValueMap)
             ->filter(static fn (array $value) => $value[1] === 'valueCodeableConcept')
             ->mapWithKeys(fn (array $value) => [
                 $value[0] => $this->dictionaries[$value[0]] ?? []

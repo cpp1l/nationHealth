@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Contract;
 
-use App\Classes\eHealth\Api\MedicalProgram;
 use App\Livewire\Contract\Forms\ReimbursementContractRequestForm as Form;
 use App\Models\LegalEntity;
 use App\Repositories\Repository;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Log;
@@ -39,44 +36,27 @@ class ReimbursementContractCreate extends ContractComponent
 
     protected function loadMedicalPrograms(): void
     {
-        $programs = Cache::remember('ehealth_medical_programs_reimbursement', 3600, function () {
-            try {
-                $response = (new MedicalProgram())->asMis()->getMany([
-                    'page_size' => 100,
-                ]);
+        try {
+            $programs = dictionary()->medicalPrograms()
+                ->filter(static function (array $item): bool {
+                    $name = mb_strtolower((string) ($item['name'] ?? ''));
+                    $settings = $item['medical_program_settings'] ?? [];
 
-                $apiPrograms = $response->getData();
+                    return (bool) ($item['is_active'] ?? false)
+                        && ($item['funding_source'] ?? null) === 'NHS'
+                        && ($item['type'] ?? null) === 'MEDICATION'
+                        && (bool) ($settings['request_allowed'] ?? false)
+                        && !str_contains($name, 'тест')
+                        && !str_contains($name, 'test');
+                })
+                ->values()
+                ->all();
+        } catch (\Throwable $exception) {
+            Log::error('Medical Programs Fetch Error: '.$exception->getMessage());
+            $programs = [];
+        }
 
-                if (!empty($apiPrograms)) {
-                    return $apiPrograms;
-                }
-
-                Log::warning('Medical Programs API returned empty list. Using fallback JSON.');
-
-                return $this->loadMedicalProgramsFallback();
-            } catch (\Exception $e) {
-                Log::error('Medical Programs Fetch Error: ' . $e->getMessage());
-
-                return $this->loadMedicalProgramsFallback();
-            }
-        });
-
-        $this->allMedicalPrograms = array_values(array_filter(
-            $programs,
-            static function (array $item): bool {
-                $name = mb_strtolower((string) ($item['name'] ?? ''));
-                $settings = $item['medical_program_settings'] ?? [];
-
-                // Hide inactive, non-reimbursement-like, and obvious test programs.
-                return (bool) ($item['is_active'] ?? false)
-                    && ($item['funding_source'] ?? null) === 'NHS'
-                    && ($item['type'] ?? null) === 'MEDICATION'
-                    && (bool) ($settings['request_allowed'] ?? false)
-                    && !str_contains($name, 'тест')
-                    && !str_contains($name, 'test');
-            }
-        ));
-
+        $this->allMedicalPrograms = $programs;
         $this->applyMedicalProgramsFilter();
     }
 
@@ -108,48 +88,6 @@ class ReimbursementContractCreate extends ContractComponent
             'id' => $item['id'],
             'name' => $item['name'] . ' (' . ($item['type'] ?? 'N/A') . ')',
         ], $filteredPrograms);
-    }
-
-    /**
-     * Load locally saved fallback list of valid reimbursement programs.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function loadMedicalProgramsFallback(): array
-    {
-        $path = storage_path('app/exports/medical-programs-valid-reimbursement.json');
-
-        if (!File::exists($path)) {
-            Log::warning('Medical Programs fallback file is missing.', ['path' => $path]);
-
-            return [];
-        }
-
-        try {
-            $decoded = json_decode(File::get($path), true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable $exception) {
-            Log::error('Medical Programs fallback JSON decode failed.', [
-                'path' => $path,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return [];
-        }
-
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        $programs = $decoded['programs'] ?? $decoded;
-
-        if (!is_array($programs)) {
-            return [];
-        }
-
-        return array_values(array_filter(
-            $programs,
-            static fn (mixed $item): bool => is_array($item) && !empty($item['id']) && !empty($item['name'])
-        ));
     }
 
     protected function getContractType(): string

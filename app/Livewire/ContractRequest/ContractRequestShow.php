@@ -11,7 +11,6 @@ use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Contract\Forms\ContractRequestSigningForm as SigningForm;
 use App\Models\Contracts\ContractRequest;
 use App\Repositories\Repository;
-use App\Services\Dictionary\DictionaryManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -299,12 +298,11 @@ class ContractRequestShow extends Component
     private function resolveMedicalProgramNames(): array
     {
         try {
-            return app(DictionaryManager::class)
-                ->medicalPrograms()
+            return dictionary()->medicalPrograms()
                 ->pluck('name', 'id')
                 ->all();
         } catch (\Throwable $exception) {
-            Log::warning('Failed to load medical program dictionary: ' . $exception->getMessage());
+            Log::warning('Failed to load medical program dictionary: '.$exception->getMessage());
 
             return [];
         }
@@ -349,6 +347,7 @@ class ContractRequestShow extends Component
             ]);
 
             $this->contractRequest->refresh();
+            $this->contractRequest = $this->contractRequest->fresh();
         } catch (\Exception $exception) {
             Log::warning('Failed to fetch Contract Request details: ' . $exception->getMessage());
         }

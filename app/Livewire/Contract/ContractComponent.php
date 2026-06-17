@@ -152,14 +152,6 @@ abstract class ContractComponent extends Component
                 throw new \RuntimeException('Не вдалося отримати ID запиту від ЕСОЗ.');
             }
 
-            Log::info('Contract request initialized in eHealth', [
-                'contract_type' => $this->getContractType(),
-                'contract_request_id' => $contractRequestId,
-                'has_statute_upload_url' => !empty($statuteUrl),
-                'has_additional_doc_upload_url' => !empty($additionalDocUrl),
-                'ehealth_request_id' => $response->json('meta.request_id'),
-            ]);
-
         } catch (\Exception $e) {
             $this->handleEHealthError($e);
 
@@ -246,17 +238,6 @@ abstract class ContractComponent extends Component
 
         // 6. Sending a request for creation (API-005-012-0005 Public. Create Contract Request)
         try {
-            Log::info('Sending signed contract request to eHealth', [
-                'contract_type' => $this->getContractType(),
-                'contract_request_id' => $contractRequestId,
-                'payload_keys' => array_keys($payload),
-                'payload_type' => $payload['type'] ?? null,
-                'payload_id_form' => $payload['id_form'] ?? null,
-                'medical_programs_count' => count($payload['medical_programs'] ?? []),
-                'signed_content_length' => strlen($signedContent),
-                'signed_content_sha256' => hash('sha256', $signedContent),
-            ]);
-
             $response = EHealth::contractRequest()->create(
                 $contractRequestId,
                 $this->getContractType(),
@@ -267,13 +248,6 @@ abstract class ContractComponent extends Component
             );
 
             $createdContractData = $response->getData();
-
-            Log::info('Contract request created in eHealth', [
-                'contract_type' => $this->getContractType(),
-                'contract_request_id' => $createdContractData['id'] ?? null,
-                'status' => $createdContractData['status'] ?? null,
-                'ehealth_request_id' => $response->json('meta.request_id'),
-            ]);
 
             Repository::contractRequest()->saveFromEHealth($createdContractData, strtoupper($this->getContractType()));
 

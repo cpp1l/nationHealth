@@ -1,4 +1,8 @@
 @if(isset($contract) && isset($data))
+    @php
+        $periodStart = formatDisplayDate($contract->start_date ?? data_get($data, 'start_date'));
+        $periodEnd = formatDisplayDate($contract->end_date ?? data_get($data, 'end_date'));
+    @endphp
     <fieldset class="fieldset">
         <legend class="legend">{{ __('contracts.general_data') }}</legend>
         <div class="form-row-2">
@@ -40,7 +44,7 @@
             <div class="form-group group">
                 <input id="contract-created-at"
                        type="text"
-                       value="{{ $contract->inserted_at ? \Carbon\Carbon::parse($contract->inserted_at)->format('d.m.Y H:i') : '' }}"
+                       value="{{ formatDisplayDateTime($contract->inserted_at ?? data_get($data, 'inserted_at')) }}"
                        class="input peer"
                        placeholder=" "
                        disabled
@@ -53,7 +57,7 @@
             <div class="form-group group">
                 <input id="contract-period"
                        type="text"
-                       value="@if($contract->start_date && $contract->end_date){{ $contract->start_date->format(config('app.date_format')) }} – {{ $contract->end_date->format(config('app.date_format')) }}@endif"
+                       value="{{ $periodStart && $periodEnd ? "{$periodStart} – {$periodEnd}" : '' }}"
                        class="input peer"
                        placeholder=" "
                        disabled

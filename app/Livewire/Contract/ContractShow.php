@@ -7,7 +7,6 @@ namespace App\Livewire\Contract;
 use App\Classes\eHealth\EHealth;
 use App\Models\Contracts\Contract;
 use App\Models\LegalEntity;
-use App\Services\Dictionary\DictionaryManager;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
@@ -66,8 +65,7 @@ class ContractShow extends Component
     private function resolveMedicalProgramNames(): array
     {
         try {
-            return app(DictionaryManager::class)
-                ->medicalPrograms()
+            return dictionary()->medicalPrograms()
                 ->pluck('name', 'id')
                 ->all();
         } catch (\Throwable $exception) {

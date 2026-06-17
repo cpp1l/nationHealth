@@ -23,7 +23,9 @@
                 <div class="p-6">
                     <form>
                         <div class="flex flex-col gap-6">
-                            @yield('custom-fields')
+                            @isset($customFields)
+                                {{ $customFields }}
+                            @endisset
 
                             {{-- KEP Provider --}}
                             <div>

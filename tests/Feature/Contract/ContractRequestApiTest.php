@@ -14,17 +14,17 @@ use Tests\TestCase;
 
 /**
  * Tests for ContractRequest API class bugs:
- *  - create() must use PUT, not POST
+ *  - create() must use POST /api/contract_requests/{contract_type}/{id}
  *  - getMany() must not throw when options['query'] is null
  *  - validateDetails() must not fail for NEW status contract requests
  */
 class ContractRequestApiTest extends TestCase
 {
     // -----------------------------------------------------------------------
-    // create() — must use PUT
+    // create() — must use POST /api/contract_requests/{contract_type}/{id}
     // -----------------------------------------------------------------------
 
-    public function test_create_sends_put_request(): void
+    public function test_create_sends_post_request_to_typed_endpoint(): void
     {
         Http::fake(['*' => Http::response(['data' => $this->contractRequestData(), 'meta' => []], 201)]);
 
@@ -32,12 +32,12 @@ class ContractRequestApiTest extends TestCase
         $api->create('some-uuid', 'reimbursement', ['signed_content' => 'base64data', 'signed_content_encoding' => 'base64']);
 
         Http::assertSent(static function (Request $request): bool {
-            return $request->method() === 'PUT'
-                && str_contains($request->url(), '/api/contract_requests/reimbursement/some-uuid');
+            return $request->method() === 'POST'
+                && str_ends_with(parse_url($request->url(), PHP_URL_PATH) ?? '', '/api/contract_requests/reimbursement/some-uuid');
         });
     }
 
-    public function test_create_does_not_send_post_request(): void
+    public function test_create_does_not_use_legacy_put_when_primary_route_works(): void
     {
         Http::fake(['*' => Http::response(['data' => $this->contractRequestData(), 'meta' => []], 201)]);
 
@@ -45,8 +45,34 @@ class ContractRequestApiTest extends TestCase
         $api->create('some-uuid', 'reimbursement', ['signed_content' => 'x', 'signed_content_encoding' => 'base64']);
 
         Http::assertNotSent(static function (Request $request): bool {
-            return $request->method() === 'POST'
+            return $request->method() === 'PUT'
                 && str_contains($request->url(), '/api/contract_requests/reimbursement/some-uuid');
+        });
+    }
+
+    public function test_get_signed_content_uses_id_only_route_first(): void
+    {
+        Http::fake(['*' => Http::response(['data' => ['content' => 'partially-signed']], 200)]);
+
+        $api = $this->makeApi();
+        $api->getSignedContent('some-uuid', 'reimbursement');
+
+        Http::assertSent(static function (Request $request): bool {
+            return $request->method() === 'GET'
+                && str_ends_with(parse_url($request->url(), PHP_URL_PATH) ?? '', '/api/contract_requests/some-uuid/signed_content');
+        });
+    }
+
+    public function test_approve_msp_sends_patch_request(): void
+    {
+        Http::fake(['*' => Http::response(['data' => $this->contractRequestData(['status' => 'PENDING_NHS_SIGN'])], 200)]);
+
+        $api = $this->makeApi();
+        $api->approveMsp('some-uuid', 'reimbursement', ['signed_content' => 'sig', 'signed_content_encoding' => 'base64']);
+
+        Http::assertSent(static function (Request $request): bool {
+            return $request->method() === 'PATCH'
+                && str_ends_with(parse_url($request->url(), PHP_URL_PATH) ?? '', '/api/contract_requests/some-uuid/actions/approve_msp');
         });
     }
 

@@ -9,6 +9,7 @@ use App\Livewire\Contract\Forms\ReimbursementContractRequestForm as Form;
 use App\Models\LegalEntity;
 use App\Repositories\Repository;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -17,6 +18,7 @@ use Log;
 class ReimbursementContractCreate extends ContractComponent
 {
     public Form $form;
+    public array $allMedicalPrograms = [];
     public array $medicalProgramsList = [];
 
     /**
@@ -43,18 +45,111 @@ class ReimbursementContractCreate extends ContractComponent
                     'page_size' => 100,
                 ]);
 
-                return $response->getData();
+                $apiPrograms = $response->getData();
+
+                if (!empty($apiPrograms)) {
+                    return $apiPrograms;
+                }
+
+                Log::warning('Medical Programs API returned empty list. Using fallback JSON.');
+
+                return $this->loadMedicalProgramsFallback();
             } catch (\Exception $e) {
                 Log::error('Medical Programs Fetch Error: ' . $e->getMessage());
 
-                return [];
+                return $this->loadMedicalProgramsFallback();
             }
         });
+
+        $this->allMedicalPrograms = array_values(array_filter(
+            $programs,
+            static function (array $item): bool {
+                $name = mb_strtolower((string) ($item['name'] ?? ''));
+                $settings = $item['medical_program_settings'] ?? [];
+
+                // Hide inactive, non-reimbursement-like, and obvious test programs.
+                return (bool) ($item['is_active'] ?? false)
+                    && ($item['funding_source'] ?? null) === 'NHS'
+                    && ($item['type'] ?? null) === 'MEDICATION'
+                    && (bool) ($settings['request_allowed'] ?? false)
+                    && !str_contains($name, 'тест')
+                    && !str_contains($name, 'test');
+            }
+        ));
+
+        $this->applyMedicalProgramsFilter();
+    }
+
+    public function updatedFormIdForm(): void
+    {
+        $this->applyMedicalProgramsFilter();
+    }
+
+    private function applyMedicalProgramsFilter(): void
+    {
+        $idForm = $this->form->idForm ?? null;
+
+        $filteredPrograms = array_values(array_filter(
+            $this->allMedicalPrograms,
+            static function (array $item) use ($idForm): bool {
+                $mrBlankType = $item['mr_blank_type'] ?? null;
+
+                // For psychiatry contracts, allow F-3 programs.
+                if ($idForm === 'PSYCHIATRY') {
+                    return in_array($mrBlankType, ['F-1', 'F-3'], true);
+                }
+
+                // For GENERAL/PMD_1/ND_1/INSULIN_1 keep regular reimbursement forms.
+                return $mrBlankType === 'F-1';
+            }
+        ));
 
         $this->medicalProgramsList = array_map(static fn (array $item) => [
             'id' => $item['id'],
             'name' => $item['name'] . ' (' . ($item['type'] ?? 'N/A') . ')',
-        ], $programs);
+        ], $filteredPrograms);
+    }
+
+    /**
+     * Load locally saved fallback list of valid reimbursement programs.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadMedicalProgramsFallback(): array
+    {
+        $path = storage_path('app/exports/medical-programs-valid-reimbursement.json');
+
+        if (!File::exists($path)) {
+            Log::warning('Medical Programs fallback file is missing.', ['path' => $path]);
+
+            return [];
+        }
+
+        try {
+            $decoded = json_decode(File::get($path), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable $exception) {
+            Log::error('Medical Programs fallback JSON decode failed.', [
+                'path' => $path,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $programs = $decoded['programs'] ?? $decoded;
+
+        if (!is_array($programs)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $programs,
+            static fn (mixed $item): bool => is_array($item) && !empty($item['id']) && !empty($item['name'])
+        ));
     }
 
     protected function getContractType(): string
@@ -68,16 +163,23 @@ class ReimbursementContractCreate extends ContractComponent
             ?? 'Я підтверджую достовірність наданих даних...';
 
         $payerAccount = str_replace(' ', '', $data['contractorPaymentDetails']['payerAccount'] ?? '');
+        $mfo = trim((string) ($data['contractorPaymentDetails']['MFO'] ?? ''));
 
         $selectedProgramIds = array_filter($data['medicalPrograms'] ?? []);
+
+        $contractorPaymentDetails = [
+            'payer_account' => $payerAccount,
+            'bank_name' => $data['contractorPaymentDetails']['bankName'] ?? '',
+        ];
+
+        if ($mfo !== '') {
+            $contractorPaymentDetails['MFO'] = $mfo;
+        }
 
         $payload = [
             'contractor_owner_id' => $this->form->contractorOwnerId,
             'contractor_base' => $data['contractorBase'],
-            'contractor_payment_details' => [
-                'payer_account' => $payerAccount,
-                'bank_name' => $data['contractorPaymentDetails']['bankName'] ?? '',
-            ],
+            'contractor_payment_details' => $contractorPaymentDetails,
             'start_date' => Carbon::now()->addDay()->format('Y-m-d'),
             'end_date' => Carbon::parse($data['endDate'])->format('Y-m-d'),
 
@@ -88,7 +190,8 @@ class ReimbursementContractCreate extends ContractComponent
 
             'consent_text' => $consentTextString,
 
-            'medical_programs' => array_map(static fn (string $id) => ['id' => $id], $selectedProgramIds),
+            // eHealth create contract request schema expects array of UUID strings.
+            'medical_programs' => array_values($selectedProgramIds),
         ];
 
         if (!empty($data['previousRequestId'])) {

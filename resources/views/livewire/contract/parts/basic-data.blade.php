@@ -40,7 +40,7 @@
             <div class="form-group group">
                 <input id="contract-created-at"
                        type="text"
-                       value="{{ $contract->inserted_at?->format('d.m.Y H:i') }}"
+                       value="{{ $contract->inserted_at ? \Carbon\Carbon::parse($contract->inserted_at)->format('d.m.Y H:i') : '' }}"
                        class="input peer"
                        placeholder=" "
                        disabled
@@ -53,7 +53,7 @@
             <div class="form-group group">
                 <input id="contract-period"
                        type="text"
-                       value="{{ \Carbon\Carbon::parse($contract->start_date)->format(config('app.date_format')) }} – {{ \Carbon\Carbon::parse($contract->end_date)->format(config('app.date_format')) }}"
+                       value="@if($contract->start_date && $contract->end_date){{ $contract->start_date->format(config('app.date_format')) }} – {{ $contract->end_date->format(config('app.date_format')) }}@endif"
                        class="input peer"
                        placeholder=" "
                        disabled

@@ -53,7 +53,6 @@ class SignatureService
             }
 
             return $signedContent;
-
         } catch (ApiException $e) {
             $errors = $e->getErrors();
             $errorMessage = collect($errors)->flatten()->first() ?? __('forms.invalid_kep_password');
@@ -62,6 +61,52 @@ class SignatureService
         } catch (\Exception $e) {
             Log::error('An unexpected error occurred in SignatureService: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
+            ]);
+            throw new RuntimeException($e->getMessage());
+        }
+    }
+
+    /**
+     * Signs a payload that is already encoded in base64 (e.g. partially signed PKCS7 from eHealth).
+     */
+    public function signBase64Payload(
+        string $base64Payload,
+        string $password,
+        string $knedp,
+        ?UploadedFile $keyFile,
+        string $taxId
+    ): string {
+        try {
+            $base64FileContent = $this->getBase64KepFileContent($keyFile);
+
+            $signedContent = $this->cipherApi->sendSession(
+                $base64Payload,
+                $password,
+                $base64FileContent,
+                $knedp,
+                $taxId,
+                null,
+                true
+            );
+
+            if (is_array($signedContent)) {
+                $errorMessage = collect($signedContent)->flatten()->first() ?? __('forms.invalid_kep_password');
+                throw new RuntimeException((string) $errorMessage);
+            }
+
+            if (empty($signedContent) || !is_string($signedContent)) {
+                throw new RuntimeException(__('employees.errors.signature_failed_unexpected'));
+            }
+
+            return $signedContent;
+        } catch (ApiException $e) {
+            $errors = $e->getErrors();
+            $errorMessage = collect($errors)->flatten()->first() ?? __('forms.invalid_kep_password');
+
+            throw new RuntimeException((string) $errorMessage);
+        } catch (\Exception $e) {
+            Log::error('An unexpected error occurred in SignatureService::signBase64Payload: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
             throw new RuntimeException($e->getMessage());
         }

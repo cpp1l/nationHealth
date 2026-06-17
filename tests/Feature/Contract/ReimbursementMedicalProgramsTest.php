@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Contract;
 
 use App\Classes\eHealth\Api\MedicalProgram;
+use App\Livewire\Contract\ReimbursementContractCreate;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -13,36 +15,36 @@ use Tests\TestCase;
 /**
  * Tests for ReimbursementContractCreate medical programs handling:
  *  - User selection is used (not hardcoded)
- *  - Output format is [{id: uuid}, ...], not [uuid, ...]
+ *  - Output format is [uuid, ...] (array of strings)
  *  - Cache is not defeated on every page load
  *
  * These tests cover pure PHP logic and cache behaviour — no database needed.
  */
 class ReimbursementMedicalProgramsTest extends TestCase
 {
-    public function test_medical_programs_payload_uses_id_object_format(): void
+    public function test_medical_programs_payload_uses_uuid_array_format(): void
     {
         $programUuid1 = (string) Str::uuid();
         $programUuid2 = (string) Str::uuid();
 
-        $result = array_map(static fn (string $id) => ['id' => $id], array_filter([$programUuid1, $programUuid2]));
+        $result = array_values(array_filter([$programUuid1, $programUuid2]));
 
-        $this->assertSame([['id' => $programUuid1], ['id' => $programUuid2]], $result);
+        $this->assertSame([$programUuid1, $programUuid2], $result);
     }
 
-    public function test_medical_programs_payload_is_not_plain_uuid_array(): void
+    public function test_medical_programs_payload_is_not_id_object_array(): void
     {
         $programUuid = (string) Str::uuid();
 
-        $result = array_map(static fn (string $id) => ['id' => $id], array_filter([$programUuid]));
+        $result = array_values(array_filter([$programUuid]));
 
-        $this->assertNotSame([$programUuid], $result);
-        $this->assertSame([['id' => $programUuid]], $result);
+        $this->assertSame([$programUuid], $result);
+        $this->assertNotSame([['id' => $programUuid]], $result);
     }
 
     public function test_medical_programs_payload_is_empty_array_when_no_programs_selected(): void
     {
-        $result = array_map(static fn (string $id) => ['id' => $id], array_filter([]));
+        $result = array_values(array_filter([]));
 
         $this->assertSame([], $result);
     }
@@ -73,10 +75,84 @@ class ReimbursementMedicalProgramsTest extends TestCase
         $hardcodedInsulinId = '1a227396-a0e4-4c4f-a0a9-6b358c8929d2';
         $userSelectedId = (string) Str::uuid();
 
-        $result = array_map(static fn (string $id) => ['id' => $id], array_filter([$userSelectedId]));
-        $resultIds = array_column($result, 'id');
+        $result = array_values(array_filter([$userSelectedId]));
 
-        $this->assertNotContains($hardcodedInsulinId, $resultIds);
-        $this->assertContains($userSelectedId, $resultIds);
+        $this->assertNotContains($hardcodedInsulinId, $result);
+        $this->assertContains($userSelectedId, $result);
+    }
+
+    public function test_collect_payload_includes_mfo_in_contractor_payment_details(): void
+    {
+        $data = [
+            'contractorPaymentDetails' => [
+                'bankName' => 'Test Bank',
+                'MFO' => '351005',
+                'payerAccount' => 'UA 12 345678 9012345678901234567',
+            ],
+        ];
+
+        $payerAccount = str_replace(' ', '', $data['contractorPaymentDetails']['payerAccount'] ?? '');
+        $mfo = trim((string) ($data['contractorPaymentDetails']['MFO'] ?? ''));
+
+        $contractorPaymentDetails = [
+            'payer_account' => $payerAccount,
+            'bank_name' => $data['contractorPaymentDetails']['bankName'] ?? '',
+        ];
+
+        if ($mfo !== '') {
+            $contractorPaymentDetails['MFO'] = $mfo;
+        }
+
+        $this->assertSame('351005', $contractorPaymentDetails['MFO']);
+        $this->assertSame('UA123456789012345678901234567', $contractorPaymentDetails['payer_account']);
+    }
+
+    public function test_collect_payload_omits_mfo_when_not_provided(): void
+    {
+        $data = [
+            'contractorPaymentDetails' => [
+                'bankName' => 'Test Bank',
+                'MFO' => '',
+                'payerAccount' => 'UA123456789012345678901234567',
+            ],
+        ];
+
+        $mfo = trim((string) ($data['contractorPaymentDetails']['MFO'] ?? ''));
+
+        $contractorPaymentDetails = [
+            'payer_account' => $data['contractorPaymentDetails']['payerAccount'] ?? '',
+            'bank_name' => $data['contractorPaymentDetails']['bankName'] ?? '',
+        ];
+
+        if ($mfo !== '') {
+            $contractorPaymentDetails['MFO'] = $mfo;
+        }
+
+        $this->assertArrayNotHasKey('MFO', $contractorPaymentDetails);
+    }
+
+    public function test_fallback_medical_programs_file_is_read_when_available(): void
+    {
+        $fallbackPath = storage_path('app/exports/medical-programs-valid-reimbursement.json');
+        File::ensureDirectoryExists(dirname($fallbackPath));
+
+        $expectedProgram = [
+            'id' => (string) Str::uuid(),
+            'name' => 'Fallback Program',
+            'type' => 'MEDICATION',
+        ];
+
+        File::put($fallbackPath, json_encode([
+            'programs' => [$expectedProgram],
+        ], JSON_THROW_ON_ERROR));
+
+        $component = app(ReimbursementContractCreate::class);
+        $method = new \ReflectionMethod($component, 'loadMedicalProgramsFallback');
+        $method->setAccessible(true);
+        $result = $method->invoke($component);
+
+        $this->assertCount(1, $result);
+        $this->assertSame($expectedProgram['id'], $result[0]['id']);
+        $this->assertSame($expectedProgram['name'], $result[0]['name']);
     }
 }

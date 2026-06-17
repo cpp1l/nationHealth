@@ -10,6 +10,7 @@ use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Contract\Forms\ContractRequestSigningForm as SigningForm;
 use App\Models\Contracts\ContractRequest;
+use App\Models\LegalEntity;
 use App\Repositories\Repository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -29,9 +30,9 @@ class ContractRequestShow extends Component
     public bool $showSignatureModal = false;
     public ?string $pendingAction = null;
 
-    public function mount(ContractRequest $contract): void
+    public function mount(LegalEntity $legalEntity, ContractRequest $contractRequest): void
     {
-        $this->contractRequest = $contract;
+        $this->contractRequest = $contractRequest;
 
         if ($this->contractRequest->uuid && $this->contractRequest->type) {
             $this->syncDetailsFromEHealth();

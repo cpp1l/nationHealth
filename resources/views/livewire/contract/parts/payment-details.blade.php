@@ -81,6 +81,9 @@
                        type="text"
                        name="MFO"
                        id="MFO"
+                       inputmode="numeric"
+                       maxlength="6"
+                       pattern="[0-9]{6}"
                        class="peer input @error('form.contractorPaymentDetails.MFO') input-error @enderror"
                        placeholder=" "
                        required

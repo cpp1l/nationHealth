@@ -114,7 +114,7 @@
                                                 class="absolute right-0 mt-2 w-44 rounded-md bg-white shadow-md z-50 border border-gray-100"
                                             >
                                                 {{-- View action with fixed route parameters --}}
-                                                <a href="{{ route('contract-request.show', ['legalEntity' => legalEntity(), 'contract' => $item->uuid]) }}"
+                                                <a href="{{ route('contract-request.show', ['legalEntity' => legalEntity(), 'contractRequest' => $item->uuid]) }}"
                                                    wire:navigate
                                                    class="flex items-center gap-2 w-full rounded-md px-4 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-50 transition-colors"
                                                 >
@@ -124,7 +124,7 @@
 
                                                 {{-- Edit action available only for NEW status --}}
                                                 @if($item->status === 'NEW' || (is_object($item->status) && $item->status->value === 'NEW'))
-                                                    <a href="{{ route('contract-request.edit', ['legalEntity' => legalEntity(), 'contract' => $item->uuid]) }}"
+                                                    <a href="{{ route('contract-request.edit', ['legalEntity' => legalEntity(), 'contractRequest' => $item->uuid]) }}"
                                                        wire:navigate
                                                        class="flex items-center gap-2 w-full rounded-md px-4 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-50 transition-colors"
                                                     >

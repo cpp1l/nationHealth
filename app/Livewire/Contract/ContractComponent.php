@@ -89,6 +89,8 @@ abstract class ContractComponent extends Component
 
     public function save(): void
     {
+        $this->normalizePaymentDetails();
+
         try {
             $validatedData = $this->form->validate();
             $dataToSave = $validatedData;
@@ -129,6 +131,8 @@ abstract class ContractComponent extends Component
 
     public function create(): void
     {
+        $this->normalizePaymentDetails();
+
         // 1. Livewire Form Validation
         try {
             $validatedData = $this->form->validate();
@@ -290,5 +294,20 @@ abstract class ContractComponent extends Component
     protected function logConnectionError(\Exception $e, string $msg): void
     {
         Log::error($msg . ': ' . $e->getMessage());
+    }
+
+    protected function normalizePaymentDetails(): void
+    {
+        $details = $this->form->contractorPaymentDetails;
+
+        if (isset($details['MFO'])) {
+            $details['MFO'] = preg_replace('/\D/', '', (string) $details['MFO']);
+        }
+
+        if (isset($details['payerAccount'])) {
+            $details['payerAccount'] = str_replace(' ', '', (string) $details['payerAccount']);
+        }
+
+        $this->form->contractorPaymentDetails = $details;
     }
 }

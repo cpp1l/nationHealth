@@ -5,13 +5,25 @@
         </x-slot>
     </x-header-navigation>
 
-    <form class="form"
-          x-data="{
-              modalDiagnosticReport: Object.assign(new DiagnosticReport(), @js($this->form->diagnosticReport ?: ['primarySource' => true])),
-              diagnosticReportCategoriesDictionary: $wire.dictionaries['eHealth/diagnostic_report_categories'],
-              servicesDictionary: $wire.dictionaries['custom/services'],
-              showSignatureModal: false
-          }"
+    <form
+        class="form"
+        x-data="{
+            modalDiagnosticReport: new DiagnosticReport(@js($this->form->diagnosticReport)),
+            equipmentOptions: @js($equipmentOptions),
+            diagnosticReportCategoriesDictionary: $wire.dictionaries['eHealth/diagnostic_report_categories'],
+            servicesDictionary: $wire.dictionaries['custom/services'],
+            showSignatureModal: false,
+
+            addUsedReference() {
+                this.modalDiagnosticReport.usedReferences.push({
+                    id: ''
+                });
+            },
+
+            removeUsedReference(index) {
+                this.modalDiagnosticReport.usedReferences.splice(index, 1);
+            }
+        }"
     >
 
         @include('livewire.encounter.diagnostic-report-parts.main-information', ['context' => 'diagnostic-report'])
@@ -27,21 +39,19 @@
                 {{ __('forms.save') }}
             </button>
 
-            <button @click="showSignatureModal = true"
-                    type="button"
-                    class="button-primary flex items-center gap-2"
+            <button
+                @click="$wire.openSignatureModal(modalDiagnosticReport)"
+                type="button"
+                class="button-primary flex items-center gap-2"
             >
                 @icon('key', 'w-5 h-5')
                 {{ __('forms.complete_the_interaction_and_sign') }}
                 @icon('arrow-right', 'w-5 h-5')
             </button>
         </div>
-
-        <template x-if="showSignatureModal">
-            @include('livewire.diagnostic-report.modals.signature')
-        </template>
     </form>
 
+    <x-signature-modal method="sign" />
     <livewire:components.x-message :key="time()" />
     <x-forms.loading />
 </section>
@@ -50,7 +60,7 @@
     /**
      * Representation of the user's personal diagnostic report.
      */
-    class DiagnosticReport{
+    class DiagnosticReport {
         constructor(obj = null) {
             const now = new Date();
             const startTime = new Date(now.getTime() - 15 * 60 * 1000);
@@ -85,6 +95,7 @@
 
             this.divisionId = '';
             this.resultsInterpreterEmployeeId = '';
+            this.usedReferences = [];
 
             this.issuedDate = toFormattedDate(now);
             this.issuedTime = now.toLocaleTimeString('uk-UA', timeOptions);

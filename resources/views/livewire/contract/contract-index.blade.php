@@ -1,5 +1,5 @@
 @php
-    use App\Models\Contracts\ContractRequest;
+    use App\Models\Contracts\Contract;
 @endphp
 
 <div>
@@ -10,7 +10,14 @@
         <x-slot name="title">{{ __('forms.contracts') }}</x-slot>
 
         <div class="mt-3 ml-0 flex flex-col sm:flex-row sm:flex-wrap gap-2 self-start">
-            @can('sync', ContractRequest::class)
+            <a href="{{ route('contract-request.reimbursement.create', [legalEntity()]) }}"
+               wire:navigate
+               class="button-primary flex items-center gap-2 whitespace-nowrap">
+                @icon('plus', 'w-4 h-4')
+                {{ __('contracts.new') }} ({{ __('contracts.reimbursement') }})
+            </a>
+
+            @can('sync', Contract::class)
                 <button wire:click="sync" type="button" class="button-sync flex items-center gap-2 whitespace-nowrap">
                     @icon('refresh', 'w-4 h-4')
                     {{ __('forms.synchronise_with_eHealth') }}
@@ -24,7 +31,7 @@
                     <div class="form-group group"
                          x-data="{
                              open: false,
-                             selectedTypes: $wire.entangle('typeFilter'),
+                             selectedTypes: $wire.entangle('typeFilter').live,
                              // Dynamically map enum values to their localized labels
                              typeLabels: {
                                  @foreach(\App\Enums\Contract\Type::cases() as $typeCase)
@@ -64,15 +71,6 @@
                                 </ul>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="form-group flex items-center mb-3">
-                        <button wire:click="search"
-                                type="button"
-                                class="p-2.5 text-sm font-medium text-white bg-primary-700 rounded-xl hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-                        >
-                            @icon('search-outline', 'w-6 h-6')
-                        </button>
                     </div>
                 </div>
             </div>
@@ -120,7 +118,7 @@
                                     {{ $item->start_date?->format(config('app.date_format')) }} - {{ $item->end_date?->format(config('app.date_format')) }}
                                 </td>
                                 <td class="index-table-td text-sm text-gray-500">
-                                    {{ $item->start_date?->format(config('app.date_format')) ?? $item->created_at?->format(config('app.date_format')) }}
+                                    {{ $item->inserted_at?->format(config('app.date_format')) ?? $item->created_at?->format(config('app.date_format')) }}
                                 </td>
 
                                 <td class="index-table-td-actions">

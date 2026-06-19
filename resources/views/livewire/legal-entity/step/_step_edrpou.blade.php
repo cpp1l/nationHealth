@@ -2,6 +2,10 @@
     use App\Models\LegalEntity;
 
     $hasEdrpouError = $errors->has('legalEntityForm.edrpou');
+
+    if(!empty($isNew)) {
+        $legalEntityForm->type = collect($legalEntityTypes)->keys()->first(fn ($k) => $k !== LegalEntity::TYPE_MSP_LIMITED && $k !== legalEntity()?->type->name);
+    }
 @endphp
 
 <fieldset
@@ -57,7 +61,7 @@
                 id="lealEntityType"
                 wire:model.defer="legalEntityForm.type"
                 class="input-select peer"
-                :class="isDisabled ? 'text-gray-400 border-gray-200 dark:text-gray-500' : 'text-gray-900 border-gray-300'"
+                :class="isDisabled ? 'text-gray-400 border-gray-200 dark:text-gray-500 !cursor-default' : 'text-gray-900 border-gray-300'"
                 :disabled="isDisabled"
             >
                 @if($isEdit)
@@ -70,7 +74,7 @@
                     @endif
 
                     @if(legalEntity()?->type->name !== $k)
-                        <option value="{{ $k }}" {{ $k === $legalEntityForm->type ? 'selected' : ''}}>
+                        <option value="{{ $k }}" @selected($k === $legalEntityForm->type)>
                             {{ $legalEntityType }}
                         </option>
                     @endif

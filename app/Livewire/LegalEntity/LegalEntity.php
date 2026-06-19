@@ -381,6 +381,7 @@ abstract class LegalEntity extends Component
             'data.nhs_verified' => 'required|boolean',
             'data.nhs_reviewed' => 'required|boolean',
             'data.nhs_comment' => 'nullable|string',
+
             'data.residence_address' => 'required|array',
             'data.residence_address.type' => 'required|string',
             'data.residence_address.country' => 'required|string',
@@ -394,26 +395,29 @@ abstract class LegalEntity extends Component
             'data.residence_address.building' => 'sometimes|string',
             'data.residence_address.apartment' => 'sometimes|string',
             'data.residence_address.zip' => 'sometimes|string',
+
             'data.accreditation' => 'nullable|array',
             'data.accreditation.category' => 'required_if:data.accreditation,array|string',
             'data.accreditation.issued_date' => 'sometimes|string',
             'data.accreditation.expiry_date' => 'sometimes|string',
             'data.accreditation.order_no' => 'required_with:data.accreditation.category|string',
-            'data.license' => 'nullable|array',
+
+            'data.license' => 'required|array',
             'data.license.uuid' => 'required_if:data.license,array|string',
             'data.license.type' => 'required_if:data.license,array|string',
-            'data.license.license_number' => 'sometimes|string',
-            'data.license.issued_by' => 'sometimes|string',
-            'data.license.issued_date' => 'sometimes|string',
+            'data.license.license_number' => 'nullable|string',
+            'data.license.issued_by' => 'required_if:data.license,array|string',
+            'data.license.issued_date' => 'required_if:data.license,array|string',
             'data.license.expiry_date' => 'nullable|string',
             'data.license.is_active' => 'nullable|boolean',
             'data.license.ehealth_inserted_at' => 'required_if:data.license,array|string',
             'data.license.ehealth_inserted_by' => 'required_if:data.license,array|string',
-            'data.license.active_from_date' => 'sometimes|string',
-            'data.license.what_licensed' => 'sometimes|string',
-            'data.license.order_no' => 'sometimes|string',
+            'data.license.active_from_date' => 'required_if:data.license,array|string',
+            'data.license.what_licensed' => 'required_if:data.license,array|string',
+            'data.license.order_no' => 'required_if:data.license,array|string',
             'data.license.ehealth_updated_at' => 'required_if:data.license,array|string',
             'data.license.ehealth_updated_by' => 'required_if:data.license,array|string',
+        
             'data.archive' => 'nullable|array',
             'data.archive.*.date' => 'required_if:data.archive,array|string',
             'data.archive.*.place' => 'required_if:data.archive,array|string',
@@ -939,9 +943,9 @@ abstract class LegalEntity extends Component
         $legalEntityData = $this->persistLegalEntity($data);
 
         try {
-            $this->addressRepository->addAddresses($this->legalEntity, $legalEntityData['addressData']);
+            $this->addressRepository->addAddresses($this->legalEntity, Arr::get($legalEntityData, 'addressData'));
 
-            $this->phoneRepository->addPhones($this->legalEntity, $legalEntityData['phones']);
+            $this->phoneRepository->addPhones($this->legalEntity, Arr::get($legalEntityData, 'phones'));
 
             $this->legalEntity->refresh();
         } catch (Exception $err) {

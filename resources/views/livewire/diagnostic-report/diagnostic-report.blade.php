@@ -1,3 +1,7 @@
+@php
+    $isReadonly = $isReadonly ?? ($this->isReadonly ?? false);
+    $isDraft = data_get($this->form->diagnosticReport, 'status') === \App\Enums\Person\DiagnosticReportStatus::DRAFT->value;
+@endphp
 <section class="section-form">
     <x-header-navigation class="breadcrumb-form">
         <x-slot name="title">
@@ -26,32 +30,46 @@
         }"
     >
 
-        @include('livewire.encounter.diagnostic-report-parts.main-information', ['context' => 'diagnostic-report'])
-        @include('livewire.encounter.diagnostic-report-parts.additional-information', ['context' => 'diagnostic-report'])
-        @include('livewire.encounter.parts.observations')
+        <fieldset @disabled($isReadonly) @class(['pointer-events-none opacity-80' => $isReadonly])>
+            @include('livewire.encounter.diagnostic-report-parts.main-information', ['context' => 'diagnostic-report'])
+            @include('livewire.encounter.diagnostic-report-parts.additional-information', ['context' => 'diagnostic-report'])
+            @include('livewire.encounter.parts.observations')
+        </fieldset>
 
         <div class="flex gap-8">
             <a href="{{ url()->previous() }}" type="submit" class="button-minor">
                 {{ __('forms.back') }}
             </a>
 
-            <button @click.prevent="$wire.save(modalDiagnosticReport)" type="submit" class="button-primary-outline">
-                {{ __('forms.save') }}
-            </button>
+            @if($isReadonly && $isDraft)
+                <a href="{{ route('diagnostic-report.edit', [legalEntity(), 'personId' => $personId, 'diagnosticReportId' => $diagnosticReportId]) }}"
+                wire:navigate
+                class="button-primary"
+                >
+                    {{ __('forms.edit') }}
+                </a>
+            @endif
 
-            <button
-                @click="$wire.openSignatureModal(modalDiagnosticReport)"
-                type="button"
-                class="button-primary flex items-center gap-2"
-            >
-                @icon('key', 'w-5 h-5')
-                {{ __('forms.complete_the_interaction_and_sign') }}
-                @icon('arrow-right', 'w-5 h-5')
-            </button>
-        </div>
+            @unless($isReadonly)
+                <button @click.prevent="$wire.save(modalDiagnosticReport)" type="submit" class="button-primary-outline">
+                    {{ __('forms.save') }}
+                </button>
+
+                <button
+                    @click="$wire.openSignatureModal(modalDiagnosticReport)"
+                    type="button"
+                    class="button-primary flex items-center gap-2"
+                >
+                    @icon('key', 'w-5 h-5')
+                    {{ __('forms.complete_the_interaction_and_sign') }}
+                    @icon('arrow-right', 'w-5 h-5')
+                </button>
+            @endunless
     </form>
 
-    <x-signature-modal method="sign" />
+    @unless($isReadonly)
+        <x-signature-modal method="sign" />
+    @endunless
     <livewire:components.x-message :key="time()" />
     <x-forms.loading />
 </section>

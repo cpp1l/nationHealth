@@ -390,7 +390,7 @@ abstract class DiagnosticReportComponent extends Component
 
             Session::flash('success', __('patients.messages.diagnostic_report_create_request_sent'));
             $this->redirectRoute(
-                'diagnostic-report.edit',
+                'diagnostic-report.view',
                 [legalEntity(), 'personId' => $this->personId, 'diagnosticReportId' => $diagnosticReportId],
                 navigate: true
             );

@@ -23,6 +23,8 @@ use App\Models\LegalEntity as LegalEntityModel;
 
 class CreateLegalEntity extends LegalEntity
 {
+    protected bool $isNew = false;
+
     /**
      * @var int The current step of the process
      */
@@ -69,7 +71,8 @@ class CreateLegalEntity extends LegalEntity
     {
         parent::mount();
 
-        $this->setLegalEntity();
+        // parent::setLegalEntity() return false if previous legal entity is not set, so we can determine that we are creating new legal entity
+        $this->isNew = !parent::setLegalEntity();
 
         $this->getOwnerFields();
 
@@ -84,13 +87,6 @@ class CreateLegalEntity extends LegalEntity
     protected function getLegalEntity(): ?LegalEntityModel
     {
         return $this->getLegalEntityFromCache();
-    }
-
-    protected function setLegalEntity(): bool
-    {
-        $isNotNew = parent::setLegalEntity();
-
-        return $isNotNew;
     }
 
     /**
@@ -580,7 +576,8 @@ class CreateLegalEntity extends LegalEntity
         return view('livewire.legal-entity.create-legal-entity', [
             'activeStep' => $this->steps['index'],
             'currentStep' => $this->steps['index'],
-            'isEdit' => false
+            'isEdit' => false,
+            'isNew' => $this->isNew
         ]);
     }
 }

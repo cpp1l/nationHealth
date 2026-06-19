@@ -132,6 +132,7 @@ class LegalEntitiesForms extends Form
             'license.activeFromDate' => ['required', new DateFormat()],
             'license.expiryDate' => ['nullable', new DateFormat(), new ExpiryDate($this->license['activeFromDate'] ?? '')],
             'license.orderNo' => 'required|string',
+            'license.whatLicensed' => 'required|string',
             'license.licenseNumber' => ['nullable', 'string', 'regex:/^(?!.*[ЫЪЭЁыъэё@$^#])[a-zA-ZА-ЯҐЇІЄа-яґїіє0-9№\"!\^\*)\]\[(&._-].*$/'],
             'receiverFundsCode' => [
                 'nullable',
@@ -202,6 +203,7 @@ class LegalEntitiesForms extends Form
             'license.issuedBy.min' => __('validation.attributes.errors.wrongFieldFormat') . '('. __('validation.attributes.errors.minLen3') . ')',
             'license.issuedBy' => __('validation.attributes.errors.requiredIssuedBy'),
             'license.orderNo' => __('validation.attributes.errors.requiredOrderNumber'),
+            'license.whatLicensed' => __('validation.attributes.errors.requiredWhatLicensed'),
             'license.licenseNumber.regex' => __('validation.attributes.errors.onlyNumericLatin'),
             'receiverFundsCode' => __('validation.attributes.errors.wrongFieldFormat') . '('. __('validation.attributes.errors.onlyNumeric') . ')',
             'receiverFundsCode.required' => __('validation.attributes.errors.nonEmpty'),

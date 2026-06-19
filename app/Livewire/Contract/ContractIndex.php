@@ -29,11 +29,24 @@ class ContractIndex extends Component
 
     public array $typeFilter = [];
     public bool $isFiltersApplied = false;
+    public string $search = '';
+
+    public const array FILTER_OPTIONS = [
+        'general' => 'Загальний реімбурсаційний договір',
+        'insulin' => 'Інсулін безоплатний або з доплатою',
+        'diabetes' => 'Нецукровий діабет',
+        'affordable_medicines' => 'Доступні ліки',
+        'psychiatry_epilepsy' => 'Розлади поведінки і психіки та епілепсія',
+    ];
 
     public function mount(): void
     {
-        // Initialize filter using enum values
-        $this->typeFilter = [Type::CAPITATION->value, Type::REIMBURSEMENT->value];
+        $this->typeFilter = array_keys(self::FILTER_OPTIONS);
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
     }
 
     public function search(): void
@@ -45,9 +58,7 @@ class ContractIndex extends Component
     public function resetFilters(): void
     {
         $this->reset(['typeFilter', 'isFiltersApplied']);
-
-        // Reset filter using enum values
-        $this->typeFilter = [Type::CAPITATION->value, Type::REIMBURSEMENT->value];
+        $this->typeFilter = array_keys(self::FILTER_OPTIONS);
     }
 
     public function sync(): void
@@ -115,7 +126,9 @@ class ContractIndex extends Component
     {
         $contracts = Contract::query()
             ->where('legal_entity_id', legalEntity()->id)
-            ->whereIn('type', $this->typeFilter)
+            ->when($this->search, function ($query) {
+                $query->where('contract_number', 'like', '%' . $this->search . '%');
+            })
             ->orderByDesc('start_date')
             ->paginate(config('app.per_page', 15));
 

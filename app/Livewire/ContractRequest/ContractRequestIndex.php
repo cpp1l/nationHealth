@@ -28,6 +28,33 @@ class ContractRequestIndex extends Component
     use WithPagination;
 
     public string $search = '';
+    public array $statusFilter = [];
+    public array $typeFilter = [];
+
+    public const array STATUS_OPTIONS = [
+        'DRAFT' => 'Чернетка',
+        'NEW' => 'Нова',
+        'IN_PROCESS' => 'Обробляється',
+        'APPROVED' => 'Підтверджена',
+        'PENDING_NHS_SIGN' => 'Очікує на підпис НСЗУ',
+        'NHS_SIGNED' => 'Підписана зі сторони НСЗУ',
+        'SIGNED' => 'Завершена',
+        'DECLINED' => 'Відмінена',
+    ];
+
+    public const array FILTER_OPTIONS = [
+        'general' => 'Загальний реімбурсаційний договір',
+        'insulin' => 'Інсулін безоплатний або з доплатою',
+        'diabetes' => 'Нецукровий діабет',
+        'affordable_medicines' => 'Доступні ліки',
+        'psychiatry_epilepsy' => 'Розлади поведінки і психіки та епілепсія',
+    ];
+
+    public function mount(): void
+    {
+        $this->statusFilter = array_keys(self::STATUS_OPTIONS);
+        $this->typeFilter = array_keys(self::FILTER_OPTIONS);
+    }
 
     public function updatingSearch(): void
     {
@@ -35,6 +62,11 @@ class ContractRequestIndex extends Component
     }
 
     public function searchAction(): void
+    {
+        $this->resetPage();
+    }
+
+    public function search(): void
     {
         $this->resetPage();
     }

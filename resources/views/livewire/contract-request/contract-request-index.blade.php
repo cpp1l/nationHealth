@@ -7,7 +7,7 @@
     <x-forms.loading/>
 
     <x-header-navigation class="items-start">
-        <x-slot name="title">{{ __('forms.contracts') }}</x-slot>
+        <x-slot name="title">{{ __('contracts.contract_requests') }}</x-slot>
 
         <div class="mt-3 ml-0 flex flex-col sm:flex-row sm:flex-wrap gap-2 self-start">
             <a href="{{ route('contract-request.reimbursement.create', [legalEntity()]) }}"
@@ -26,9 +26,9 @@
         </div>
 
         <x-slot name="navigation">
-            <div class="form-row-3">
-                <div class="flex items-center gap-4 col-span-1">
-                    <div class="form-group group relative w-full">
+            <div class="flex flex-col gap-4 max-w-2xl -my-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-group group relative w-full col-span-1">
                         @icon('search-outline', 'svg-input')
                         <input wire:model.live.debounce.300ms="search"
                                type="text"
@@ -48,11 +48,94 @@
                             @icon('close', 'w-4 h-4')
                         </button>
                     </div>
-                    <button type="button"
-                            wire:click="searchAction"
-                            class="p-2.5 text-sm font-medium text-white bg-primary-700 rounded-xl hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-group group relative w-full"
+                         x-data="{
+                             open: false,
+                             selectedStatuses: $wire.entangle('statusFilter').live,
+                             statusLabels: @js(\App\Livewire\ContractRequest\ContractRequestIndex::STATUS_OPTIONS)
+                         }"
                     >
-                        @icon('search-outline', 'w-6 h-6')
+                        <label for="statusFilter" class="label">{{ __('contracts.status_label') }}</label>
+                        <div class="relative">
+                            <input type="text"
+                                   id="statusFilter"
+                                   class="peer input pr-10 cursor-pointer truncate"
+                                   :value="selectedStatuses.length === 0 ? '{{ __('forms.all') }}' : selectedStatuses.map(statusVal => statusLabels[statusVal] || statusVal).join(', ')"
+                                   @click="open = !open"
+                                   readonly
+                            />
+                            @icon('chevron-down', 'w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none')
+
+                            <div x-show="open"
+                                 @click.away="open = false"
+                                 class="absolute z-10 mt-2 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg"
+                            >
+                                <ul class="py-2 px-3 space-y-2 text-sm text-gray-700 dark:text-gray-200">
+                                     @foreach(\App\Livewire\ContractRequest\ContractRequestIndex::STATUS_OPTIONS as $value => $label)
+                                         <li>
+                                             <label class="flex items-center">
+                                                 <input type="checkbox"
+                                                        value="{{ $value }}"
+                                                        x-model="selectedStatuses"
+                                                        class="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-600 border-gray-300 rounded focus:ring-blue-500"
+                                                 >
+                                                 <span class="ml-2">{{ $label }}</span>
+                                             </label>
+                                         </li>
+                                     @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group group relative w-full"
+                         x-data="{
+                             open: false,
+                             selectedTypes: $wire.entangle('typeFilter').live,
+                             typeLabels: @js(\App\Livewire\ContractRequest\ContractRequestIndex::FILTER_OPTIONS)
+                         }"
+                    >
+                        <label for="typeFilter" class="label">{{ __('contracts.type_label') }}</label>
+                        <div class="relative">
+                            <input type="text"
+                                   id="typeFilter"
+                                   class="peer input pr-10 cursor-pointer truncate"
+                                   :value="selectedTypes.length === 0 ? '{{ __('forms.all') }}' : selectedTypes.map(typeValue => typeLabels[typeValue] || typeValue).join(', ')"
+                                   @click="open = !open"
+                                   readonly
+                            />
+                            @icon('chevron-down', 'w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none')
+
+                            <div x-show="open"
+                                 @click.away="open = false"
+                                 class="absolute z-10 mt-2 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg"
+                            >
+                                <ul class="py-2 px-3 space-y-2 text-sm text-gray-700 dark:text-gray-200">
+                                     @foreach(\App\Livewire\ContractRequest\ContractRequestIndex::FILTER_OPTIONS as $value => $label)
+                                         <li>
+                                             <label class="flex items-center">
+                                                 <input type="checkbox"
+                                                        value="{{ $value }}"
+                                                        x-model="selectedTypes"
+                                                        class="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-600 border-gray-300 rounded focus:ring-blue-500"
+                                                 >
+                                                 <span class="ml-2">{{ $label }}</span>
+                                             </label>
+                                         </li>
+                                     @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-2 flex flex-col sm:flex-row gap-2 w-full">
+                    <button type="button" wire:click="search" class="flex items-center justify-center gap-2 button-primary w-full sm:w-auto">
+                        @icon('search', 'w-4 h-4')
+                        <span>{{ __('forms.search') }}</span>
                     </button>
                 </div>
             </div>

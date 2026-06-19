@@ -85,7 +85,7 @@ return [
     'payment_method_label' => 'Спосіб оплати',
     'contract_amount_label' => 'Сума контракту',
     'number_label' => 'Номер',
-    'search_contract' => 'Пошук договору',
+    'search_contract' => 'Пошук за номером договору',
     'type_label' => 'Тип',
     'status_label' => 'Статус',
     'period' => 'Період дії',

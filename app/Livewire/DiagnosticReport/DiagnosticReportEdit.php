@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\DiagnosticReport;
 
 use App\Core\Arr;
+use App\Enums\Person\DiagnosticReportStatus;
 use App\Models\LegalEntity;
 use App\Models\MedicalEvents\Sql\DiagnosticReport;
 use App\Repositories\MedicalEvents\Repository;
@@ -16,12 +17,16 @@ use Throwable;
 class DiagnosticReportEdit extends DiagnosticReportComponent
 {
     #[Locked]
-    public string $diagnosticReportId;
+    public int $diagnosticReportId;
 
-    public function mount(LegalEntity $legalEntity, int $personId, ?string $diagnosticReportId = null): void
+    public bool $isReadonly = false;
+
+    public function mount(LegalEntity $legalEntity, int $personId, ?int $diagnosticReportId = null): void
     {
         parent::mount($legalEntity, $personId);
+
         $this->diagnosticReportId = $diagnosticReportId;
+
         $diagnosticReport = DiagnosticReport::withAllRelations()
             ->whereKey($diagnosticReportId)
             ->where('person_id', $personId)
@@ -29,9 +34,14 @@ class DiagnosticReportEdit extends DiagnosticReportComponent
 
         $this->diagnosticReportUuid = $diagnosticReport->uuid;
 
+        $this->isReadonly = request()->routeIs('diagnostic-report.view')
+            || $diagnosticReport->status === DiagnosticReportStatus::FINAL;
+
         $diagnosticReportData = Fhir::diagnosticReport()->fromFhir(
             $diagnosticReport->toArray()
         );
+
+        $diagnosticReportData['status'] = $diagnosticReport->status->value;
 
         $conclusionCode = data_get($diagnosticReportData, 'conclusionCode');
 

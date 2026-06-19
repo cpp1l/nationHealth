@@ -30,7 +30,7 @@ class ObservationRepository extends BaseRepository
         $this->employeeUuid = Auth::user()?->getDiagnosticReportWriterEmployee()?->uuid;
     }
 
-    public function getByDiagnosticReportId(string $diagnosticReportId): array
+    public function getByDiagnosticReportId(int $diagnosticReportId): array
     {
         $diagnosticReportUuid = DiagnosticReport::query()
             ->whereKey($diagnosticReportId)

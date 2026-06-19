@@ -99,6 +99,10 @@ Route::prefix('persons')->group(static function () {
             ->name('diagnostic-report.create');
 
         Route::get('{personId}/diagnostic-report/{diagnosticReportId}', DiagnosticReportEdit::class)
+            ->name('diagnostic-report.view')
+            ->whereNumber('diagnosticReportId');
+
+        Route::get('{personId}/diagnostic-report/{diagnosticReportId}/edit', DiagnosticReportEdit::class)
             ->name('diagnostic-report.edit')
             ->whereNumber('diagnosticReportId');
 

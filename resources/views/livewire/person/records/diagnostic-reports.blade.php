@@ -698,8 +698,9 @@
                             <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                                 <div class="record-inner-label">{{ __('forms.status.label') }}</div>
                                 <div>
-                                    <span class="badge-green">
-                                        {{ DiagnosticReportStatus::tryFrom(data_get($diagnosticReport, 'status'))?->label() ?? '-' }}
+                                    @php($status = DiagnosticReportStatus::from(data_get($diagnosticReport, 'status')))
+                                    <span @class([$status->color()])>
+                                        {{ $status->label() ?? '-' }}
                                     </span>
                                 </div>
                             </div>

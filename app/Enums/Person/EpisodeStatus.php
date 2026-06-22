@@ -40,4 +40,16 @@ enum EpisodeStatus: string
             self::ENTERED_IN_ERROR => __('patients.status.entered_in_error')
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::ACTIVE,
+            self::CLOSED => 'badge-green',
+
+            self::ENTERED_IN_ERROR => 'badge-red',
+
+            self::DRAFT => 'badge-dark',
+        };
+    }
 }

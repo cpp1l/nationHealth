@@ -5,7 +5,11 @@
     <div class="breadcrumb-form p-4 shift-content">
         <div class="flex items-center gap-14 mb-10">
             <p class="default-p">
-                {{ __('patients.verification_in_eHealth') }}: {{ Status::from($verificationStatus)->label() }}
+                @php($status = Status::from($verificationStatus))
+                {{ __('patients.verification_in_eHealth') }}:
+                <span @class([$status->color()])>
+                    {{ $status->label() ?? '-' }}
+                </span>
             </p>
 
             <div>

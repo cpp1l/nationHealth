@@ -1,9 +1,7 @@
-@php
-    use App\Models\MedicalEvents\Sql\{DiagnosticReport, Encounter, Procedure};
-    use App\Models\DeclarationRequest;
-    use App\Models\Person\{Person, PersonRequest};
-    use App\Enums\Person\{VerificationStatus, Status, Gender};
-@endphp
+@use('App\Models\MedicalEvents\Sql\{DiagnosticReport, Encounter, Procedure}')
+@use('App\Models\DeclarationRequest')
+@use('App\Models\Person\{Person, PersonRequest}')
+@use('App\Enums\Person\{VerificationStatus, Status, Gender}')
 
 <div>
     <section>
@@ -233,7 +231,9 @@
                     </div>
                 </fieldset>
             @empty
-                <x-nothing-found class="shift-content" />
+                <div class="shift-content max-w-6xl">
+                    <x-nothing-found />
+                </div>
             @endforelse
         </div>
 

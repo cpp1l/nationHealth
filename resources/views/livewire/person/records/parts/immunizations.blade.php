@@ -23,8 +23,9 @@
                 <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                     <div class="record-inner-label">{{ __('forms.status.label') }}</div>
                     <div>
-                        <span class="badge-green">
-                            {{ ImmunizationStatus::from($immunization['status'])->label() }}
+                        @php($status = ImmunizationStatus::from(data_get($immunization, 'status')))
+                        <span @class([$status->color()])>
+                            {{ $status->label() }}
                         </span>
                     </div>
                 </div>

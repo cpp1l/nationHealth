@@ -178,8 +178,9 @@
                                 </div>
 
                                 <div>
-                                    <span class="badge-green">
-                                        {{ ImmunizationStatus::from(data_get($immunization, 'status'))->label() }}
+                                    @php($status = ImmunizationStatus::from(data_get($immunization, 'status')))
+                                    <span @class([$status->color()])>
+                                        {{ $status->label() }}
                                     </span>
                                 </div>
                             </div>

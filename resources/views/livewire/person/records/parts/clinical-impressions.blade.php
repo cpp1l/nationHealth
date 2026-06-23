@@ -24,8 +24,9 @@
                     class="record-inner-column-bordered w-full md:w-36 shrink-0 h-full flex flex-col justify-center gap-1">
                     <div class="record-inner-label">{{ __('forms.status.label') }}</div>
                     <div>
-                        <span class="badge-green">
-                            {{ ClinicalImpressionStatus::from(data_get($clinicalImpression, 'status'))->label() }}
+                        @php($status = ClinicalImpressionStatus::from(data_get($clinicalImpression, 'status')))
+                        <span @class([$status->color()])>
+                            {{ $status->label() }}
                         </span>
                     </div>
                 </div>

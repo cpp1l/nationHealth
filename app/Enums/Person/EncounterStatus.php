@@ -23,4 +23,12 @@ enum EncounterStatus: string
             self::FINISHED => __('patients.status.completed')
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::FINISHED => 'badge-green',
+            self::ENTERED_IN_ERROR => 'badge-red',
+        };
+    }
 }

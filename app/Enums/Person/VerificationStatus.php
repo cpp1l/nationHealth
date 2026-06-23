@@ -29,15 +29,18 @@ enum VerificationStatus: string
         };
     }
 
-    /**
-     * Gets the color class for UI badges.
-     */
     public function color(): string
     {
         return match ($this) {
-            self::CHANGES_NEEDED, self::IN_REVIEW, => 'badge-yellow',
-            self::NOT_VERIFIED, self::VERIFICATION_NEEDED => 'badge-red',
-            self::VERIFICATION_NOT_NEEDED, self::VERIFIED => 'badge-green'
+            self::VERIFIED => 'badge-green',
+
+            self::CHANGES_NEEDED,
+            self::IN_REVIEW,
+            self::VERIFICATION_NEEDED => 'badge-yellow',
+
+            self::NOT_VERIFIED => 'badge-red',
+
+            self::VERIFICATION_NOT_NEEDED => 'badge-dark',
         };
     }
 }

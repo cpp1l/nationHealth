@@ -238,9 +238,10 @@
                                 class="record-inner-column-bordered w-full md:w-36 shrink-0">
                                 <div class="record-inner-label">Статус:</div>
                                 <div>
-                                <span class="badge-green">
-                                    {{ $plan->status_display }}
-                                </span>
+                                    @php($status = CarePlanStatus::from(data_get($plan, 'status')))
+                                    <span @class([$status->color()])>
+                                        {{ $status->label() ?? '-' }}
+                                    </span>
                                 </div>
                             </div>
 

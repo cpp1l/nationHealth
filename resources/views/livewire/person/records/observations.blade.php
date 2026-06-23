@@ -231,8 +231,9 @@
                             <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                                 <div class="record-inner-label">{{ __('forms.status.label') }}</div>
                                 <div>
-                                    <span class="badge-green">
-                                        {{ ObservationStatus::from($observation['status'])->label() }}
+                                    @php($status = ObservationStatus::from(data_get($observation, 'status')))
+                                    <span @class([$status->color()])>
+                                        {{ $status->label() }}
                                     </span>
                                 </div>
                             </div>

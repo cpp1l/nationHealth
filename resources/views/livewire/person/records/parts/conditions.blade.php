@@ -32,8 +32,9 @@
                 <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                     <div class="record-inner-label">{{ __('patients.status_clinical') }}</div>
                     <div>
-                        <span class="badge-green">
-                            {{ ConditionClinicalStatus::from(data_get($condition, 'clinicalStatus'))->label() }}
+                        @php($status = ConditionClinicalStatus::from(data_get($condition, 'clinicalStatus')))
+                        <span @class([$status->color()])>
+                            {{ $status->label() ?? '-' }}
                         </span>
                     </div>
                 </div>
@@ -58,7 +59,10 @@
                         <div>
                             <div class="record-inner-label">{{ __('patients.verification_status') }}</div>
                             <div class="record-inner-subvalue">
-                                {{ ConditionClinicalStatus::from(data_get($condition, 'clinicalStatus'))->label() }}
+                                @php($verificationStatus = ConditionVerificationStatus::from(data_get($condition, 'verificationStatus')))
+                                <span @class([$verificationStatus->color()])>
+                                    {{ $verificationStatus->label() ?? '-' }}
+                                </span>
                             </div>
                         </div>
                         <div>

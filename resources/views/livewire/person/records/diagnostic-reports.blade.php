@@ -698,7 +698,9 @@
                             <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                                 <div class="record-inner-label">{{ __('forms.status.label') }}</div>
                                 <div>
-                                    @php($status = DiagnosticReportStatus::from(data_get($diagnosticReport, 'status')))
+                                    @php
+                                        $status = DiagnosticReportStatus::from(data_get($diagnosticReport, 'status'));
+                                    @endphp
                                     <span @class([$status->color()])>
                                         {{ $status->label() ?? '-' }}
                                     </span>
@@ -752,12 +754,18 @@
                                             </a>
                                         @endif
 
-                                        <button @click="close($refs.button)"
-                                                class="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                                        >
-                                            @icon('alert-circle', 'w-5 h-5 text-gray-500')
-                                            {{ __('patients.status.entered_in_error') }}
-                                        </button>
+                                        @if(!empty(data_get($diagnosticReport, 'id')))
+                                            <button type="button"
+                                                    @click="close($refs.button)"
+                                                    wire:click="openDiagnosticReportCancellation({{ data_get($diagnosticReport, 'id') }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="openDiagnosticReportCancellation({{ data_get($diagnosticReport, 'id') }})"
+                                                    class="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                                            >
+                                                @icon('alert-circle', 'w-5 h-5 text-gray-500')
+                                                {{ __('patients.status.entered_in_error') }}
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -853,6 +861,6 @@
             </div>
         </div>
     </div>
-
+    @include('livewire.diagnostic-report.diagnostic-report-cancellation')
     <x-forms.loading/>
 </x-layouts.patient>

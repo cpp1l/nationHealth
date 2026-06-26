@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Repositories\MedicalEvents;
 
+use App\Enums\Person\DiagnosticReportStatus;
+use App\Enums\Person\ObservationStatus;
 use App\Models\Employee\Employee;
 use App\Models\MedicalEvents\Sql\DiagnosticReport;
+use App\Models\MedicalEvents\Sql\Observation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -111,6 +114,7 @@ class DiagnosticReportRepository extends BaseRepository
                     'code_id' => $code->id,
                     'issued' => $datum['issued'],
                     'conclusion' => $datum['conclusion'] ?? null,
+                    'explanatory_letter' => $datum['explanatoryLetter'] ?? null,
                     'conclusion_code_id' => isset($datum['conclusionCode'])
                         ? Repository::codeableConcept()->store($datum['conclusionCode'])->id
                         : null,
@@ -208,6 +212,35 @@ class DiagnosticReportRepository extends BaseRepository
         });
     }
 
+    public function markAsEnteredInError(
+        DiagnosticReport $diagnosticReport,
+        array $cancellationReason,
+        ?string $explanatoryLetter = null
+    ): void {
+        DB::transaction(function () use ($diagnosticReport, $cancellationReason, $explanatoryLetter): void {
+            $diagnosticReport->loadMissing(['cancellationReason.coding']);
+
+            $cancellationReasonModel = $diagnosticReport->cancellationReason
+                ? Repository::codeableConcept()->update($diagnosticReport->cancellationReason, $cancellationReason)
+                : Repository::codeableConcept()->store($cancellationReason);
+
+            $diagnosticReport->update([
+                'status' => DiagnosticReportStatus::ENTERED_IN_ERROR->value,
+                'cancellation_reason_id' => $cancellationReasonModel->id,
+                'explanatory_letter' => $explanatoryLetter,
+            ]);
+
+            Observation::query()
+                ->where('person_id', $diagnosticReport->person_id)
+                ->whereHas('diagnosticReport', fn (Builder $query) => $query->where('value', $diagnosticReport->uuid))
+                ->where('status', '!=', ObservationStatus::ENTERED_IN_ERROR->value)
+                ->update([
+                    'status' => ObservationStatus::ENTERED_IN_ERROR->value,
+                    'explanatory_letter' => $explanatoryLetter,
+                ]);
+        });
+    }
+
     /**
      * Get data that is related to the encounter.
      *
@@ -252,6 +285,19 @@ class DiagnosticReportRepository extends BaseRepository
             ->where('person_id', $personId)
             ->get()
             ->toArray();
+    }
+
+    /**
+     * Get diagnostic report by id.
+     *
+     * @param  int  $diagnosticReportId
+     * @return DiagnosticReport
+     */
+    public function findById(int $diagnosticReportId): DiagnosticReport
+    {
+        return $this->model
+            ->withAllRelations()
+            ->findOrFail($diagnosticReportId);
     }
 
     /**
@@ -341,6 +387,7 @@ class DiagnosticReportRepository extends BaseRepository
                     'status' => $data['status'],
                     'issued' => $data['issued'],
                     'conclusion' => $data['conclusion'] ?? null,
+                    'explanatory_letter' => $data['explanatory_letter'] ?? null,
                     'primary_source' => $data['primary_source']
                 ];
 

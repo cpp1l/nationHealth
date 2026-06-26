@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\MedicalEvents\Mappers;
 
+use App\Core\Arr;
 use App\Contracts\FhirMapperContract;
 use App\Enums\Person\DiagnosticReportStatus;
+use App\Enums\Person\ObservationStatus;
 use App\Services\MedicalEvents\FhirResource;
 
 class DiagnosticReportMapper implements FhirMapperContract
@@ -149,6 +151,72 @@ class DiagnosticReportMapper implements FhirMapperContract
             'effectivePeriodStartTime' => data_get($data, 'effectivePeriodStartTime', ''),
             'effectivePeriodEndDate' => data_get($data, 'effectivePeriodEndDate', ''),
             'effectivePeriodEndTime' => data_get($data, 'effectivePeriodEndTime', '')
+        ];
+    }
+
+    public function toCancellationPackage(
+        array $diagnosticReport,
+        array $observations,
+        string $cancellationReason,
+        ?string $explanatoryLetter = null,
+        ?string $cancellationReasonText = null
+    ): array {
+        $diagnosticReport = Arr::toSnakeCase($diagnosticReport);
+
+        unset(
+            $diagnosticReport['inserted_at'],
+            $diagnosticReport['updated_at'],
+            $diagnosticReport['created_at'],
+            $diagnosticReport['updated_by'],
+            $diagnosticReport['inserted_by']
+        );
+
+        $usedReferences = collect($diagnosticReport['used_references'] ?? [])
+            ->map(static function (array $usedReference): ?array {
+                $equipmentUuid = data_get($usedReference, 'identifier.value')
+                    ?? data_get($usedReference, 'value');
+
+                if (!$equipmentUuid) {
+                    return null;
+                }
+
+                return FhirResource::make()
+                    ->coding('eHealth/resources', 'equipment')
+                    ->toIdentifier($equipmentUuid);
+            })
+            ->filter()
+            ->unique(static fn (array $usedReference): string => data_get($usedReference, 'identifier.value'))
+            ->values()
+            ->toArray();
+
+        if ($usedReferences !== []) {
+            $diagnosticReport['used_references'] = $usedReferences;
+        } else {
+            unset($diagnosticReport['used_references']);
+        }
+
+        $diagnosticReport['status'] = DiagnosticReportStatus::ENTERED_IN_ERROR->value;
+        $diagnosticReport['cancellation_reason'] = FhirResource::make()
+            ->coding('eHealth/cancellation_reasons', $cancellationReason)
+            ->toCodeableConcept($cancellationReasonText ?? '');
+
+        $diagnosticReport['explanatory_letter'] = $explanatoryLetter;
+
+        $observations = collect($observations)
+            ->map(function (array $observation) use ($explanatoryLetter): array {
+                $observation = Arr::toSnakeCase($observation);
+
+                $observation['status'] = ObservationStatus::ENTERED_IN_ERROR->value;
+                $observation['explanatory_letter'] = $explanatoryLetter;
+
+                return $observation;
+            })
+            ->values()
+            ->toArray();
+
+        return [
+            'diagnostic_report' => $diagnosticReport,
+            'observations' => $observations,
         ];
     }
 }

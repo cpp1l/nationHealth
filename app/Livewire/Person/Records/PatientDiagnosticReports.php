@@ -4,29 +4,49 @@ declare(strict_types=1);
 
 namespace App\Livewire\Person\Records;
 
+use App\Classes\Cipher\Api\CipherRequest;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
-use App\Repositories\MedicalEvents\Repository;
-use App\Traits\BatchLegalEntityQueries;
-use App\Jobs\DiagnosticReportSync;
-use App\Traits\HandlesSyncBatch;
-use App\Models\LegalEntity;
-use App\Models\MedicalEvents\Sql\Episode;
-use App\Models\MedicalEvents\Sql\DiagnosticReport;
 use App\Enums\JobStatus;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Session;
-use Illuminate\View\View;
-use Livewire\WithPagination;
+use App\Enums\Person\DiagnosticReportStatus;
+use App\Enums\Person\ObservationStatus;
+use App\Exceptions\Cipher\CipherConnectionException;
+use App\Exceptions\Cipher\CipherException;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
+use App\Jobs\DiagnosticReportSync;
+use App\Livewire\DiagnosticReport\Forms\DiagnosticReportCancellationForm as Form;
+use App\Models\LegalEntity;
+use App\Models\MedicalEvents\Sql\DiagnosticReport;
+use App\Models\MedicalEvents\Sql\Episode;
+use App\Repositories\MedicalEvents\Repository;
+use App\Services\MedicalEvents\Fhir;
+use App\Services\MedicalEvents\FhirResource;
+use App\Traits\BatchLegalEntityQueries;
+use App\Traits\HandlesSyncBatch;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Throwable;
 
 class PatientDiagnosticReports extends BasePatientComponent
 {
     use BatchLegalEntityQueries;
     use HandlesSyncBatch;
+    use WithFileUploads;
     use WithPagination;
+
+    public Form $form;
+
+    public bool $showCancellationModal = false;
+
+    public bool $showSignatureModal = false;
+
+    public ?int $cancellingDiagnosticReportId = null;
 
     public array $diagnosticReports = [];
 
@@ -68,6 +88,7 @@ class PatientDiagnosticReports extends BasePatientComponent
 
     protected array $dictionaryNames = [
         'eHealth/diagnostic_report_categories',
+        'eHealth/cancellation_reasons',
     ];
 
     protected function getSyncStatus(string $entityType): ?string
@@ -135,7 +156,7 @@ class PatientDiagnosticReports extends BasePatientComponent
     }
 
     public function sync(): void
-    {
+    {     
         if ($this->cannotStartSync('diagnostic_report')) {
             return;
         }
@@ -177,6 +198,274 @@ class PatientDiagnosticReports extends BasePatientComponent
 
         $this->loadEpisodes();
         $this->loadEncounters();
+    }
+
+    public function openDiagnosticReportCancellation(int $diagnosticReportId): void
+    {
+        $diagnosticReport = Repository::diagnosticReport()->findById($diagnosticReportId);
+
+        if ($message = $this->getCancellationForbiddenMessage($diagnosticReport)) {
+            Session::flash('error', $message);
+
+            return;
+        }
+
+        $this->resetCancellationState();
+
+        $this->cancellingDiagnosticReportId = $diagnosticReport->id;
+        $this->showCancellationModal = true;
+    }
+
+    public function closeDiagnosticReportCancellationModal(): void
+    {
+        $this->resetCancellationState();
+    }
+
+    public function proceedToSignature(): void
+    {
+        if ($this->cancellingDiagnosticReportId === null) {
+            Session::flash('error', __('patients.messages.diagnostic_report_not_found'));
+
+            return;
+        }
+
+        $diagnosticReport = Repository::diagnosticReport()->findById($this->cancellingDiagnosticReportId);
+
+        if ($message = $this->getCancellationForbiddenMessage($diagnosticReport)) {
+            $this->resetCancellationState();
+            Session::flash('error', $message);
+
+            return;
+        }
+
+        $this->form->explanatoryLetter = filled($this->form->explanatoryLetter)
+            ? $this->form->explanatoryLetter
+            : null;
+
+        try {
+            $this->form->validate($this->form->cancellationRules());
+        } catch (ValidationException $exception) {
+            $this->showCancellationModal = true;
+            $this->showSignatureModal = false;
+
+            Session::flash('error', $exception->validator->errors()->first());
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $this->showCancellationModal = false;
+        $this->showSignatureModal = true;
+    }
+
+    public function cancelSelectedDiagnosticReport(): void
+    {
+        if ($this->cancellingDiagnosticReportId === null) {
+            Session::flash('error', __('patients.messages.diagnostic_report_not_found'));
+
+            return;
+        }
+
+        try {
+            $validated = $this->form->validate([
+                ...$this->form->cancellationRules(),
+                ...$this->form->signingRules(),
+            ]);
+        } catch (ValidationException $exception) {
+            Session::flash('error', $exception->validator->errors()->first());
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return;
+        }
+
+        $diagnosticReport = Repository::diagnosticReport()->findById($this->cancellingDiagnosticReportId);
+
+        if ($message = $this->getCancellationForbiddenMessage($diagnosticReport)) {
+            $this->showSignatureModal = false;
+            Session::flash('error', $message);
+
+            return;
+        }
+
+        $explanatoryLetter = $validated['explanatoryLetter'] ?? null;
+
+        try {
+            $signedPayload = $this->buildCancellationPackage(
+                $diagnosticReport,
+                $validated['cancellationReason'],
+                $explanatoryLetter
+            );
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle(
+                'Error while building diagnostic report cancellation package',
+                __('patients.messages.diagnostic_report_cancel_package_prepare_error')
+            );
+
+            return;
+        }
+
+        try {
+            $signedContent = new CipherRequest()->signData(
+                $signedPayload,
+                $validated['knedp'],
+                $validated['keyContainerUpload'],
+                $validated['password'],
+                Auth::user()->party->taxId
+            );
+        } catch (CipherException|CipherConnectionException $exception) {
+            $exception->handle(
+                'Error while signing diagnostic report cancellation package',
+                __('patients.messages.diagnostic_report_cancel_package_sign_error')
+            );
+
+            return;
+        } finally {
+            $this->form->resetSigningFields();
+        }
+
+        $cancellationReason = FhirResource::make()
+            ->coding('eHealth/cancellation_reasons', $validated['cancellationReason'])
+            ->toCodeableConcept(
+                data_get($this->dictionaries, 'eHealth/cancellation_reasons.' . $validated['cancellationReason'], '')
+            );
+
+        try {
+            EHealth::diagnosticReport()->cancel($this->uuid, [
+                'signed_data' => $signedContent->getBase64Data(),
+                'signed_data_encoding' => 'base64',
+            ]);
+
+            Repository::diagnosticReport()->markAsEnteredInError(
+                $diagnosticReport,
+                $cancellationReason,
+                $explanatoryLetter
+            );
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle(
+                'Error while sending diagnostic report cancellation package',
+                __('patients.messages.diagnostic_report_cancel_package_request_error')
+            );
+
+            return;
+        } catch (Throwable $exception) {
+            $this->handleDatabaseErrors(
+                $exception,
+                'Error while saving diagnostic report cancellation status',
+                __('patients.messages.diagnostic_report_cancel_package_save_error')
+            );
+
+            return;
+        }
+
+        $this->resetCancellationState();
+        $this->loadDiagnosticReportsFromDb();
+
+        Session::flash('success', __('patients.messages.diagnostic_report_cancel_request_sent'));
+    }
+
+    private function getCancellationForbiddenMessage(DiagnosticReport $diagnosticReport): ?string
+    {
+        if ($diagnosticReport->status === DiagnosticReportStatus::ENTERED_IN_ERROR) {
+            return __('patients.messages.diagnostic_report_already_entered_in_error');
+        }
+
+        if ($diagnosticReport->status !== DiagnosticReportStatus::FINAL) {
+            return __('patients.messages.only_final_diagnostic_report_can_be_cancelled');
+        }
+
+        $currentEmployeeUuid = Auth::user()?->getDiagnosticReportWriterEmployee()?->uuid;
+
+        if (!$currentEmployeeUuid || $diagnosticReport->recordedBy?->value !== $currentEmployeeUuid) {
+            return __('patients.messages.diagnostic_report_created_by_another_employee_cannot_be_cancelled');
+        }
+
+        if ($diagnosticReport->encounter_id !== null) {
+            return __('patients.messages.diagnostic_report_with_encounter_cannot_be_cancelled');
+        }
+
+        if (Auth::user()?->cannot('cancel', $diagnosticReport)) {
+            return __('patients.policy.cancel_diagnostic_report');
+        }
+
+        return null;
+    }
+
+    private function buildCancellationPackage(
+        DiagnosticReport $diagnosticReport,
+        string $cancellationReason,
+        ?string $explanatoryLetter
+    ): array {
+        try {
+            $reportRaw = EHealth::diagnosticReport()
+                ->getById($this->uuid, $diagnosticReport->uuid)
+                ->getData();
+
+            $observationsRaw = $this->loadObservationRawData($diagnosticReport->uuid, onlyActive: true);
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            report($exception);
+
+            $observationsRaw = collect(Repository::observation()->getByDiagnosticReportId($diagnosticReport->id))
+                ->filter(static fn (array $observation): bool => data_get($observation, 'status') !== ObservationStatus::ENTERED_IN_ERROR->value)
+                ->values()
+                ->toArray();
+        }
+
+        return Fhir::diagnosticReport()->toCancellationPackage(
+            $reportRaw,
+            $observationsRaw,
+            $cancellationReason,
+            $explanatoryLetter,
+            data_get($this->dictionaries, 'eHealth/cancellation_reasons.' . $cancellationReason)
+        );
+    }
+
+    private function loadObservationRawData(string $diagnosticReportUuid, bool $onlyActive = false): array
+    {
+        $page = 1;
+        $observations = [];
+
+        do {
+            $response = EHealth::observation()->getBySearchParams($this->uuid, [
+                'diagnostic_report_id' => $diagnosticReportUuid,
+                'page' => $page,
+            ]);
+
+            $pageData = collect($response->getData());
+
+            if ($onlyActive) {
+                $pageData = $pageData->filter(
+                    static fn (array $observation): bool => data_get($observation, 'status') !== ObservationStatus::ENTERED_IN_ERROR->value
+                );
+            }
+
+            $observations = [
+                ...$observations,
+                ...$pageData->values()->toArray(),
+            ];
+
+            $page++;
+        } while ($response->isNotLast());
+
+        return $observations;
+    }
+
+    private function resetCancellationState(): void
+    {
+        $this->showCancellationModal = false;
+        $this->showSignatureModal = false;
+        $this->cancellingDiagnosticReportId = null;
+        $this->form->resetCancellationFields();
+
+        if (isset($this->form->knedp)) {
+            $this->form->knedp = '';
+        }
+
+        if (isset($this->form->password)) {
+            $this->form->password = '';
+        }
+
+        $this->resetErrorBag();
+        $this->resetValidation();
     }
 
     public function updatedPage(): void

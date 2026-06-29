@@ -1,8 +1,9 @@
-<fieldset class="fieldset">
+<fieldset class="fieldset" x-data="{ showContactPerson: $wire.entangle('form.showContactPerson') }">
     <legend class="legend flex items-baseline gap-2">
         <input type="checkbox"
                class="default-checkbox mb-2"
-               wire:model.live="form.showContactPerson"
+               wire:model="form.showContactPerson"
+               x-model="showContactPerson"
                id="showContactPerson"
         />
         <label for="showContactPerson" class="cursor-pointer select-none">
@@ -10,7 +11,7 @@
         </label>
     </legend>
 
-    @if($form->showContactPerson)
+    <div x-show="showContactPerson" x-cloak>
         <div class="form-row-3">
             <div class="form-group group">
                 <div class="relative w-full">
@@ -20,7 +21,7 @@
                            id="emergencyContactFirstName"
                            class="input peer @error('form.person.emergencyContact.firstName') input-error @enderror"
                            placeholder=" "
-                           required
+                           :required="showContactPerson"
                            autocomplete="off"
                     />
                     <label for="emergencyContactFirstName" class="label">
@@ -45,7 +46,7 @@
                            id="emergencyContactLastName"
                            class="input peer @error('form.person.emergencyContact.lastName') input-error @enderror"
                            placeholder=" "
-                           required
+                           :required="showContactPerson"
                            autocomplete="off"
                     />
                     <label for="emergencyContactLastName" class="label">
@@ -93,7 +94,7 @@
                         name="emergencyContactPhoneType"
                         id="emergencyContactPhoneType"
                         class="input-select peer @error('form.person.emergencyContact.phones.0.type') input-error @enderror"
-                        required
+                        :required="showContactPerson"
                 >
                     <option value="" selected>{{ __('forms.select') }} *</option>
                     @foreach($this->dictionaries['PHONE_TYPE'] as $key => $phoneType)
@@ -115,7 +116,7 @@
                            id="emergencyContactPhone"
                            class="input with-leading-icon peer @error('form.person.emergencyContact.phones.0.number') input-error @enderror"
                            placeholder=" "
-                           required
+                           :required="showContactPerson"
                     />
                     <label for="emergencyContactPhone" class="wrapped-label">
                         {{ __('forms.phone') }}
@@ -124,5 +125,5 @@
                 @error('form.person.emergencyContact.phones.0.number') <p class="text-error">{{ $message }}</p> @enderror
             </div>
         </div>
-    @endif
+    </div>
 </fieldset>

@@ -3,7 +3,7 @@
         {{ __('patients.patient_information') }}
     </legend>
 
-    @if(($form->person['patientType'] ?? 'identified') === 'unidentified')
+    <div x-show="patientType === 'unidentified'" x-cloak class="contents">
         <div class="form-row-2">
             <div class="form-group group">
                 <div class="relative w-full">
@@ -129,7 +129,8 @@
                 @enderror
             </div>
         </div>
-    @else
+    </div>
+    <div x-show="patientType === 'identified'" x-cloak class="contents">
         <div class="form-row-3">
             <div class="form-group group">
                 <input wire:model="form.person.firstName"
@@ -280,5 +281,5 @@
                 @error('form.person.unzr') <p class="text-error">{{ $message }}</p> @enderror
             </div>
         </div>
-    @endif
+    </div>
 </fieldset>

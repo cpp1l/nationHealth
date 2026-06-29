@@ -1,22 +1,22 @@
 @use('App\Models\Person\PersonRequest')
 @use('App\Livewire\Person\PersonUpdate')
 
-<div x-data="{ showUnidentifiedPatientModal: false }">
+<div x-data="{ showUnidentifiedPatientModal: false, patientType: $wire.entangle('form.person.patientType') }">
     <x-header-navigation class="breadcrumb-form">
         <x-slot name="title">{{ __('patients.add_patient') }}</x-slot>
     </x-header-navigation>
 
     @if($viewState === 'default')
         <section wire:key="{{ $viewState }}" class="section-form shift-content">
-            <form class="form" wire:key="patient-form-{{ $formKey }}">
+            <form class="form" wire:key="patient-form-{{ $formKey }}" novalidate>
                 @include('livewire.person.parts.patient-type')
                 @include('livewire.person.parts.person')
 
-                @if(($form->person['patientType'] ?? 'identified') === 'unidentified')
+                <div x-show="patientType === 'unidentified'" x-cloak>
                     @include('livewire.person.parts.unidentified-contact-person')
-                @endif
+                </div>
 
-                @if(($form->person['patientType'] ?? 'identified') === 'identified')
+                <div x-show="patientType === 'identified'" x-cloak>
                     @include('livewire.person.parts.documents')
                     @include('livewire.person.parts.identity')
                     @include('livewire.person.parts.contact-data')
@@ -26,7 +26,7 @@
                     @if(!$this instanceof PersonUpdate)
                         @include('livewire.person.parts.authentication-methods')
                     @endif
-                @endif
+                </div>
 
                 <div class="flex flex-wrap gap-4 items-center">
                     @if($this instanceof PersonUpdate)
@@ -45,7 +45,7 @@
                         </a>
 
                         @can('create', PersonRequest::class)
-                            @if(($form->person['patientType'] ?? 'identified') === 'unidentified')
+                            <div x-show="patientType === 'unidentified'" class="flex flex-wrap gap-4 items-center" x-cloak>
                                 <button type="button" @click.prevent="window.location.href = '{{ route('persons.index', [legalEntity()]) }}'" class="button-primary-outline flex items-center gap-2">
                                     @icon('archive', 'w-4 h-4')
                                     {{ __('forms.save') }}
@@ -53,7 +53,8 @@
                                 <button type="button" @click.prevent="showUnidentifiedPatientModal = true" class="button-primary">
                                     {{ __('forms.create') }}
                                 </button>
-                            @else
+                            </div>
+                            <div x-show="patientType === 'identified'" class="flex flex-wrap gap-4 items-center" x-cloak>
                                 <button type="submit" wire:click.prevent="createLocally" class="button-primary-outline flex items-center gap-2">
                                     @icon('archive', 'w-4 h-4')
                                     {{ __('forms.save') }}
@@ -61,7 +62,7 @@
                                 <button type="submit" wire:click.prevent="create" class="button-primary">
                                     {{ __('forms.create') }}
                                 </button>
-                            @endif
+                            </div>
                         @endcan
                     @endif
                 </div>

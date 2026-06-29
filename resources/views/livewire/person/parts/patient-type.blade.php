@@ -5,7 +5,8 @@
 
     <div class="form-row-2">
         <div class="form-group">
-            <select wire:model.live="form.person.patientType"
+            <select wire:model="form.person.patientType"
+                    x-model="patientType"
                     name="patientType"
                     id="patientType"
                     class="input-select peer @error('form.person.patientType') input-error @enderror"
@@ -26,7 +27,7 @@
         </div>
     </div>
 
-    @if(($form->person['patientType'] ?? 'identified') === 'unidentified')
+    <div x-show="patientType === 'unidentified'" x-cloak class="contents">
         <div class="mb-6 p-6 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 flex flex-col gap-3">
             <div class="flex items-center gap-2">
                 @icon('alert-circle', 'w-5 h-5 text-red-600 dark:text-red-400')
@@ -175,42 +176,42 @@
                            placeholder=" "
                            autocomplete="off"
                            :required="unidentifiedReason === 'NEWBORN_WITHOUT_CERTIFICATE'"
-                        />
-                        <label for="childBirthTime" class="wrapped-label">
-                            {{ __('patients.child_birth_time') }}
-                        </label>
-                    </div>
-
-                    @error('form.person.childBirthTime')
-                    <p class="text-error">
-                        {{ $message }}
-                    </p>
-                    @enderror
-                </div>
-            </div>
-
-            <!-- OTHER_HOSPITALIZATION -->
-            <div class="form-row-2" x-show="unidentifiedReason === 'OTHER_HOSPITALIZATION'" wire:key="reason-other" x-cloak>
-                <div class="form-group group">
-                    <label for="unidentifiedOtherReason" class="label-secondary">
-                        {{ __('patients.unidentified_other_reason') }} *
+                    />
+                    <label for="childBirthTime" class="wrapped-label">
+                        {{ __('patients.child_birth_time') }}
                     </label>
-                    <textarea wire:model="form.person.unidentifiedOtherReason"
-                              id="unidentifiedOtherReason"
-                              name="unidentifiedOtherReason"
-                              rows="4"
-                              class="textarea @error('form.person.unidentifiedOtherReason') input-error @enderror"
-                              placeholder="Текст для введення"
-                              autocomplete="off"
-                              :required="unidentifiedReason === 'OTHER_HOSPITALIZATION'"
-                    ></textarea>
-
-                    @error('form.person.unidentifiedOtherReason')
-                    <p class="text-error">
-                        {{ $message }}
-                    </p>
-                    @enderror
                 </div>
+
+                @error('form.person.childBirthTime')
+                <p class="text-error">
+                    {{ $message }}
+                </p>
+                @enderror
             </div>
-        @endif
+        </div>
+
+        <!-- OTHER_HOSPITALIZATION -->
+        <div class="form-row-2" x-show="unidentifiedReason === 'OTHER_HOSPITALIZATION'" wire:key="reason-other" x-cloak>
+            <div class="form-group group">
+                <label for="unidentifiedOtherReason" class="label-secondary">
+                    {{ __('patients.unidentified_other_reason') }} *
+                </label>
+                <textarea wire:model="form.person.unidentifiedOtherReason"
+                          id="unidentifiedOtherReason"
+                          name="unidentifiedOtherReason"
+                          rows="4"
+                          class="textarea @error('form.person.unidentifiedOtherReason') input-error @enderror"
+                          placeholder="Текст для введення"
+                          autocomplete="off"
+                          :required="unidentifiedReason === 'OTHER_HOSPITALIZATION'"
+                ></textarea>
+
+                @error('form.person.unidentifiedOtherReason')
+                <p class="text-error">
+                    {{ $message }}
+                </p>
+                @enderror
+            </div>
+        </div>
+    </div>
 </fieldset>

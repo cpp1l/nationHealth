@@ -47,22 +47,30 @@
                                     style="display: none"
                                     class="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl z-50 p-1 border border-gray-100"
                                 >
-                                    <button
-                                        type="button"
-                                        @click="localStep = {{ AuthStep::ADD_NEW_BY_SMS }}; openAdd = false"
-                                        class="cursor-pointer w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded text-gray-700 transition-colors"
+                                    <template
+                                        x-if="!(authenticationMethods ?? []).some(existingMethod => existingMethod.type === '{{ AuthenticationMethod::THIRD_PERSON->value }}')"
                                     >
-                                        {{ __('patients.authentication_SMS') }}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            @click="localStep = {{ AuthStep::ADD_NEW_BY_SMS }}; openAdd = false"
+                                            class="cursor-pointer w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded text-gray-700 transition-colors"
+                                        >
+                                            {{ __('patients.authentication_SMS') }}
+                                        </button>
+                                    </template>
 
-                                    <button
-                                        type="button"
-                                        wire:click.prevent="createOfflineAuthMethod"
-                                        @click="openAdd = false"
-                                        class="cursor-pointer w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded text-gray-700 transition-colors"
+                                    <template
+                                        x-if="!(authenticationMethods ?? []).some(existingMethod => ['{{ AuthenticationMethod::OTP->value }}', '{{ AuthenticationMethod::OFFLINE->value }}', '{{ AuthenticationMethod::THIRD_PERSON->value }}'].includes(existingMethod.type))"
                                     >
-                                        {{ __('patients.authentication_documents') }}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            wire:click.prevent="createOfflineAuthMethod"
+                                            @click="openAdd = false"
+                                            class="cursor-pointer w-full text-left px-4 py-2 text-sm hover:bg-gray-50 rounded text-gray-700 transition-colors"
+                                        >
+                                            {{ __('patients.authentication_documents') }}
+                                        </button>
+                                    </template>
                                     <button
                                         type="button"
                                         @click="localStep = {{ AuthStep::ADD_NEW_BY_THIRD_PERSON }}; openAdd = false"

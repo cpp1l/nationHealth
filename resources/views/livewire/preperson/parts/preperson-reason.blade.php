@@ -1,3 +1,5 @@
+@use(App\Enums\Preperson\UnidentifiedReason)
+
 <fieldset class="fieldset">
     <legend class="legend">
         {{ __('patients.unidentified_reason') }}
@@ -22,28 +24,19 @@
                 x-model="unidentifiedReason"
                 name="reason"
                 id="reason"
-                class="input-select peer @error('form.person.unidentifiedReason') input-error @enderror"
+                class="input-select peer @error('form.reasonContext.unidentifiedReason') input-error @enderror"
                 required
             >
                 <option value="" selected>{{ __('forms.select') }}</option>
-                <option value="EMERGENCY_HOSPITALIZATION">
-                    {{ __('patients.unidentified_reasons.EMERGENCY_HOSPITALIZATION') }}
-                </option>
-                <option value="POLICE_HOSPITALIZATION">
-                    {{ __('patients.unidentified_reasons.POLICE_HOSPITALIZATION') }}
-                </option>
-                <option value="NEWBORN_WITHOUT_CERTIFICATE">
-                    {{ __('patients.unidentified_reasons.NEWBORN_WITHOUT_CERTIFICATE') }}
-                </option>
-                <option value="OTHER_HOSPITALIZATION">
-                    {{ __('patients.unidentified_reasons.OTHER_HOSPITALIZATION') }}
-                </option>
+                @foreach(UnidentifiedReason::options() as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
             </select>
             <label for="reason" class="label">
                 {{ __('patients.unidentified_reason') }}
             </label>
 
-            @error('form.person.unidentifiedReason')
+            @error('form.reasonContext.unidentifiedReason')
             <p class="text-error">
                 {{ $message }}
             </p>
@@ -56,11 +49,11 @@
         <div class="form-group group">
             <div class="relative w-full">
                 <input
-                    wire:model="form.person.ambulanceCardNumber"
+                    wire:model="form.reasonContext.ambulanceCardNumber"
                     type="text"
                     name="ambulanceCardNumber"
                     id="ambulanceCardNumber"
-                    class="input peer @error('form.person.ambulanceCardNumber') input-error @enderror"
+                    class="input peer @error('form.reasonContext.ambulanceCardNumber') input-error @enderror"
                     placeholder=" "
                     autocomplete="off"
                 />
@@ -70,14 +63,14 @@
                 <button
                     type="button"
                     class="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600"
-                    x-show="$wire.form.person.ambulanceCardNumber"
-                    @click="$wire.set('form.person.ambulanceCardNumber', '')"
+                    x-show="$wire.form.reasonContext.ambulanceCardNumber"
+                    @click="$wire.set('form.reasonContext.ambulanceCardNumber', '')"
                 >
                     @icon('close', 'w-4 h-4')
                 </button>
             </div>
 
-            @error('form.person.ambulanceCardNumber')
+            @error('form.reasonContext.ambulanceCardNumber')
             <p class="text-error">
                 {{ $message }}
             </p>
@@ -90,11 +83,11 @@
         <div class="form-group group">
             <div class="relative w-full">
                 <input
-                    wire:model="form.person.policeReportId"
+                    wire:model="form.reasonContext.policeReportId"
                     type="text"
                     name="policeReportId"
                     id="policeReportId"
-                    class="input peer @error('form.person.policeReportId') input-error @enderror"
+                    class="input peer @error('form.reasonContext.policeReportId') input-error @enderror"
                     placeholder=" "
                     autocomplete="off"
                     :required="unidentifiedReason === 'POLICE_HOSPITALIZATION'"
@@ -105,14 +98,14 @@
                 <button
                     type="button"
                     class="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-400 hover:text-gray-600"
-                    x-show="$wire.form.person.policeReportId"
-                    @click="$wire.set('form.person.policeReportId', '')"
+                    x-show="$wire.form.reasonContext.policeReportId"
+                    @click="$wire.set('form.reasonContext.policeReportId', '')"
                 >
                     @icon('close', 'w-4 h-4')
                 </button>
             </div>
 
-            @error('form.person.policeReportId')
+            @error('form.reasonContext.policeReportId')
             <p class="text-error">
                 {{ $message }}
             </p>
@@ -122,12 +115,12 @@
         <div class="form-group group">
             <div class="datepicker-wrapper">
                 <input
-                    wire:model="form.person.policeReportDate"
+                    wire:model="form.reasonContext.policeReportDate"
                     datepicker-max-date="{{ now()->format(config('app.date_format')) }}"
                     type="text"
                     name="policeReportDate"
                     id="policeReportDate"
-                    class="datepicker-input with-leading-icon input peer @error('form.person.policeReportDate') input-error @enderror"
+                    class="datepicker-input with-leading-icon input peer @error('form.reasonContext.policeReportDate') input-error @enderror"
                     placeholder=" "
                     autocomplete="off"
                     :required="unidentifiedReason === 'POLICE_HOSPITALIZATION'"
@@ -137,7 +130,7 @@
                 </label>
             </div>
 
-            @error('form.person.policeReportDate')
+            @error('form.reasonContext.policeReportDate')
             <p class="text-error">
                 {{ $message }}
             </p>
@@ -151,11 +144,11 @@
             <div class="relative">
                 @icon('clock', 'absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 pointer-events-none')
                 <input
-                    wire:model="form.person.childBirthTime"
+                    wire:model="form.reasonContext.childBirthTime"
                     type="time"
                     name="childBirthTime"
                     id="childBirthTime"
-                    class="with-leading-icon input peer @error('form.person.childBirthTime') input-error @enderror"
+                    class="with-leading-icon input peer @error('form.reasonContext.childBirthTime') input-error @enderror"
                     placeholder=" "
                     autocomplete="off"
                     :required="unidentifiedReason === 'NEWBORN_WITHOUT_CERTIFICATE'"
@@ -165,7 +158,7 @@
                 </label>
             </div>
 
-            @error('form.person.childBirthTime')
+            @error('form.reasonContext.childBirthTime')
             <p class="text-error">
                 {{ $message }}
             </p>
@@ -180,17 +173,17 @@
                 {{ __('patients.unidentified_other_reason') }} *
             </label>
             <textarea
-                wire:model="form.person.unidentifiedOtherReason"
+                wire:model="form.reasonContext.unidentifiedOtherReason"
                 id="unidentifiedOtherReason"
                 name="unidentifiedOtherReason"
                 rows="4"
-                class="textarea @error('form.person.unidentifiedOtherReason') input-error @enderror"
+                class="textarea @error('form.reasonContext.unidentifiedOtherReason') input-error @enderror"
                 placeholder="Текст для введення"
                 autocomplete="off"
                 :required="unidentifiedReason === 'OTHER_HOSPITALIZATION'"
             ></textarea>
 
-            @error('form.person.unidentifiedOtherReason')
+            @error('form.reasonContext.unidentifiedOtherReason')
             <p class="text-error">
                 {{ $message }}
             </p>

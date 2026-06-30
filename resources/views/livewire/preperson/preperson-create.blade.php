@@ -1,6 +1,6 @@
 @use('App\Models\Preperson')
 
-<div x-data="{ unidentifiedReason: $wire.entangle('form.person.unidentifiedReason') }">
+<div x-data="{ unidentifiedReason: $wire.entangle('form.reasonContext.unidentifiedReason') }">
     <div wire:key="preperson-form-{{ $formKey }}">
         @include('livewire.preperson.parts.preperson-reason')
         @include('livewire.preperson.parts.preperson-personal-data')
@@ -19,7 +19,7 @@
             </button>
             <button
                 type="button"
-                @click.prevent="showUnidentifiedPatientModal = true"
+                wire:click.prevent="create"
                 class="button-primary"
             >
                 {{ __('forms.create') }}

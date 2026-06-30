@@ -25,6 +25,7 @@ class Preperson extends Model
         'emergency_contact',
         'death_date',
         'note',
+        'reason_context',
         'status',
         'ehealth_inserted_at',
         'ehealth_inserted_by',
@@ -41,6 +42,7 @@ class Preperson extends Model
     protected $casts = [
         'gender' => Gender::class,
         'emergency_contact' => 'array',
+        'reason_context' => 'array',
         'status' => Status::class
     ];
 

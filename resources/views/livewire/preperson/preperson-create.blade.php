@@ -1,6 +1,8 @@
 @use('App\Models\Preperson')
 
 <div x-data="{ unidentifiedReason: $wire.entangle('form.reasonContext.unidentifiedReason') }">
+    <livewire:components.x-message :key="time()" />
+
     <div wire:key="preperson-form-{{ $formKey }}">
         @include('livewire.preperson.parts.preperson-reason')
         @include('livewire.preperson.parts.preperson-personal-data')

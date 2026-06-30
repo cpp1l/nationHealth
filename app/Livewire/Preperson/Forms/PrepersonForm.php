@@ -35,21 +35,30 @@ class PrepersonForm extends BaseForm
      */
     public function rulesForCreate(): array
     {
+        $emergencyContactRequired = $this->hasEmergencyContactData()
+            || $this->reasonContext['unidentifiedReason'] === UnidentifiedReason::NEWBORN_WITHOUT_CERTIFICATE->value;
+
         return [
             'person.firstName' => ['nullable', 'min:3', new NameFields()],
             'person.lastName' => ['nullable', 'min:3', new NameFields()],
             'person.secondName' => ['nullable', 'min:3', new NameFields()],
             'person.birthDate' => ['nullable', 'date_format:' . config('app.date_format')],
             'person.gender' => ['required', 'string', new InDictionary('GENDER')],
-            'person.emergencyContact.firstName' => ['nullable', 'min:3', new NameFields()],
-            'person.emergencyContact.lastName' => ['nullable', 'min:3', new NameFields()],
+            'person.emergencyContact.firstName' => [Rule::requiredIf($emergencyContactRequired), 'min:3', new NameFields()],
+            'person.emergencyContact.lastName' => [Rule::requiredIf($emergencyContactRequired), 'min:3', new NameFields()],
             'person.emergencyContact.secondName' => ['nullable', 'min:3', new NameFields()],
-            'person.emergencyContact.phones.*.type' => ['nullable', 'string', 'distinct'],
+            'person.emergencyContact.phones.*.type' => [
+                'nullable',
+                'string',
+                'distinct',
+                'required_with:person.emergencyContact.phones.*.number'
+            ],
             'person.emergencyContact.phones.*.number' => [
                 'nullable',
                 'string',
                 new PhoneNumber(),
-                'distinct'
+                'distinct',
+                'required_with:person.emergencyContact.phones.*.type'
             ],
 
             'reasonContext.unidentifiedReason' => [
@@ -88,6 +97,21 @@ class PrepersonForm extends BaseForm
                 'max:255'
             ]
         ];
+    }
+
+    /**
+     * Determine whether any emergency contact field was filled in.
+     *
+     * @return bool
+     */
+    private function hasEmergencyContactData(): bool
+    {
+        $contact = $this->person['emergencyContact'] ?? [];
+
+        return filled($contact['firstName'] ?? null)
+            || filled($contact['lastName'] ?? null)
+            || filled($contact['secondName'] ?? null)
+            || filled(array_filter($contact['phones'][0] ?? []));
     }
 
     /**

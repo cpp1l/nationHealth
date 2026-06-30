@@ -18,7 +18,6 @@ use App\Exceptions\EHealth\EHealthValidationException;
 use App\Models\Employee\BaseEmployee;
 use App\Models\Employee\Employee;
 use App\Models\Employee\EmployeeRequest;
-use App\Repositories\Repository;
 use App\Models\LegalEntity;
 use App\Models\Revision;
 use App\Models\User;
@@ -594,108 +593,85 @@ abstract class AbstractEmployeeFormManager extends EmployeeComponent
             return;
         }
 
-        $allErrorKeys = collect($validator->errors()->keys())->unique();
-
-        // A map of translatable field sections.
-        $sections = [
-            'form.party.phones' => __('forms.phone_number'),
-            'form.documents' => __('forms.document'),
-            'form.doctor.educations' => __('forms.education'),
-            'form.doctor.specialities' => __('forms.specialities'),
-            'form.doctor.qualifications' => __('forms.qualifications'),
-            'form.doctor.scienceDegree' => __('forms.science_degree'),
-        ];
-
-        // A map of translatable specific fields (with wildcards for nested arrays).
-        $fieldTranslations = [
-            'form.knedp' => __('forms.provider'),
-            'form.password' => __('forms.password'),
-            'form.keyContainerUpload' => __('forms.key_file'),
-            'form.party.firstName' => __('forms.first_name'),
-            'form.party.lastName' => __('forms.last_name'),
-            'form.party.secondName' => __('forms.second_name'),
-            'form.party.gender' => __('forms.gender'),
-            'form.party.birthDate' => __('forms.birth_date'),
-            'form.party.taxId' => __('forms.tax_id'),
-            'form.party.noTaxId' => __('forms.no_tax_id'),
-            'form.party.email' => __('forms.email'),
-            'form.party.workingExperience' => __('forms.working_experience'),
-            'form.party.aboutMyself' => __('forms.about_myself'),
-            'form.position' => __('forms.position'),
-            'form.employeeType' => __('forms.role'),
-            'form.startDate' => __('forms.start_date_work'),
-            'form.endDate' => __('forms.end_date_work'),
-            'form.party.phones.*.number' => __('forms.phone_number'),
-            'form.party.phones.*.type' => __('forms.phone_type'),
-            'form.documents.*.type' => __('forms.document_type'),
-            'form.documents.*.number' => __('forms.document_number'),
-            'form.documents.*.issuedBy' => __('forms.issued_by'),
-            'form.documents.*.issuedAt' => __('forms.issued_at'),
-            'form.doctor.educations.*.city' => __('forms.city'),
-            'form.doctor.educations.*.institutionName' => __('forms.institution_name'),
-            'form.doctor.educations.*.speciality' => __('forms.speciality'),
-            'form.doctor.educations.*.degree' => __('forms.degree'),
-            'form.doctor.educations.*.issuedDate' => __('forms.issued_date'),
-            'form.doctor.educations.*.diplomaNumber' => __('forms.diploma_number'),
-            'form.doctor.specialities.*.attestationName' => __('forms.attestationName'),
-            'form.doctor.specialities.*.level' => __('forms.select_level'),
-            'form.doctor.qualifications.*.institutionName' => __('forms.institutionName'),
-            'form.doctor.qualifications.*.speciality' => __('forms.speciality'),
-
-            'form.doctor.scienceDegree.city' => __('forms.city'),
-            'form.doctor.scienceDegree.institutionName' => __('forms.institutionName'),
-            'form.doctor.scienceDegree.speciality' => __('forms.speciality'),
-            'form.doctor.scienceDegree.issuedDate' => __('forms.issuedDate'),
-        ];
-
-        $fieldsToDisplay = $allErrorKeys
-            ->map(function ($key) use ($fieldTranslations, $sections, $allErrorKeys) {
-                // Check if this is a top-level section key (e.g., 'form.documents')
-                if (array_key_exists($key, $sections)) {
-                    // Check if there are any more specific errors within this section.
-                    $hasSpecificErrors = $allErrorKeys->contains(
-                        fn ($errorKey) =>
-                        str_starts_with($errorKey, $key . '.')
-                    );
-
-                    // If the section is a top-level error and has no specific sub-errors, it means the whole section is empty/missing.
-                    if (!$hasSpecificErrors) {
-                        return __('forms.section_not_filled', ['section' => $sections[$key]]);
-                    }
-                }
-
-                // Check for an exact field translation match.
-                if (isset($fieldTranslations[$key])) {
-                    return $fieldTranslations[$key];
-                }
-
-                // Match nested keys with wildcards using regex (most reliable method).
-                foreach ($fieldTranslations as $pattern => $translation) {
-                    $patternRegex = '/^' . str_replace('\*', '\d+', preg_quote($pattern, '/')) . '$/';
-                    if (preg_match($patternRegex, $key)) {
-                        return $translation;
-                    }
-                }
-
-                // Fallback to the key itself if no translation is found.
-                return $key;
-            })
-            ->filter()
-            ->unique()
-            ->implode(', ');
-
-        // Check if the flash message is empty and add a default message.
-        if (empty($fieldsToDisplay)) {
-            $flashMessage = __('forms.validation_error_unknown');
-        } else {
-            $flashMessage = __('forms.validation_fix_fields', ['fields' => $fieldsToDisplay]);
-        }
+        $flashMessage = $this->buildValidationFlashMessage($validator);
 
         $this->dispatch('flashMessage', ['message' => $flashMessage, 'type' => 'error', 'persistent' => true]);
 
         if (!empty($validator->errors()->keys())) {
             $this->dispatch('validation-failed-scroll', firstErrorKey: $validator->errors()->keys()[0]);
         }
+    }
+
+    /**
+     * Builds a user-facing flash message from validation errors with document context.
+     */
+    private function buildValidationFlashMessage(\Illuminate\Contracts\Validation\Validator $validator): string
+    {
+        $messages = collect($validator->errors()->messages())
+            ->flatMap(function (array $errors, string $key) {
+                return collect($errors)->map(function (string $error) use ($key) {
+                    if ($this->isDetailedValidationMessage($error)) {
+                        return $error;
+                    }
+
+                    $context = $this->resolveValidationErrorContext($key);
+
+                    return $context !== null ? "{$context}: {$error}" : $error;
+                });
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($messages->isEmpty()) {
+            return __('forms.validation_error_unknown');
+        }
+
+        return $messages->implode(' ');
+    }
+
+    private function isDetailedValidationMessage(string $error): bool
+    {
+        return str_contains($error, '«')
+            || str_starts_with($error, 'У розділі')
+            || str_starts_with($error, 'Не можна одночасно');
+    }
+
+    private function resolveValidationErrorContext(string $key): ?string
+    {
+        if (preg_match('/^form\.documents\.(\d+)\.(\w+)$/', $key, $matches)) {
+            $fieldLabel = match ($matches[2]) {
+                'number' => __('forms.document_number'),
+                'type' => __('forms.document_type'),
+                'issuedAt' => __('forms.issued_at'),
+                'issuedBy' => __('forms.issued_by'),
+                default => null,
+            };
+
+            if ($fieldLabel === null) {
+                return null;
+            }
+
+            $documentIndex = (int) $matches[1];
+            $documentType = $this->form->documents[$documentIndex]['type'] ?? null;
+
+            if ($documentType === null) {
+                return $fieldLabel;
+            }
+
+            $documentLabel = __('patients.documents.' . $documentType);
+            if ($documentLabel === 'patients.documents.' . $documentType) {
+                $documentLabel = $documentType;
+            }
+
+            return "{$fieldLabel} ({$documentLabel})";
+        }
+
+        if ($key === 'form.documents') {
+            return __('forms.documents');
+        }
+
+        return null;
     }
 
     private function handleConnectionException(EHealthConnectionException $e): void

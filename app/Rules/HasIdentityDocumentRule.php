@@ -53,7 +53,7 @@ class HasIdentityDocumentRule implements ValidationRule
 
         // If the intersection is empty, it means no valid identity document was provided.
         if ($identityDocsSubmitted->isEmpty()) {
-            $fail(__('Обов\'язково має бути наданий хоча б один документ, що посвідчує особу.'));
+            $fail(__('validation.custom.identity_document_required'));
         }
     }
 }

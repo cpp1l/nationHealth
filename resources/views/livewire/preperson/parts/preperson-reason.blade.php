@@ -140,22 +140,24 @@
 
     <!-- NEWBORN_WITHOUT_CERTIFICATE -->
     <div class="form-row-2" x-show="unidentifiedReason === 'NEWBORN_WITHOUT_CERTIFICATE'" x-cloak>
-        <div class="form-group group">
-            <div class="relative">
-                @icon('clock', 'absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 pointer-events-none')
+        <div class="form-group w-full">
+            <label for="childBirthTime" class="label">
+                <span>{{ __('patients.child_birth_time') }}</span>
+            </label>
+            <div class="relative w-full">
+                <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none">
+                    @icon('clock', 'w-5 h-5 text-gray-500 dark:text-gray-400')
+                </div>
                 <input
+                    type="text"
                     wire:model="form.reasonContext.childBirthTime"
-                    type="time"
                     name="childBirthTime"
                     id="childBirthTime"
-                    class="with-leading-icon input peer @error('form.reasonContext.childBirthTime') input-error @enderror"
-                    placeholder=" "
+                    class="input timepicker-uk text-gray-900 dark:text-white border-t-0 border-r-0 border-l-0 border-b border-gray-300 focus:ring-0 px-0 ps-8 @error('form.reasonContext.childBirthTime') input-error @enderror"
+                    placeholder="00:00"
                     autocomplete="off"
                     :required="unidentifiedReason === 'NEWBORN_WITHOUT_CERTIFICATE'"
                 />
-                <label for="childBirthTime" class="wrapped-label">
-                    {{ __('patients.child_birth_time') }}
-                </label>
             </div>
 
             @error('form.reasonContext.childBirthTime')

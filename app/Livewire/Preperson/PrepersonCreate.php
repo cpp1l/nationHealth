@@ -8,7 +8,7 @@ use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
-use App\Livewire\Preperson\Forms\PrepersonForm;
+use App\Livewire\Preperson\Forms\PrepersonForm as Form;
 use App\Models\Preperson;
 use App\Traits\FormTrait;
 use Illuminate\Support\Facades\Auth;
@@ -23,9 +23,21 @@ class PrepersonCreate extends Component
 {
     use FormTrait;
 
-    public PrepersonForm $form;
+    public Form $form;
 
-    public int $formKey = 1;
+    /**
+     * Whether the modal proposing alternative patient identification by observations is open.
+     *
+     * @var bool
+     */
+    public bool $showAlternativeIdentificationModal = false;
+
+    /**
+     * MPI identifier of the just-registered preperson, used to build the encounter link.
+     *
+     * @var string|null
+     */
+    public ?string $createdPrepersonId = null;
 
     public array $dictionaryNames = [
         'GENDER',
@@ -52,11 +64,9 @@ class PrepersonCreate extends Component
 
         try {
             $validated = $this->form->validate($this->form->rulesForCreate());
-            $this->formKey++;
         } catch (ValidationException $exception) {
             Session::flash('error', $exception->validator->errors()->first());
             $this->setErrorBag($exception->validator->getMessageBag());
-            $this->formKey++;
 
             return;
         }
@@ -102,11 +112,9 @@ class PrepersonCreate extends Component
 
         try {
             $validated = $this->form->validate($this->form->rulesForCreate());
-            $this->formKey++;
         } catch (ValidationException $exception) {
             Session::flash('error', $exception->validator->errors()->first());
             $this->setErrorBag($exception->validator->getMessageBag());
-            $this->formKey++;
 
             return;
         }
@@ -159,8 +167,9 @@ class PrepersonCreate extends Component
                 return;
             }
 
-            Session::flash('success', __('patients.messages.preperson_created'));
-            $this->redirectRoute('persons.index', [legalEntity()], navigate: true);
+            // Offer to start an "alternative identification" encounter for the freshly registered preperson
+            $this->createdPrepersonId = $preperson->uuid;
+            $this->showAlternativeIdentificationModal = true;
         }
     }
 

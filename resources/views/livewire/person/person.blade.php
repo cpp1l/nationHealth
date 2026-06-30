@@ -1,7 +1,7 @@
 @use('App\Models\Person\PersonRequest')
 @use('App\Livewire\Person\PersonUpdate')
 
-<div x-data="{ showUnidentifiedPatientModal: false, patientType: $wire.entangle('form.patientType') }">
+<div x-data="{ patientType: $wire.entangle('form.patientType') }">
     <x-header-navigation class="breadcrumb-form">
         <x-slot name="title">{{ __('patients.add_patient') }}</x-slot>
     </x-header-navigation>
@@ -44,7 +44,11 @@
                     @else
                         @can('create', PersonRequest::class)
                             <div x-show="patientType === 'person'" class="flex flex-wrap gap-4 items-center" x-cloak>
-                                <button type="submit" wire:click.prevent="createLocally" class="button-primary-outline flex items-center gap-2">
+                                <button
+                                    type="submit"
+                                    wire:click.prevent="createLocally"
+                                    class="button-primary-outline flex items-center gap-2"
+                                >
                                     @icon('archive', 'w-4 h-4')
                                     {{ __('forms.save') }}
                                 </button>
@@ -77,8 +81,6 @@
     @if($showLeafletModal)
         @include('livewire.person.parts.modals.leaflet')
     @endif
-
-    @include('livewire.person.parts.modals.unidentified-warning')
 
     @can('create', PersonRequest::class)
         <x-signature-modal method="sign" />

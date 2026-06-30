@@ -3,7 +3,7 @@
 <div x-data="{ unidentifiedReason: $wire.entangle('form.reasonContext.unidentifiedReason') }">
     <livewire:components.x-message :key="time()" />
 
-    <div wire:key="preperson-form-{{ $formKey }}">
+    <div>
         @include('livewire.preperson.parts.preperson-reason')
         @include('livewire.preperson.parts.preperson-personal-data')
         @include('livewire.preperson.parts.unidentified-contact-person')
@@ -19,13 +19,13 @@
                 @icon('archive', 'w-4 h-4')
                 {{ __('forms.save') }}
             </button>
-            <button
-                type="button"
-                wire:click.prevent="create"
-                class="button-primary"
-            >
+            <button type="button" wire:click.prevent="create" class="button-primary">
                 {{ __('forms.create') }}
             </button>
         </div>
     @endcan
+
+    <div x-data="{ showAlternativeIdentificationModal: $wire.entangle('showAlternativeIdentificationModal') }">
+        @include('livewire.preperson.modals.unidentified-warning')
+    </div>
 </div>

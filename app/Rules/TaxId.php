@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Rules;
 
 use Closure;
@@ -7,12 +9,14 @@ use App\Core\Arr;
 use App\Models\User;
 use Illuminate\Contracts\Validation\DataAwareRule;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Collection;
 use Illuminate\Translation\PotentiallyTranslatedString;
 
 class TaxId implements ValidationRule, DataAwareRule
 {
     /**
      * The entire data array under validation.
+     *
      * @var array
      */
     protected array $data = [];
@@ -21,6 +25,7 @@ class TaxId implements ValidationRule, DataAwareRule
      * Flag indicating if the ID is a passport/national ID instead of a tax ID.
      *
      * This field is used to determine the validation logic.
+     *
      * @var bool
      */
     protected bool $noTaxId = false;
@@ -29,6 +34,7 @@ class TaxId implements ValidationRule, DataAwareRule
      * The email associated with the person, used for additional checks.
      *
      * This email is used to fetch the user's data for comparison.
+     *
      * @var string|null
      */
     protected ?string $email = null;
@@ -44,6 +50,7 @@ class TaxId implements ValidationRule, DataAwareRule
      * Flag indicating if the validation is for an owner (true) or a party (false).
      *
      * This field is used to determine the context of the validation.
+     *
      * @var bool
      */
     protected bool $isOwner = false;
@@ -52,12 +59,14 @@ class TaxId implements ValidationRule, DataAwareRule
      * The EDRPOU (ЄДРПОУ) code associated with the entity, used for additional checks.
      *
      * This field is used to validate the EDRPOU against the provided tax ID or national ID when noTaxId is true.
+     *
      * @var string|null
      */
     protected ?string $edrpou = '';
 
     /**
      * The documents of user (party or owner) data array under validation.
+     *
      * @var array
      */
     protected array $documents = [];
@@ -84,17 +93,45 @@ class TaxId implements ValidationRule, DataAwareRule
             // Find the user associated with the provided email (or not find).
             $this->user = User::where('email', $this->email)->first();
 
-            $this->documents = $this->isOwner
-                ? $contextData['documents']
-                : ($this->user
-                    ? $this->user->party->documents
-                    : $data['documents'] ?? []
-                );
+            $this->documents = $this->normalizeDocuments(
+                $this->isOwner
+                    ? ($contextData['documents'] ?? [])
+                    : ($data['documents'] ?? $this->user?->party?->documents ?? [])
+            );
 
             $this->edrpou = Arr::get($data, 'edrpou', '');
         }
 
         return $this;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>|Collection<int, mixed>|mixed  $documents
+     * @return array<int, array{type: string, number: string}>
+     */
+    private function normalizeDocuments(mixed $documents): array
+    {
+        if ($documents instanceof Collection) {
+            $documents = $documents->all();
+        }
+
+        if (!is_array($documents)) {
+            return [];
+        }
+
+        return array_values(array_map(static function (mixed $document): array {
+            if (is_array($document)) {
+                return [
+                    'type' => (string) ($document['type'] ?? ''),
+                    'number' => (string) ($document['number'] ?? ''),
+                ];
+            }
+
+            return [
+                'type' => (string) ($document->type ?? ''),
+                'number' => (string) ($document->number ?? ''),
+            ];
+        }, $documents));
     }
 
     /**
@@ -116,7 +153,7 @@ class TaxId implements ValidationRule, DataAwareRule
             // If the value is a boolean (true/false), we need to fetch the actual document number for validation.
             if (\is_bool($value)) {
                 $value = collect($this->documents)
-                    ->first(fn(array $doc) => \in_array($doc['type'], ['PASSPORT', 'NATIONAL_ID']))['number'] ?? null;
+                    ->first(fn (array $doc) => \in_array($doc['type'], ['PASSPORT', 'NATIONAL_ID']))['number'] ?? null;
             }
 
             // TODO: check if it need to be validated (the same validation used in the document's field)
@@ -154,8 +191,8 @@ class TaxId implements ValidationRule, DataAwareRule
     /**
      * Perform additional validation against the database based on the provided email.
      *
-     * @param mixed $value The tax ID from the request.
-     * @param Closure $fail The failure callback.
+     * @param  mixed  $value  The tax ID from the request.
+     * @param  Closure  $fail  The failure callback.
      */
     private function validateWithEmail(mixed $value, Closure $fail): void
     {

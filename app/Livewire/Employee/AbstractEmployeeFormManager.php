@@ -632,8 +632,8 @@ abstract class AbstractEmployeeFormManager extends EmployeeComponent
             $fieldLabel = match ($matches[2]) {
                 'number' => __('forms.document_number'),
                 'type' => __('forms.document_type'),
-                'issuedAt' => __('forms.issued_at'),
-                'issuedBy' => __('forms.issued_by'),
+                'issuedAt', 'issued_at' => __('forms.issued_at'),
+                'issuedBy', 'issued_by' => __('forms.issued_by'),
                 default => null,
             };
 
@@ -642,7 +642,8 @@ abstract class AbstractEmployeeFormManager extends EmployeeComponent
             }
 
             $documentIndex = (int) $matches[1];
-            $documentType = $this->form->documents[$documentIndex]['type'] ?? null;
+            $documents = $this->form?->documents ?? [];
+            $documentType = $documents[$documentIndex]['type'] ?? null;
 
             if ($documentType === null) {
                 return $fieldLabel;

@@ -18,7 +18,7 @@ return new class extends Migration
         Schema::create('prepersons', static function (Blueprint $table) {
             $table->id();
             $table->uuid()->unique()->nullable()->comment('MPI identifier of the preperson');
-            $table->string('external_id')->unique()->comment('Identifier from external system');
+            $table->string('external_id')->nullable()->unique()->comment('Identifier from external system');
             $table->string('first_name')->nullable();
             $table->string('last_name')->nullable();
             $table->string('second_name')->nullable();
@@ -27,6 +27,7 @@ return new class extends Migration
             $table->jsonb('emergency_contact')->nullable();
             $table->date('death_date')->nullable();
             $table->text('note')->nullable();
+            $table->jsonb('reason_context')->nullable()->comment('Local-only structured reason context for editing drafts');
             $table->enum('status', Status::values())->nullable();
             $table->dateTime('ehealth_inserted_at')->nullable();
             $table->uuid('ehealth_inserted_by')->nullable();

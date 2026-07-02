@@ -16,6 +16,7 @@ class Preperson extends Model
     protected $table = 'prepersons';
 
     protected $fillable = [
+        'external_id',
         'first_name',
         'last_name',
         'second_name',
@@ -24,6 +25,7 @@ class Preperson extends Model
         'emergency_contact',
         'death_date',
         'note',
+        'reason_context',
         'status',
         'ehealth_inserted_at',
         'ehealth_inserted_by',
@@ -40,22 +42,24 @@ class Preperson extends Model
     protected $casts = [
         'gender' => Gender::class,
         'emergency_contact' => 'array',
+        'reason_context' => 'array',
         'status' => Status::class
     ];
 
     /**
-     * Generate a random external_id matching the eHealth pattern `^[0-9]{8,10}\.[0-9]{8,10}\.[0-9]{1,10}$`.
-     * Uniqueness is enforced by the unique index on the column, not by this generator.
+     * Build the eHealth external_id following the mask "A.B.C":
+     * A — EDRPOU of the MIS, B — EDRPOU (RNOKPP) of the current legal entity (NMP),
+     * C — this record's internal identifier (its primary key, assigned on registration).
      *
      * @return string
      */
-    public static function generateExternalId(): string
+    public function buildExternalId(): string
     {
         return sprintf(
-            '%d.%d.%d',
-            random_int(10_000_000, 9_999_999_999),
-            random_int(10_000_000, 9_999_999_999),
-            random_int(1, 9_999_999_999)
+            '%s.%s.%d',
+            config('ehealth.api.mis_edrpou'),
+            legalEntity()->edrpou,
+            $this->id
         );
     }
 }

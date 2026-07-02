@@ -23,23 +23,15 @@ class ProcedureMapper implements FhirMapperContract
     {
         [$uuids] = $context;
 
+        $hasEncounter = !empty($uuids['encounter']);
+        $status = ProcedureStatus::from($data['status']);
+
         $result = [
-            'id' => $data['uuid'] ?? Str::uuid()->toString(),
-            'status' => ProcedureStatus::COMPLETED->value,
+            'id' => $uuids['procedure'] ?? $data['uuid'] ?? Str::uuid()->toString(),
+            'status' => $status->value,
             'code' => FhirResource::make()
                 ->coding('eHealth/resources', 'service')
                 ->toIdentifier($data['codeValue']),
-            'encounter' => FhirResource::make()
-                ->coding('eHealth/resources', 'encounter')
-                ->toIdentifier($uuids['encounter']),
-            'performedPeriod' => [
-                'start' => convertToEHealthISO8601(
-                    $data['performedPeriodStartDate'] . ' ' . $data['performedPeriodStartTime']
-                ),
-                'end' => convertToEHealthISO8601(
-                    $data['performedPeriodEndDate'] . ' ' . $data['performedPeriodEndTime']
-                )
-            ],
             'recordedBy' => FhirResource::make()
                 ->coding('eHealth/resources', 'employee')
                 ->toIdentifier($uuids['employee']),
@@ -49,19 +41,34 @@ class ProcedureMapper implements FhirMapperContract
                 ->toIdentifier(legalEntity()->uuid),
             'category' => FhirResource::make()
                 ->coding('eHealth/procedure_categories', $data['categoryCode'])
-                ->toCodeableConcept()
+                ->toCodeableConcept(),
         ];
 
-        // todo: based_on
+        $hasPerformedPeriod = !empty($data['performedPeriodStartDate'])
+            && !empty($data['performedPeriodStartTime'])
+            && !empty($data['performedPeriodEndDate'])
+            && !empty($data['performedPeriodEndTime']);
 
-        if ($data['primarySource']) {
-            $result['performer'] = FhirResource::make()
-                ->coding('eHealth/resources', 'employee')
-                ->toIdentifier($uuids['employee']);
-        } else {
-            $result['reportOrigin'] = FhirResource::make()
-                ->coding('eHealth/report_origins', $data['reportOriginCode'])
-                ->toCodeableConcept($data['reportOriginText']);
+        if ($hasPerformedPeriod) {
+            $result['performedPeriod'] = [
+                'start' => convertToEHealthISO8601(
+                    $data['performedPeriodStartDate'] . ' ' . $data['performedPeriodStartTime']
+                ),
+                'end' => convertToEHealthISO8601(
+                    $data['performedPeriodEndDate'] . ' ' . $data['performedPeriodEndTime']
+                ),
+            ];
+        }
+
+        if (!empty($data['basedOnIdentifier'])) {
+            $result['basedOn'] = FhirResource::make()
+                ->coding('eHealth/resources', 'service_request')
+                ->toIdentifier($data['basedOnIdentifier']);
+        }
+
+        $paperReferral = PaperReferralMapper::toFhir($data);
+        if ($paperReferral !== null) {
+            $result['paperReferral'] = $paperReferral;
         }
 
         if (!empty($data['divisionId'])) {
@@ -71,12 +78,14 @@ class ProcedureMapper implements FhirMapperContract
         }
 
         if (!empty($data['reasonReferences'])) {
-            $result['reasonReferences'] = array_values(array_map(
-                static fn (array $reasonReference) => FhirResource::make()
+            $result['reasonReferences'] = collect($data['reasonReferences'])
+                ->filter(fn (array $reasonReference) => !empty($reasonReference['id']) && !empty($reasonReference['type']))
+                ->map(static fn (array $reasonReference) => FhirResource::make()
                     ->coding('eHealth/resources', $reasonReference['type'])
-                    ->toIdentifier($reasonReference['id']),
-                $data['reasonReferences']
-            ));
+                    ->toIdentifier($reasonReference['id'])
+                )
+                ->values()
+                ->toArray();
         }
 
         if (!empty($data['outcomeCode'])) {
@@ -85,36 +94,68 @@ class ProcedureMapper implements FhirMapperContract
                 ->toCodeableConcept();
         }
 
-        if (!empty($data['complicationDetails'])) {
-            $result['complicationDetails'] = array_values(array_map(
-                static fn (array $detail) => FhirResource::make()
-                    ->coding('eHealth/resources', 'condition')
-                    ->toIdentifier($detail['id']),
-                $data['complicationDetails']
-            ));
-        }
-
         if (!empty($data['note'])) {
             $result['note'] = $data['note'];
         }
 
-        $paperReferral = PaperReferralMapper::toFhir($data);
-        if ($paperReferral !== null) {
-            $result['paperReferral'] = $paperReferral;
-        }
-
         if (!empty($data['usedCodes'])) {
-            $result['usedCodes'] = array_values(array_map(
-                static fn (array $usedCode) => FhirResource::make()
-                    ->coding('eHealth/assistive_products', $usedCode['code'])
-                    ->toCodeableConcept(),
-                $data['usedCodes']
-            ));
+            $result['usedCodes'] = collect($data['usedCodes'])
+                ->pluck('code')
+                ->filter()
+                ->unique()
+                ->map(static fn (string $code) => FhirResource::make()
+                    ->coding('eHealth/assistive_products', $code)
+                    ->toCodeableConcept()
+                )
+                ->values()
+                ->toArray();
         }
 
-        // todo: used_references
+        if (!empty($data['usedReferences'])) {
+            $result['usedReferences'] = collect($data['usedReferences'])
+                ->pluck('id')
+                ->filter()
+                ->unique()
+                ->map(static fn (string $equipmentUuid) => FhirResource::make()
+                    ->coding('eHealth/resources', 'equipment')
+                    ->toIdentifier($equipmentUuid)
+                )
+                ->values()
+                ->toArray();
+        }
 
         // todo: focal_device
+
+        if ($data['primarySource']) {
+            $result['performer'] = FhirResource::make()
+                ->coding('eHealth/resources', 'employee')
+                ->toIdentifier($uuids['employee']);
+        }
+
+        if ($hasEncounter) {
+            $result['encounter'] = FhirResource::make()
+                ->coding('eHealth/resources', 'encounter')
+                ->toIdentifier($uuids['encounter']);
+
+            if (!$data['primarySource']) {
+                $result['reportOrigin'] = FhirResource::make()
+                    ->coding('eHealth/report_origins', $data['reportOriginCode'])
+                    ->toCodeableConcept($data['reportOriginText'] ?? '');
+            }
+
+            if (!empty($data['complicationDetails'])) {
+                $result['complicationDetails'] = collect($data['complicationDetails'])
+                    ->pluck('id')
+                    ->filter()
+                    ->unique()
+                    ->map(static fn (string $conditionUuid) => FhirResource::make()
+                        ->coding('eHealth/resources', 'condition')
+                        ->toIdentifier($conditionUuid)
+                    )
+                    ->values()
+                    ->toArray();
+            }
+        }
 
         return $result;
     }
@@ -132,6 +173,7 @@ class ProcedureMapper implements FhirMapperContract
 
         return [
             'uuid' => data_get($data, 'uuid'),
+            'status' => data_get($data, 'status', ProcedureStatus::COMPLETED->value),
             'categoryCode' => data_get($data, 'category.coding.0.code', ''),
             'codeValue' => data_get($data, 'code.identifier.value', ''),
             'primarySource' => data_get($data, 'primarySource'),
@@ -140,6 +182,7 @@ class ProcedureMapper implements FhirMapperContract
             'divisionId' => data_get($data, 'division.identifier.value', ''),
             'outcomeCode' => data_get($data, 'outcome.coding.0.code', ''),
             'note' => data_get($data, 'note', ''),
+            'basedOnIdentifier' => data_get($data, 'basedOn.identifier.value', ''),
             ...PaperReferralMapper::fromFhir($data),
             'performedPeriodStartDate' => convertToAppDateFormat(data_get($data, 'performedPeriodStartDate')),
             'performedPeriodStartTime' => data_get($data, 'performedPeriodStartTime')
@@ -168,6 +211,15 @@ class ProcedureMapper implements FhirMapperContract
                 static fn (array $usedCode) => ['code' => data_get($usedCode, 'coding.0.code', '')],
                 data_get($data, 'usedCodes', [])
             ),
+            'usedReferences' => array_values(array_filter(
+                array_map(
+                    static fn (array $usedReference) => [
+                        'id' => data_get($usedReference, 'identifier.value', ''),
+                    ],
+                    data_get($data, 'usedReferences', [])
+                ),
+                static fn (array $usedReference) => !empty($usedReference['id'])
+            )),
             'complicationDetails' => array_map(
                 static function (array $complicationDetail) use ($detailsMap) {
                     $uuid = data_get($complicationDetail, 'identifier.value');

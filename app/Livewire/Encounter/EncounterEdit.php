@@ -268,7 +268,7 @@ class EncounterEdit extends EncounterComponent
             ->filter()->unique()->values()->toArray();
 
         $detailsMap = array_merge(
-            Repository::condition()->getDetailsMapByUuids($conditionUuids),
+            Repository::condition()->getProcedureReferenceDetailsMapByUuids($conditionUuids),
             Repository::observation()->getDetailsMapByUuids($observationUuids)
         );
 

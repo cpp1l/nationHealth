@@ -8,6 +8,7 @@ use App\Classes\eHealth\EHealth;
 use App\Classes\eHealth\Exceptions\ApiException as eHealthApiException;
 use App\Classes\eHealth\Api\ServiceRequestApi;
 use App\Core\Arr;
+use App\Enums\Equipment\AvailabilityStatus;
 use App\Enums\Person\ClinicalImpressionStatus;
 use App\Enums\Person\EpisodeStatus;
 use App\Enums\Person\ObservationStatus;
@@ -189,13 +190,6 @@ class EncounterComponent extends Component
     public array $findingResults = [];
 
     /**
-     * List of founded conditions for procedure complication details.
-     *
-     * @var array
-     */
-    public array $complicationDetailResults = [];
-
-    /**
      * List of founded conditions or observations for procedure reason references.
      *
      * @var array
@@ -215,6 +209,13 @@ class EncounterComponent extends Component
      * @var array
      */
     public array $equipmentOptions = [];
+
+    /**
+     * List of equipment options by division for combobox.
+     *
+     * @var array
+     */
+    public array $equipmentOptionsByDivision = [];
 
     /**
      * List of dictionary names.
@@ -382,14 +383,22 @@ class EncounterComponent extends Component
 
         $this->equipmentOptions = Equipment::query()
             ->where('legal_entity_id', legalEntity()->id)
+            ->where('availability_status', AvailabilityStatus::AVAILABLE)
             ->active()
-            ->with('names')
+            ->with(['names', 'division:id,uuid'])
             ->get()
             ->map(static fn (Equipment $equipment) => [
                 'uuid' => $equipment->uuid,
-                'name' => $equipment->names->first()->name,
+                'name' => $equipment->names->first()?->name ?? $equipment->uuid,
+                'divisionUuid' => $equipment->division?->uuid,
             ])
             ->values()
+            ->toArray();
+
+        $this->equipmentOptionsByDivision = collect($this->equipmentOptions)
+            ->filter(static fn (array $equipment) => !empty($equipment['divisionUuid']))
+            ->groupBy('divisionUuid')
+            ->map(static fn ($items) => $items->values()->toArray())
             ->toArray();
 
         $this->setPatientData();
@@ -430,20 +439,6 @@ class EncounterComponent extends Component
             $this->findingResults = $this->fetchConditionsOrObservations($type);
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while getting findings');
-        }
-    }
-
-    /**
-     * Search conditions to use as procedure complication details.
-     *
-     * @return void
-     */
-    public function searchComplicationDetails(): void
-    {
-        try {
-            $this->complicationDetailResults = $this->fetchConditionsOrObservations('condition');
-        } catch (EHealthException|EHealthConnectionException $exception) {
-            $exception->handle('Error while getting complication details');
         }
     }
 
@@ -729,7 +724,7 @@ class EncounterComponent extends Component
             ->flattenedChildValues()
             ->toArray();
         $this->dictionaries['eHealth/assistive_products'] = $basics->byName('eHealth/assistive_products')
-            ->flattenedChildValues()
+            ->flattenedChildValues(true, true)
             ->toArray();
         $this->dictionaries['custom/services'] = dictionary()->services()->flattened()->toArray();
 

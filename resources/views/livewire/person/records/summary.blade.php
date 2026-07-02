@@ -40,6 +40,7 @@
                 ['id' => 'diagnoses', 'action' => 'getDiagnoses', 'syncAction' => 'syncDiagnoses', 'label' => __('patients.diagnoses'), 'icon' => 'file', 'syncEntity' => ''],
                 ['id' => 'conditions', 'action' => 'getConditions', 'syncAction' => 'syncConditions', 'label' => __('patients.conditions'), 'icon' => 'file-minus', 'syncEntity' => PatientSummary::ENTITY_TYPE_CONDITION],
                 ['id' => 'diagnosticReports', 'action' => 'getDiagnosticReports', 'syncAction' => 'syncDiagnosticReports', 'label' => __('patients.diagnostic_reports'), 'icon' => 'activity', 'syncEntity' => PatientSummary::ENTITY_TYPE_DIAGNOSTIC_REPORT],
+                ['id' => 'procedures', 'action' => 'getProcedures', 'syncAction' => 'syncProcedures', 'label' => __('patients.procedures'), 'icon' => 'settings', 'syncEntity' => ''],
                 ['id' => 'allergies', 'action' => 'syncAllergyIntolerances', 'syncAction' => 'syncAllergyIntolerances', 'label' => __('patients.allergies'), 'icon' => 'alert', 'syncEntity' => ''],
                 ['id' => 'risk_assessments', 'action' => 'syncRiskAssessments', 'syncAction' => 'syncRiskAssessments', 'label' => __('patients.risk_assessments'), 'icon' => 'alert-octagon', 'syncEntity' => ''],
                 ['id' => 'devices', 'action' => 'syncDevices', 'syncAction' => 'syncDevices', 'label' => __('patients.devices'), 'icon' => 'equipment', 'syncEntity' => ''],
@@ -117,6 +118,8 @@
                                 @include('livewire.person.records.parts.devices')
                             @elseif($item['id'] === 'medicines')
                                 @include('livewire.person.records.parts.medicines')
+                            @elseif($item['id'] === 'procedures')
+                                @include('livewire.person.records.parts.procedures')
                             @else
                                 <div
                                     class="py-12 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 mt-2">

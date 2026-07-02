@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\DiagnosticReport;
 
 use App\Classes\Cipher\Api\CipherRequest;
-use App\Classes\Cipher\Traits\Cipher;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Enums\Person\DiagnosticReportStatus;
@@ -37,7 +36,6 @@ use Throwable;
 abstract class DiagnosticReportComponent extends Component
 {
     use FormTrait;
-    use Cipher;
     use WithFileUploads;
 
     public Form $form;

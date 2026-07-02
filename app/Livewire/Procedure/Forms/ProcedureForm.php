@@ -4,117 +4,176 @@ declare(strict_types=1);
 
 namespace App\Livewire\Procedure\Forms;
 
+use App\Enums\Equipment\AvailabilityStatus;
+use App\Enums\Equipment\Status as EquipmentStatus;
+use App\Enums\Person\ProcedureStatus;
+use App\Rules\AfterOrEqualDateTime;
 use App\Rules\InDictionary;
+use App\Rules\PastDateTime;
+use Closure;
 use Illuminate\Validation\Rule;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Livewire\Form;
+use App\Models\Equipment;
+use App\Core\BaseForm;
 
-class ProcedureForm extends Form
+class ProcedureForm extends BaseForm
 {
-    public array $procedures;
-
-    public string $knedp;
-
-    public TemporaryUploadedFile $keyContainerUpload;
-
-    public string $password;
+    public array $procedure = [];
 
     protected function rules(): array
     {
+        $isCompleted = data_get($this->procedure, 'status') === ProcedureStatus::COMPLETED->value;
+
+        $isPaperReferral = data_get($this->procedure, 'referralType') === 'paper';
+        $isElectronicReferral = data_get($this->procedure, 'referralType') === 'electronic';
+
+        $hasBasedOn = !empty(data_get($this->procedure, 'basedOnIdentifier'));
+        $hasPaperReferralData = !empty(data_get($this->procedure, 'paperReferralRequesterLegalEntityEdrpou'));
+
         return [
-            'procedures.referralType' => ['required', 'string'],
-            'procedures.primarySource' => ['required', 'boolean'],
-            'procedures.paperReferral' => ['required_if:procedures.referralType,paper', 'array'],
-            'procedures.paperReferral.requisition' => ['nullable', 'string', 'max:255'],
-            'procedures.paperReferral.requesterEmployeeName' => ['nullable', 'string', 'max:255'],
-            'procedures.paperReferral.requesterLegalEntityEdrpou' => [
-                Rule::requiredIf(data_get($this->procedures, 'referralType') === 'paper'),
-                'digits_between:8,10',
-                'string',
-                'max:255'
-            ],
-            'procedures.paperReferral.requesterLegalEntityName' => [
-                Rule::requiredIf(data_get($this->procedures, 'referralType') === 'paper'),
-                'string',
-                'max:255'
-            ],
-            'procedures.paperReferral.serviceRequestDate' => [
-                Rule::requiredIf(data_get($this->procedures, 'referralType') === 'paper'),
-                'date'
-            ],
-            'procedures.paperReferral.note' => ['nullable', 'string', 'max:255'],
-            'procedures.category.coding.*.system' => ['required', 'string'],
-            'procedures.category.coding.*.code' => [
+            'procedure.uuid' => ['nullable', 'uuid'],
+            'procedure.status' => ['required', Rule::in([
+                ProcedureStatus::COMPLETED->value,
+            ])],
+            'procedure.categoryCode' => ['required', 'string', new InDictionary('eHealth/procedure_categories')],
+            'procedure.codeValue' => ['required', 'uuid'],
+            'procedure.primarySource' => [
                 'required',
-                'string',
-                new InDictionary('eHealth/procedure_categories')
+                'boolean',
+                static function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($value !== true) {
+                        $fail(__('validation.accepted'));
+                    }
+                },
             ],
-            'procedures.code' => ['required', 'array'],
-            'procedures.code.identifier.value' => ['required', 'uuid', 'max:255'],
-            'procedures.code.identifier.type.text' => ['nullable', 'string', 'max:255'],
-            'procedures.code.identifier.type.coding.*.system' => ['required', 'string', 'max:255'],
-            'procedures.code.identifier.type.coding.*.code' => [
+            'procedure.divisionId' => ['nullable', 'uuid'],
+            'procedure.outcomeCode' => ['nullable', 'string', new InDictionary('eHealth/procedure_outcomes')],
+            'procedure.note' => ['nullable', 'string', 'max:255'],
+
+            'procedure.isReferralAvailable' => ['nullable', 'boolean'],
+            'procedure.referralType' => [
                 'required',
-                'string',
-                new InDictionary('eHealth/resources')
+                Rule::in(['electronic', 'paper']),
             ],
-            'procedures.division' => ['nullable', 'array'],
-            'procedures.division.identifier.value' => ['required', 'uuid'],
-            'procedures.division.identifier.type.coding.*.system' => ['required', 'string', 'max:255'],
-            'procedures.division.identifier.type.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary('eHealth/resources')
+            'procedure.basedOnIdentifier' => [
+                Rule::requiredIf($isElectronicReferral),
+                Rule::prohibitedIf($isPaperReferral),
+                'nullable',
+                'uuid',
+                function (string $attribute, mixed $value, Closure $fail) use ($hasBasedOn, $hasPaperReferralData): void {
+                    if (!$hasBasedOn && !$hasPaperReferralData) {
+                        $fail('Потрібно вказати електронне направлення або паперове направлення.');
+                    }
+
+                    if ($hasBasedOn && $hasPaperReferralData) {
+                        $fail('Можна вказати лише одне: електронне направлення або паперове направлення.');
+                    }
+                },
             ],
-            'procedures.outcome.coding.*.code' => [
+            'procedure.paperReferralRequisition' => ['nullable', 'string', 'max:255'],
+            'procedure.paperReferralRequesterEmployeeName' => [
+                Rule::requiredIf($isPaperReferral),
+                Rule::prohibitedIf($isElectronicReferral),
                 'nullable',
                 'string',
-                new InDictionary('eHealth/procedure_outcomes')
+                'max:255',
             ],
-            'procedures.recordedBy' => ['required', 'array'],
-            'procedures.performer' => ['array', 'required'],
-            'procedures.performedPeriodStartTime' => ['required', 'date_format:H:i'],
-            'procedures.performedPeriodStartDate' => ['required', 'date', 'before_or_equal:now'],
-            'procedures.performedPeriodEndTime' => [
-                'required',
+            'procedure.paperReferralRequesterLegalEntityEdrpou' => [
+                Rule::requiredIf($isPaperReferral),
+                Rule::prohibitedIf($isElectronicReferral),
+                'nullable',
+                'digits_between:8,10',
+            ],
+            'procedure.paperReferralRequesterLegalEntityName' => [
+                Rule::prohibitedIf($isElectronicReferral),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'procedure.paperReferralServiceRequestDate' => [
+                Rule::requiredIf($isPaperReferral),
+                Rule::prohibitedIf($isElectronicReferral),
+                'nullable',
+                'date_format:' . config('app.date_format'),
+            ],
+            'procedure.paperReferralNote' => ['nullable', 'string', 'max:255'],
+            'procedure.performedPeriodStartDate' => [
+                Rule::requiredIf($isCompleted),
+                'nullable',
+                'date_format:' . config('app.date_format'),
+                'before_or_equal:today',
+            ],
+            'procedure.performedPeriodStartTime' => [
+                Rule::requiredIf($isCompleted),
+                'nullable',
                 'date_format:H:i',
-                'after:procedures.performedPeriodStartTime'
+                new PastDateTime(data_get($this->procedure, 'performedPeriodStartDate', '')),
             ],
-            'procedures.performedPeriodEndDate' => [
-                'required',
-                'date',
-                'before_or_equal:now',
-                'after_or_equal:procedures.performedPeriodStartDate'
+            'procedure.performedPeriodEndDate' => [
+                Rule::requiredIf($isCompleted),
+                'nullable',
+                'date_format:' . config('app.date_format'),
+                'before_or_equal:today',
+                'after_or_equal:procedure.performedPeriodStartDate',
             ],
-            'procedures.note' => ['nullable', 'string', 'max:255'],
-            'procedures.reasonReferences' => ['array', 'nullable'],
-            'procedures.reasonReferences.*.id' => ['required', 'uuid'],
-            'procedures.reasonReferences.*.code.coding.*.code' => [
-                'required',
-                'string',
-                new InDictionary('eHealth/ICPC2/condition_codes')
+            'procedure.performedPeriodEndTime' => [
+                Rule::requiredIf($isCompleted),
+                'nullable',
+                'date_format:H:i',
+                new PastDateTime(data_get($this->procedure, 'performedPeriodEndDate', '')),
+                new AfterOrEqualDateTime(
+                    data_get($this->procedure, 'performedPeriodEndDate', ''),
+                    data_get($this->procedure, 'performedPeriodStartDate', ''),
+                    data_get($this->procedure, 'performedPeriodStartTime', '')
+                ),
             ],
-            'procedures.reasonReferences.*.code.coding.*.system' => ['required', 'string'],
-            'procedures.usedCodes' => ['nullable', 'array'],
-            'procedures.usedCodes.*.code' => [
-                'required',
-                'string',
-                new InDictionary('eHealth/assistive_products')
-            ]
-        ];
-    }
+            'procedure.reasonReferences' => ['nullable', 'array'],
+            'procedure.reasonReferences.*.id' => ['nullable', 'uuid'],
+            'procedure.reasonReferences.*.type' => ['nullable', 'string', Rule::in(['condition', 'observation'])],
 
-    /**
-     * List of rules for signing Cipher form.
-     *
-     * @return array[]
-     */
-    public function rulesForSigning(): array
-    {
-        return [
-            'knedp' => ['required', 'string'],
-            'password' => ['required', 'string'],
-            'keyContainerUpload' => ['required', 'file', 'extensions:dat,pfx,pk8,zs2,jks,p7s']
+            'procedure.usedCodes' => ['nullable', 'array'],
+            'procedure.usedCodes.*.code' => [
+                'required',
+                Rule::in(
+                    dictionary()->basics()
+                        ->byName('eHealth/assistive_products')
+                        ->flattenedChildValues(true, true)
+                        ->keys()
+                        ->values()
+                        ->toArray()
+                ),
+            ],
+
+            'procedure.usedReferences' => ['nullable', 'array'],
+            'procedure.usedReferences.*.id' => [
+                'nullable',
+                'uuid',
+                'distinct',
+                Rule::exists('equipments', 'uuid')
+                    ->where('legal_entity_id', legalEntity()->id)
+                    ->where('status', EquipmentStatus::ACTIVE->value)
+                    ->where('availability_status', AvailabilityStatus::AVAILABLE->value),
+
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (!$value) {
+                        return;
+                    }
+
+                    $divisionUuid = data_get($this->procedure, 'divisionId');
+
+                    if (!$divisionUuid) {
+                        return;
+                    }
+
+                    $belongsToDivision = Equipment::query()
+                        ->where('uuid', $value)
+                        ->whereHas('division', static fn ($query) => $query->where('uuid', $divisionUuid))
+                        ->exists();
+
+                    if (!$belongsToDivision) {
+                        $fail('Обладнання не належить вибраному підрозділу процедури.');
+                    }
+                },
+            ],
         ];
     }
 }

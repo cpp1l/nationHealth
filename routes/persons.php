@@ -26,6 +26,7 @@ use App\Livewire\Person\Records\PatientImmunizations;
 use App\Livewire\Person\Records\PatientObservations;
 use App\Livewire\Person\Records\PatientSummary;
 use App\Livewire\Procedure\ProcedureCreate;
+use App\Livewire\Procedure\ProcedureEdit;
 use App\Models\DeclarationRequest;
 use App\Models\MedicalEvents\Sql\DiagnosticReport;
 use App\Models\MedicalEvents\Sql\Encounter;
@@ -109,5 +110,13 @@ Route::prefix('persons')->group(static function () {
         Route::get('{personId}/procedure/create', ProcedureCreate::class)
             ->can('create', Procedure::class)
             ->name('procedure.create');
+
+        Route::get('{personId}/procedure/{procedureId}', ProcedureEdit::class)
+            ->name('procedure.view')
+            ->whereNumber('procedureId');
+
+        Route::get('{personId}/procedure/{procedureId}/edit', ProcedureEdit::class)
+            ->name('procedure.edit')
+            ->whereNumber('procedureId');
     });
 });

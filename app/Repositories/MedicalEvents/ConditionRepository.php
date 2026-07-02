@@ -122,6 +122,48 @@ class ConditionRepository extends BaseRepository
     }
 
     /**
+     * Build a lightweight details map for Procedure condition references.
+     *
+     * @param  array<string>  $uuids
+     * @return array<string, array{
+     *     ehealthInsertedAt: ?string,
+     *     codeCode: ?string,
+     *     codeSystem: ?string,
+     *     type: string
+     * }>
+     */
+    public function getProcedureReferenceDetailsMapByUuids(array $uuids): array
+    {
+        if (empty($uuids)) {
+            return [];
+        }
+
+        return $this->model
+            ->newQuery()
+            ->select(['uuid', 'code_id', 'ehealth_inserted_at', 'asserted_date', 'onset_date'])
+            ->whereIn('uuid', $uuids)
+            ->with('code.coding')
+            ->get()
+            ->mapWithKeys(static function (Condition $condition): array {
+                $coding = $condition->code?->coding?->first();
+
+                $date = $condition->ehealth_inserted_at
+                    ?? $condition->asserted_date
+                    ?? $condition->onset_date;
+
+                return [
+                    $condition->uuid => [
+                        'ehealthInsertedAt' => $date ? convertToAppDateFormat($date) : null,
+                        'codeCode' => $coding?->code,
+                        'codeSystem' => $coding?->system,
+                        'type' => 'condition',
+                    ],
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
      * Build a UUID => [insertedAt, codeCode] map for evidence details across conditions and observations.
      *
      * @param  array  $conditions

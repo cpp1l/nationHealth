@@ -60,10 +60,6 @@ class EmployeeRoleForm extends Form
      */
     protected function validateEmployeeSpeciality(Employee $employee, HealthcareService $healthcareService): void
     {
-        if (($healthcareService->specialityType ?? '') === '') {
-            return;
-        }
-
         $specialities = $employee->specialities->pluck('speciality')->toArray();
 
         if (!in_array($healthcareService->specialityType, $specialities, true)) {

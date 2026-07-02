@@ -56,22 +56,7 @@ class EmployeeRoleCreate extends Component
             ])
             ->toArray();
 
-        $this->healthcareServices = HealthcareService::active()->get()
-            ->map(fn (HealthcareService $service) => [
-                'uuid' => $service->uuid,
-                'label' => $this->healthcareServiceOptionLabel($service),
-            ])
-            ->toArray();
-    }
-
-    protected function healthcareServiceOptionLabel(HealthcareService $service): string
-    {
-        $divisionName = $service->division?->name ?? '';
-        $specialityLabel = $this->dictionaryLabelByCode('SPECIALITY_TYPE', $service->specialityType);
-
-        return $specialityLabel !== ''
-            ? "{$specialityLabel} - {$divisionName}"
-            : $divisionName;
+        $this->healthcareServices = HealthcareService::active()->get()->toArray();
     }
 
     public function create(): void

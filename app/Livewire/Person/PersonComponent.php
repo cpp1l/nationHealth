@@ -160,6 +160,11 @@ class PersonComponent extends Component
             $this->dictionaries['DOCUMENT_TYPE'],
             array_flip(config('ehealth.person_registration_document_types'))
         );
+
+        $type = request()->query('type');
+        if ($type === 'unidentified') {
+            $this->form->person['patientType'] = 'unidentified';
+        }
     }
 
     /**

@@ -269,10 +269,21 @@
                 @if(Auth::user()->can('viewAny', Person::class) || Auth::user()->can('viewAny', PersonRequest::class))
                     <li>
                         <a href="{{ route('persons.index', [legalEntity()]) }}"
-                           class="menu-item-simple {{ (request()->routeIs('persons.*') && !request()->routeIs('care-plan.*') && !request()->routeIs('persons.care-plans') && !request()->routeIs('persons.treatment-plans')) ? 'menu-item-active' : '' }}"
+                           class="menu-item-simple {{ (request()->routeIs('persons.*') && !request()->routeIs('persons.unidentified') && !request()->routeIs('care-plan.*') && !request()->routeIs('persons.care-plans') && !request()->routeIs('persons.treatment-plans')) ? 'menu-item-active' : '' }}"
                         >
                             @icon('patients')
                             <span>{{ __('patients.patients') }}</span>
+                        </a>
+                    </li>
+                @endif
+
+                @if(Auth::user()->can('viewAny', Person::class) || Auth::user()->can('viewAny', PersonRequest::class))
+                    <li>
+                        <a href="{{ route('persons.unidentified', [legalEntity()]) }}"
+                           class="menu-item-simple {{ request()->routeIs('persons.unidentified') ? 'menu-item-active' : '' }}"
+                        >
+                            @icon('person')
+                            <span>{{ __('patients.unidentified_patients') }}</span>
                         </a>
                     </li>
                 @endif

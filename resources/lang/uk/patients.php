@@ -544,6 +544,11 @@ return [
         'personal_data_update' => 'У вас немає дозволу на оновлення персональних даних пацієнта.'
     ],
 
+    'unidentified_patients' => 'Неідентифіковані пацієнти',
+    'unidentified_patient' => 'Неідентифікований пацієнт',
+    'unidentified_patient_add' => 'Неідентифікований пацієнт',
+    'recent_unidentified_patients' => 'Нещодавні неідентифіковані пацієнти',
+
     'messages' => [
         'encounter_created' => 'Взаємодія успішно створена.',
         'encounter_updated' => 'Взаємодія успішно оновлена.',

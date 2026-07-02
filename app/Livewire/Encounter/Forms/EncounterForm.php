@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Livewire\Encounter\Forms;
 
 use App\Core\BaseForm;
+use App\Enums\Equipment\AvailabilityStatus;
+use App\Enums\Equipment\Status as EquipmentStatus;
+use App\Enums\Person\ProcedureStatus;
 use App\Rules\AfterOrEqualDateTime;
 use App\Rules\InDictionary;
 use App\Rules\OnlyOnePrimaryDiagnosis;
 use App\Rules\PastDateTime;
+use App\Models\Equipment;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +47,12 @@ class EncounterForm extends BaseForm
 
     protected function rules(): array
     {
+        $conditionUuids = collect($this->conditions ?? [])
+            ->pluck('uuid')
+            ->filter()
+            ->values()
+            ->toArray();
+            
         $rules = [
             'encounter.periodDate' => ['required', 'date', 'before_or_equal:today'],
             'encounter.periodStart' => [
@@ -497,6 +507,10 @@ class EncounterForm extends BaseForm
             'procedures' => ['nullable', 'array'],
             // for edit page
             'procedures.*.uuid' => ['nullable', 'uuid'],
+            'procedures.*.status' => ['required_with:procedures', Rule::in([
+                ProcedureStatus::COMPLETED->value,
+                ProcedureStatus::NOT_DONE->value,
+            ])],
             'procedures.*.codeValue' => ['required_with:procedures', 'uuid', 'max:255'],
             'procedures.*.categoryCode' => [
                 'required_with:procedures',
@@ -518,24 +532,44 @@ class EncounterForm extends BaseForm
             'procedures.*.reportOriginText' => ['nullable', 'string'],
             'procedures.*.divisionId' => ['nullable', 'uuid'],
             'procedures.*.outcomeCode' => ['nullable', 'string', new InDictionary('eHealth/procedure_outcomes')],
-            'procedures.*.performedPeriodStartDate' => ['required_with:procedures', 'date', 'before_or_equal:now'],
-            'procedures.*.performedPeriodStartTime' => Rule::forEach(fn (mixed $value, string $attribute) => [
-                'required_with:procedures',
-                'date_format:H:i',
-                new PastDateTime($this->procedures[(int)explode('.', $attribute)[1]]['performedPeriodStartDate'] ?? '')
-            ]),
-            'procedures.*.performedPeriodEndDate' => [
-                'required_with:procedures',
-                'date',
-                'before_or_equal:now',
-                'after_or_equal:procedures.*.performedPeriodStartDate'
-            ],
-            'procedures.*.performedPeriodEndTime' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int)explode('.', $attribute)[1];
-                $procedure = $this->procedures[$index];
+            'procedures.*.performedPeriodStartDate' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $isCompleted = ($this->procedures[$index]['status'] ?? null) === ProcedureStatus::COMPLETED->value;
+
+                return [Rule::requiredIf($isCompleted), 'nullable', 'date_format:' . config('app.date_format'), 'before_or_equal:today'];
+            }),
+            'procedures.*.performedPeriodStartTime' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+                $isCompleted = ($procedure['status'] ?? null) === ProcedureStatus::COMPLETED->value;
 
                 return [
-                    'required_with:procedures',
+                    Rule::requiredIf($isCompleted),
+                    'nullable',
+                    'date_format:H:i',
+                    new PastDateTime($procedure['performedPeriodStartDate'] ?? ''),
+                ];
+            }),
+            'procedures.*.performedPeriodEndDate' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $isCompleted = ($this->procedures[$index]['status'] ?? null) === ProcedureStatus::COMPLETED->value;
+
+                return [
+                    Rule::requiredIf($isCompleted),
+                    'nullable',
+                    'date_format:' . config('app.date_format'),
+                    'before_or_equal:today',
+                    'after_or_equal:procedures.*.performedPeriodStartDate',
+                ];
+            }),
+            'procedures.*.performedPeriodEndTime' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+                $isCompleted = ($procedure['status'] ?? null) === ProcedureStatus::COMPLETED->value;
+
+                return [
+                    Rule::requiredIf($isCompleted),
+                    'nullable',
                     'date_format:H:i',
                     new AfterOrEqualDateTime(
                         $procedure['performedPeriodEndDate'] ?? '',
@@ -547,11 +581,108 @@ class EncounterForm extends BaseForm
             }),
             'procedures.*.note' => ['nullable', 'string'],
             ...$this->paperReferralRules('procedures.*'),
+
+            'procedures.*.isReferralAvailable' => ['nullable', 'boolean'],
+
+            'procedures.*.referralType' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+
+                $isReferralAvailable = ($procedure['isReferralAvailable'] ?? false) === true;
+
+                return [
+                    Rule::requiredIf($isReferralAvailable),
+                    'nullable',
+                    Rule::in(['electronic', 'paper']),
+                ];
+            }),
+
+            'procedures.*.basedOnIdentifier' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+
+                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+                $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
+
+                return [
+                    Rule::requiredIf($isElectronicReferral),
+                    Rule::prohibitedIf($isPaperReferral),
+                    'nullable',
+                    'uuid',
+                ];
+            }),
+
+            'procedures.*.paperReferralRequesterEmployeeName' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+
+                $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
+                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+
+                return [
+                    Rule::requiredIf($isPaperReferral),
+                    Rule::prohibitedIf($isElectronicReferral),
+                    'nullable',
+                    'string',
+                    'max:255',
+                ];
+            }),
+
+            'procedures.*.paperReferralRequesterLegalEntityEdrpou' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+
+                $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
+                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+
+                return [
+                    Rule::requiredIf($isPaperReferral),
+                    Rule::prohibitedIf($isElectronicReferral),
+                    'nullable',
+                    'digits_between:8,10',
+                ];
+            }),
+
+            'procedures.*.paperReferralRequesterLegalEntityName' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+
+                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+
+                return [
+                    Rule::prohibitedIf($isElectronicReferral),
+                    'nullable',
+                    'string',
+                    'max:255',
+                ];
+            }),
+
+            'procedures.*.paperReferralServiceRequestDate' => Rule::forEach(function (mixed $value, string $attribute) {
+                $index = (int) explode('.', $attribute)[1];
+                $procedure = $this->procedures[$index] ?? [];
+
+                $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
+                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+
+                return [
+                    Rule::requiredIf($isPaperReferral),
+                    Rule::prohibitedIf($isElectronicReferral),
+                    'nullable',
+                    'date_format:' . config('app.date_format'),
+                ];
+            }),
             'procedures.*.usedCodes' => ['nullable', 'array'],
             'procedures.*.usedCodes.*.code' => [
                 'required',
-                'string',
-                new InDictionary('eHealth/assistive_products')
+                Rule::in(
+                    dictionary()->basics()
+                        ->byName('eHealth/assistive_products')
+                        ->flattenedChildValues(true, true)
+                        ->keys()
+                        ->map(static fn (int|string $code) => (string) $code)
+                        ->values()
+                        ->toArray()
+                ),
             ],
             'procedures.*.reasonReferences' => ['nullable', 'array'],
             'procedures.*.reasonReferences.*.id' => ['nullable', 'uuid'],
@@ -560,12 +691,45 @@ class EncounterForm extends BaseForm
                 fn (mixed $value, string $attribute) => $this->reasonReferenceCodeRule($attribute)
             ),
             'procedures.*.complicationDetails' => ['nullable', 'array'],
-            'procedures.*.complicationDetails.*.id' => ['nullable', 'uuid'],
+            'procedures.*.complicationDetails.*.id' => ['nullable', 'uuid', Rule::in($conditionUuids)],
             'procedures.*.complicationDetails.*.type' => ['nullable', 'string', 'in:condition'],
             'procedures.*.complicationDetails.*.codeCode' => [
                 'nullable',
                 'string',
                 new InDictionary(['eHealth/ICPC2/condition_codes', 'eHealth/ICD10_AM/condition_codes'])
+            ],
+
+            'procedures.*.usedReferences' => ['nullable', 'array'],
+            'procedures.*.usedReferences.*.id' => [
+                'nullable',
+                'uuid',
+                'distinct',
+                Rule::exists('equipments', 'uuid')
+                    ->where('legal_entity_id', legalEntity()->id)
+                    ->where('status', EquipmentStatus::ACTIVE->value)
+                    ->where('availability_status', AvailabilityStatus::AVAILABLE->value),
+
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (!$value) {
+                        return;
+                    }
+
+                    $index = (int) explode('.', $attribute)[1];
+                    $divisionUuid = data_get($this->procedures[$index] ?? [], 'divisionId');
+
+                    if (!$divisionUuid) {
+                        return;
+                    }
+
+                    $belongsToDivision = Equipment::query()
+                        ->where('uuid', $value)
+                        ->whereHas('division', static fn ($query) => $query->where('uuid', $divisionUuid))
+                        ->exists();
+
+                    if (!$belongsToDivision) {
+                        $fail('Обладнання не належить вибраному підрозділу процедури.');
+                    }
+                },
             ],
 
             'clinicalImpressions' => ['nullable', 'array'],

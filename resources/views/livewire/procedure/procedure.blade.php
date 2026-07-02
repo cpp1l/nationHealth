@@ -7,39 +7,57 @@
 
     <form class="form"
           x-data="{
-              procedures: $wire.entangle('form.procedures'),
-              modalProcedure: new Procedure(),
-              showSignatureModal: false
+                modalProcedure: new Procedure(@js($this->form->procedure)),
+
+                prepareProcedureForSubmit() {
+                    this.modalProcedure.usedReferences = this.modalProcedure.usedReferences
+                        .filter(reference => reference.id);
+
+                    return JSON.parse(JSON.stringify(this.modalProcedure));
+                },
+
+                addUsedReference() {
+                    this.modalProcedure.usedReferences.push({ id: '' });
+                },
+
+                removeUsedReference(index) {
+                    this.modalProcedure.usedReferences.splice(index, 1);
+                }
           }"
     >
 
-        @include('livewire.encounter.procedure-parts.main-information', ['context' => 'procedure'])
-        @include('livewire.encounter.procedure-parts.additional-information', ['context' => 'procedure'])
-        @include('livewire.encounter.procedure-parts.reason-references', ['wireProp' => 'reasonReferenceResults'])
-        @include('livewire.encounter.procedure-parts.used-codes')
+        <fieldset @disabled($isReadonly) @class(['pointer-events-none opacity-80' => $isReadonly])>
+            @include('livewire.encounter.procedure-parts.main-information', ['context' => 'procedure'])
+            @include('livewire.encounter.procedure-parts.additional-information', ['context' => 'procedure'])
+            @include('livewire.encounter.procedure-parts.reason-references', ['wireProp' => 'reasonReferenceResults'])
+            @include('livewire.encounter.procedure-parts.used-codes')
+        </fieldset>
 
         <div class="flex gap-8">
             <a href="{{ url()->previous() }}" type="submit" class="button-minor">
                 {{ __('forms.back') }}
             </a>
 
-            <button @click.prevent="$wire.save(modalProcedure)" type="submit" class="button-primary-outline">
-                {{ __('forms.save') }}
-            </button>
+            @unless($isReadonly)
+                <button @click.prevent="$wire.save(prepareProcedureForSubmit())" type="submit" class="button-primary-outline">
+                    {{ __('forms.save') }}
+                </button>
 
-            <button @click="showSignatureModal = true"
+                <button
+                    @click="$wire.openSignatureModal(prepareProcedureForSubmit())"
                     type="button"
                     class="button-primary flex items-center gap-2"
-            >
-                @icon('key', 'w-5 h-5')
-                {{ __('forms.complete_the_interaction_and_sign') }}
-                @icon('arrow-right', 'w-5 h-5')
-            </button>
+                >
+                    @icon('key', 'w-5 h-5')
+                    {{ __('forms.complete_the_interaction_and_sign') }}
+                    @icon('arrow-right', 'w-5 h-5')
+                </button>
+            @endunless
         </div>
 
-        <template x-if="showSignatureModal">
-            @include('livewire.procedure.modals.signature')
-        </template>
+        @unless($isReadonly)
+            <x-signature-modal method="sign" />
+        @endunless
     </form>
 
     <livewire:components.x-message :key="time()" />
@@ -54,7 +72,15 @@
         constructor(obj = null) {
             const now = new Date();
             const startTime = new Date(now.getTime() - 15 * 60 * 1000);
+            const toFormattedDate = (date) => {
+                const [yyyy, mm, dd] = date.toISOString().split('T')[0].split('-');
 
+                return `${dd}.${mm}.${yyyy}`;
+            };
+
+            this.status = '';
+            this.basedOnIdentifier = '';
+            this.usedReferences = [];
             this.categoryCode = '';
             this.codeValue = '';
             this.divisionId = '';
@@ -73,10 +99,9 @@
             this.note = '';
             this.reasonReferences = [];
             this.usedCodes = [];
-            this.complicationDetails = [];
-            this.performedPeriodStartDate = startTime.toISOString().split('T')[0];
+            this.performedPeriodStartDate = toFormattedDate(startTime);
             this.performedPeriodStartTime = startTime.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', hour12: false });
-            this.performedPeriodEndDate = now.toISOString().split('T')[0];
+            this.performedPeriodEndDate = toFormattedDate(now);
             this.performedPeriodEndTime = now.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', hour12: false });
 
             if (obj) {

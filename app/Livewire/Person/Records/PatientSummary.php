@@ -27,6 +27,7 @@ use App\Models\MedicalEvents\Sql\Encounter;
 use App\Models\MedicalEvents\Sql\Episode;
 use App\Models\MedicalEvents\Sql\Immunization;
 use App\Models\MedicalEvents\Sql\Observation;
+use App\Models\MedicalEvents\Sql\Procedure;
 use App\Repositories\MedicalEvents\Repository;
 use App\Traits\BatchLegalEntityQueries;
 use App\Traits\HandlesSyncBatch;
@@ -59,6 +60,7 @@ class PatientSummary extends BasePatientComponent
         'observations' => self::SUMMARY_PAGE_SIZE,
         'conditions' => self::SUMMARY_PAGE_SIZE,
         'diagnosticReports' => self::SUMMARY_PAGE_SIZE,
+        'procedures' => self::SUMMARY_PAGE_SIZE,
     ];
 
     public array $hasMore = [
@@ -69,6 +71,7 @@ class PatientSummary extends BasePatientComponent
         'observations' => false,
         'conditions' => false,
         'diagnosticReports' => false,
+        'procedures' => false,
     ];
 
     public array $episodes = [];
@@ -86,6 +89,8 @@ class PatientSummary extends BasePatientComponent
     public array $conditions = [];
 
     public array $diagnosticReports = [];
+
+    public array $procedures = [];
 
     public array $allergyIntolerances;
 
@@ -123,6 +128,8 @@ class PatientSummary extends BasePatientComponent
         'eHealth/ICD10/condition_codes',
         'eHealth/condition_severities',
         'eHealth/diagnostic_report_categories',
+        'eHealth/procedure_categories',
+        'eHealth/procedure_outcomes',
     ];
 
     protected function getSyncStatus(string $entityType): ?string
@@ -170,6 +177,7 @@ class PatientSummary extends BasePatientComponent
             'observations' => $this->getObservations(),
             'conditions' => $this->getConditions(),
             'diagnosticReports' => $this->getDiagnosticReports(),
+            'procedures' => $this->getProcedures(),
             default => null,
         };
     }
@@ -584,6 +592,15 @@ class PatientSummary extends BasePatientComponent
         );
     }
 
+    public function getProcedures(): void
+    {
+        $this->setPaginatedRecords(
+            'procedures',
+            Procedure::wherePersonId($this->personId)->withAllRelations(),
+            'procedures'
+        );
+    }
+
     public function syncAllergyIntolerances(): void
     {
         try {
@@ -618,6 +635,31 @@ class PatientSummary extends BasePatientComponent
 
             return;
         }
+    }
+
+    public function syncProcedures(): void
+    {
+        try {
+            $response = EHealth::procedure()->getBySearchParams(
+                $this->uuid,
+                ['managing_organization_id' => legalEntity()->uuid]
+            );
+
+            Repository::procedure()->sync($this->personId, $response->validate());
+        } catch (EHealthException|EHealthConnectionException $exception) {
+            $exception->handle('Error while synchronizing procedures');
+
+            return;
+        } catch (Throwable $exception) {
+            $this->handleDatabaseErrors($exception, 'Error while synchronizing procedures');
+
+            return;
+        }
+
+        $this->resetSummarySection('procedures');
+        $this->getProcedures();
+
+        Session::flash('success', __('patients.messages.procedures_synced_successfully'));
     }
 
     public function syncMedicationStatements(): void

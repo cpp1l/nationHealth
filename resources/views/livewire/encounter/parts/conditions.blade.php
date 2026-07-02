@@ -910,6 +910,7 @@
                 hour12: false
             });
 
+            this.uuid = obj?.uuid || crypto.randomUUID();
             this.primarySource = true;
             this.codeSystem = '';
             this.codeCode = '';

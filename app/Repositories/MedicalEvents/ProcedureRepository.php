@@ -129,9 +129,10 @@ class ProcedureRepository extends BaseRepository
      * @return void
      * @throws Throwable
      */
-    public function store(array $data, int $personId): void
+    public function store(array $data, int $personId): int
     {
-        DB::transaction(function () use ($data, $personId) {
+        return DB::transaction(function () use ($data, $personId): int {
+            $procedureId = null;
             foreach ($data as $datum) {
                 $basedOn = null;
                 if (isset($datum['basedOn'])) {
@@ -191,10 +192,12 @@ class ProcedureRepository extends BaseRepository
                     'category_id' => $category->id
                 ]);
 
-                $procedure->performedPeriod()->create([
-                    'start' => $datum['performedPeriod']['start'],
-                    'end' => $datum['performedPeriod']['end']
-                ]);
+                if (isset($datum['performedPeriod'])) {
+                    $procedure->performedPeriod()->create([
+                        'start' => $datum['performedPeriod']['start'],
+                        'end' => $datum['performedPeriod']['end'],
+                    ]);
+                }
 
                 if (isset($datum['reasonReferences'])) {
                     foreach ($datum['reasonReferences'] as $reasonReference) {
@@ -230,7 +233,30 @@ class ProcedureRepository extends BaseRepository
 
                     $procedure->usedCodes()->attach($usedCodeIds);
                 }
+
+                if (!empty($datum['usedReferences'])) {
+                    $usedReferenceIds = [];
+
+                    foreach ($datum['usedReferences'] as $usedReferenceData) {
+                        $equipmentUuid = data_get($usedReferenceData, 'identifier.value');
+
+                        if (!$equipmentUuid) {
+                            continue;
+                        }
+
+                        $identifier = Repository::identifier()->store($equipmentUuid);
+                        Repository::codeableConcept()->attach($identifier, $usedReferenceData);
+
+                        $usedReferenceIds[] = $identifier->id;
+                    }
+
+                    $procedure->usedReferences()->attach($usedReferenceIds);
+                }
+
+                $procedureId = $procedure->id;
             }
+
+            return $procedureId;
         });
     }
 
@@ -257,7 +283,8 @@ class ProcedureRepository extends BaseRepository
             'category.coding',
             'paperReferral',
             'usedCodes.coding',
-            'performedPeriod'
+            'performedPeriod',
+            'usedReferences.type.coding',
         ])
             ->whereHas('encounter', fn (Builder $query) => $query->where('value', $encounterUuid))
             ->get()
@@ -265,6 +292,21 @@ class ProcedureRepository extends BaseRepository
 
         // Hide array of relationship data, accessories are used
         return array_map(static fn (array $item) => Arr::except($item, ['performedPeriod']), $results);
+    }
+
+    /**
+     * Get data that is related to the person.
+     *
+     * @param  string  $personId
+     * @return array
+     */
+    public function getByPersonId(int $personId): array
+    {
+        return $this->model
+            ->withAllRelations()
+            ->where('person_id', $personId)
+            ->get()
+            ->toArray();
     }
 
     /**

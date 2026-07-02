@@ -1,12 +1,41 @@
 <div class="p-4 sm:p-8"
      id="procedures-section"
      x-data="{
-          procedures: $wire.entangle('form.procedures'),
-          modalProcedure: new Procedure(),
-          newProcedure: false,
-          openProcedureDrawer: false,
-          item: 0,
-          divisions: {{ json_encode($divisions) }}
+        procedures: $wire.entangle('form.procedures'),
+        conditions: $wire.entangle('form.conditions'),
+        modalProcedure: new Procedure(),
+        newProcedure: false,
+        openProcedureDrawer: false,
+        item: 0,
+        divisions: {{ json_encode($divisions) }},
+        equipmentOptions: @js($equipmentOptions),
+
+        complicationOptions() {
+            return this.conditions
+                .filter(condition => condition.uuid && condition.codeCode)
+                .map(condition => ({
+                    id: condition.uuid,
+                    ehealthInsertedAt: condition.assertedDate || condition.onsetDate || '',
+                    codeCode: condition.codeCode,
+                    codeSystem: condition.codeSystem,
+                    type: 'condition',
+                }));
+        },
+
+        clearWrongComplicationDetails() {
+            const availableIds = this.complicationOptions().map(condition => condition.id);
+
+            this.modalProcedure.complicationDetails = this.modalProcedure.complicationDetails
+                .filter(complicationDetail => availableIds.includes(complicationDetail.id));
+        },
+
+        addUsedReference() {
+            this.modalProcedure.usedReferences.push({ id: '' });
+        },
+
+        removeUsedReference(index) {
+            this.modalProcedure.usedReferences.splice(index, 1);
+        },
       }"
 >
 
@@ -124,6 +153,11 @@
                                 <div class="record-inner-subvalue"
                                      x-text="$wire.dictionaries['eHealth/procedure_outcomes'][procedure.outcomeCode] || '-'"></div>
                             </div>
+                            <div>
+                                <div class="record-inner-label">{{ __('forms.status.label') }}</div>
+                                <div class="record-inner-subvalue"
+                                    x-text="procedure.status === 'not_done' ? '{{ __('patients.status.not_done') }}' : '{{ __('patients.status.completed') }}'"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -165,6 +199,7 @@
                     </button>
 
                     <button @click.prevent="
+                                clearWrongComplicationDetails();
                                 newProcedure !== false
                                     ? procedures.push(modalProcedure)
                                     : procedures[item] = modalProcedure;
@@ -198,6 +233,9 @@
             };
             const timeOptions = {hour: '2-digit', minute: '2-digit', hour12: false};
 
+            this.status = '';
+            this.basedOnIdentifier = '';
+            this.usedReferences = [];
             this.categoryCode = '';
             this.codeValue = '';
             this.divisionId = '';

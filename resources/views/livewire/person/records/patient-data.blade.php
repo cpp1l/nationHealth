@@ -25,14 +25,14 @@
                 <span>{{ __('patients.sync_ehealth_data') }}</span>
             </button>
 
-            @include('livewire.person.parts.drawers.preperson.merge-patients')
-            @include('livewire.person.parts.drawers.preperson.merge-auth-methods')
-            @include('livewire.person.parts.drawers.preperson.merge-confirmation')
-            @include('livewire.person.parts.drawers.preperson.merge-sms-verification')
-            @include('livewire.person.parts.drawers.preperson.merge-documents-upload')
-            @include('livewire.person.parts.drawers.preperson.merge-final-consent')
-            @include('livewire.person.parts.modals.preperson.consent-form-modal')
-            @include('livewire.person.parts.drawers.preperson.merge-signature')
+            @include('livewire.preperson.parts.drawers.merge-patients')
+            @include('livewire.preperson.parts.drawers.merge-auth-methods')
+            @include('livewire.preperson.parts.drawers.merge-confirmation')
+            @include('livewire.preperson.parts.drawers.merge-sms-verification')
+            @include('livewire.preperson.parts.drawers.merge-documents-upload')
+            @include('livewire.preperson.parts.drawers.merge-final-consent')
+            @include('livewire.preperson.modals.consent-form-modal')
+            @include('livewire.preperson.parts.drawers.merge-signature')
 
         </div>
     </x-slot>

@@ -1,4 +1,6 @@
 @php
+    use App\Livewire\Encounter\EncounterEdit;
+
     $patientName = $patientFullName ?? __('forms.patient');
     $title = __('patients.encounter') . ' - ' . $patientName;
 
@@ -85,32 +87,34 @@
                     @endif
                 @endforeach
 
-                <div class="mt-4">
-                    <fieldset class="fieldset-card p-4 sm:p-8 sm:pb-10 mb-4">
-                        <legend class="legend">{{ __('forms.status.label') }}</legend>
+                @if($this instanceof EncounterEdit)
+                    <div class="mt-4">
+                        <fieldset class="fieldset-card p-4 sm:p-8 sm:pb-10 mb-4">
+                            <legend class="legend">{{ __('forms.status.label') }}</legend>
 
-                        <div class="flex flex-col sm:flex-row sm:items-end gap-6 mb-2">
-                            <div class="form-group group flex-1">
-                                <input type="text"
-                                       id="ehealthStatus"
-                                       class="input peer text-gray-500"
-                                       value="{{ __('forms.status.signed') }}"
-                                       readonly
-                                       placeholder=" "
-                                />
-                                <label for="ehealthStatus" class="label">
-                                    {{ __('forms.status.label') }}
-                                </label>
-                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-end gap-6 mb-2">
+                                <div class="form-group group flex-1">
+                                    <input type="text"
+                                           id="ehealthStatus"
+                                           class="input peer text-gray-500"
+                                           value="{{ __('forms.status.signed') }}"
+                                           readonly
+                                           placeholder=" "
+                                    />
+                                    <label for="ehealthStatus" class="label">
+                                        {{ __('forms.status.label') }}
+                                    </label>
+                                </div>
 
-                            <div class="mb-1">
-                                <button type="button" class="button-primary px-8">
-                                    {{ __('forms.update') }}
-                                </button>
+                                <div class="mb-1">
+                                    <button type="button" class="button-primary px-8">
+                                        {{ __('forms.update') }}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </fieldset>
-                </div>
+                        </fieldset>
+                    </div>
+                @endif
 
                 <!-- Additional Actions -->
                 @if(isset($encounterId))

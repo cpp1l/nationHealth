@@ -389,6 +389,12 @@ return [
         'INPATIENT' => ['patient_identity', 'discharge', 'service_delivery_location', 'intervention', 'concilium'],
         'PHC' => ['service_delivery_location', 'virtual', 'home', 'field', 'intervention']
     ],
+    // https://e-health-ua.atlassian.net/wiki/spaces/ESOZ/pages/17571709115/REST+API+Submit+Encounter+Package+API-007-026-0003#Validate-observations-for-encounter.type-%3D%3D-%22patient_identity%22
+    'preperson_required_observation_codes' => ['8302-2', '46098-0'],
+    'preperson_allowed_observation_codes' => [
+        '8302-2', '46098-0', '29463-7', 'stature', 'eye_colour', 'hair_color', 'hair_length', 'beard', 'mustache',
+        'clothes', 'peculiarity'
+    ],
     // https://e-health-ua.atlassian.net/wiki/spaces/EH/pages/583402009/Medical+Events+Dictionaries+and+configurations#legal_entity_%3CLEGAL_ENTITY_TYPE%3E_episode_types
     'legal_entity_episode_types' => [
         'OUTPATIENT' => ['TREATMENT', 'PREVENTION', 'PALLIATIVE_CARE', 'DG', 'REHAB', 'CONDITIONING'],

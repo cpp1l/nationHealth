@@ -252,6 +252,7 @@
                         id: String(typeof service === 'object' ? (service.id ?? key) : key),
                         code: String(typeof service === 'object' ? (service.code ?? '') : ''),
                         name: String(typeof service === 'object' ? (service.name ?? '') : service),
+                        category: String(typeof service === 'object' ? (service.category ?? '') : ''),
                         searchText: (String(typeof service === 'object' ? (service.name ?? '') : service) + ' ' + String(typeof service === 'object' ? (service.code ?? '') : '')).toLowerCase(),
                     }))
                     .filter(service => service.id);
@@ -297,10 +298,12 @@
                 const query = String(this.serviceSearches[index] ?? '').toLowerCase().trim();
                 const MAX = 200;
                 const results = [];
+                const onlyCounselling = $wire.form.encounter.classCode === 'AMB';
 
                 if (query) {
                     for (const service of this.serviceOptions) {
                         if (results.length >= MAX) break;
+                        if (onlyCounselling && service.category !== 'counselling') continue;
                         if (service.searchText.includes(query)) {
                             results.push(service);
                         }
@@ -433,6 +436,9 @@
                 <span>{{ __('patients.add_coauthor') }}</span>
             </button>
             @error('form.encounter.participant.0')
+                <p class="text-error">{{ $message }}</p>
+            @enderror
+            @error('form.encounter.participant')
                 <p class="text-error">{{ $message }}</p>
             @enderror
         </div>

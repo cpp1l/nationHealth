@@ -340,6 +340,7 @@
                                             @click="
                                                 selected = result;
                                                 modalCondition.codeCode = result.code;
+                                                icd10Descriptions[result.code] = result.description;
                                                 showResults = false;
                                             "
                                         >

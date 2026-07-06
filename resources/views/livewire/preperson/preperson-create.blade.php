@@ -26,6 +26,6 @@
     @endcan
 
     <div x-data="{ showAlternativeIdentificationModal: $wire.entangle('showAlternativeIdentificationModal') }">
-        @include('livewire.preperson.modals.unidentified-warning')
+        @include('livewire.preperson.modals.warning')
     </div>
 </div>

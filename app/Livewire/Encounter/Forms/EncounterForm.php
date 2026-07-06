@@ -52,7 +52,7 @@ class EncounterForm extends BaseForm
             ->filter()
             ->values()
             ->toArray();
-            
+
         $rules = [
             'encounter.periodDate' => ['required', 'date', 'before_or_equal:today'],
             'encounter.periodStart' => [
@@ -69,7 +69,10 @@ class EncounterForm extends BaseForm
             'encounter.classCode' => ['required', 'string', new InDictionary('eHealth/encounter_classes')],
             'encounter.typeCode' => ['required', 'string', new InDictionary('eHealth/encounter_types')],
             'encounter.priorityCode' => [
-                'required_if:encounter.classCode,INPATIENT',
+                Rule::requiredIf(
+                    ($this->encounter['classCode'] ?? '') === 'INPATIENT'
+                    && ($this->encounter['typeCode'] ?? '') !== 'patient_identity'
+                ),
                 'string',
                 new InDictionary('eHealth/encounter_priority')
             ],
@@ -98,7 +101,10 @@ class EncounterForm extends BaseForm
             'encounter.actions.*.code' => ['required', 'string', new InDictionary('eHealth/ICPC2/actions')],
             'encounter.actions.*.text' => ['nullable', 'string'],
             'encounter.divisionId' => [
-                'required_if:encounter.classCode,INPATIENT',
+                Rule::requiredIf(
+                    ($this->encounter['classCode'] ?? '') === 'INPATIENT'
+                    && ($this->encounter['typeCode'] ?? '') !== 'patient_identity'
+                ),
                 'nullable',
                 'uuid',
                 Rule::prohibitedIf(in_array($this->encounter['typeCode'] ?? '', ['field', 'home']))
@@ -139,7 +145,11 @@ class EncounterForm extends BaseForm
             'encounter.prescriptions' => ['nullable', 'string', 'max:3000'],
             'encounter.actionReferences' => ['nullable', 'array'],
             'encounter.actionReferences.*.uuid' => ['nullable', 'uuid'],
-            'encounter.participant' => ['nullable', 'array'],
+            'encounter.participant' => [
+                'nullable',
+                'array',
+                Rule::when(($this->encounter['typeCode'] ?? '') === 'concilium', ['min:2'])
+            ],
             'encounter.participant.*.uuid' => ['nullable', 'uuid'],
             'encounter.supportingInfo' => ['nullable', 'array'],
             'encounter.supportingInfo.*.uuid' => ['required_with:encounter.supportingInfo', 'uuid'],
@@ -370,7 +380,11 @@ class EncounterForm extends BaseForm
             ],
             'diagnosticReports.*.divisionId' => ['nullable', 'uuid'],
             'diagnosticReports.*.resultsInterpreterEmployeeId' => ['nullable', 'uuid'],
-            'diagnosticReports.*.issuedDate' => ['required_with:diagnosticReports', 'date_format:' . config('app.date_format'), 'before_or_equal:today'],
+            'diagnosticReports.*.issuedDate' => [
+                'required_with:diagnosticReports',
+                'date_format:' . config('app.date_format'),
+                'before_or_equal:today'
+            ],
             'diagnosticReports.*.issuedTime' => Rule::forEach(fn (mixed $value, string $attribute) => [
                 'required_with:diagnosticReports',
                 'date_format:H:i',
@@ -386,7 +400,10 @@ class EncounterForm extends BaseForm
                 'date_format:H:i',
                 new PastDateTime($this->diagnosticReports[(int)explode('.', $attribute)[1]]['effectivePeriodStartDate'])
             ]),
-            'diagnosticReports.*.effectivePeriodEndDate' => ['required_with:diagnosticReports', 'date_format:' . config('app.date_format')],
+            'diagnosticReports.*.effectivePeriodEndDate' => [
+                'required_with:diagnosticReports',
+                'date_format:' . config('app.date_format')
+            ],
             'diagnosticReports.*.effectivePeriodEndTime' => Rule::forEach(function (mixed $value, string $attribute) {
                 $index = (int)explode('.', $attribute)[1];
                 $report = $this->diagnosticReports[$index];
@@ -404,7 +421,10 @@ class EncounterForm extends BaseForm
                             return;
                         }
 
-                        $end = Carbon::createFromFormat(config('app.date_format') . ' H:i', $report['effectivePeriodEndDate'] . ' ' . $value);
+                        $end = Carbon::createFromFormat(
+                            config('app.date_format') . ' H:i',
+                            $report['effectivePeriodEndDate'] . ' ' . $value
+                        );
                         $issued = Carbon::createFromFormat(
                             config('app.date_format') . ' H:i',
                             $report['issuedDate'] . ' ' . $report['issuedTime']
@@ -430,7 +450,9 @@ class EncounterForm extends BaseForm
             'observations.*.codeCode' => [
                 'required_with:observations',
                 'string',
-                new InDictionary(['eHealth/LOINC/observation_codes', 'eHealth/custom/observation_codes', 'eHealth/ICF/classifiers'])
+                new InDictionary(
+                    ['eHealth/LOINC/observation_codes', 'eHealth/custom/observation_codes', 'eHealth/ICF/classifiers']
+                )
             ],
             'observations.*.effectiveDate' => ['nullable', 'date', 'before_or_equal:now'],
             'observations.*.effectiveTime' => ['nullable', 'date_format:H:i'],
@@ -507,10 +529,13 @@ class EncounterForm extends BaseForm
             'procedures' => ['nullable', 'array'],
             // for edit page
             'procedures.*.uuid' => ['nullable', 'uuid'],
-            'procedures.*.status' => ['required_with:procedures', Rule::in([
-                ProcedureStatus::COMPLETED->value,
-                ProcedureStatus::NOT_DONE->value,
-            ])],
+            'procedures.*.status' => [
+                'required_with:procedures',
+                Rule::in([
+                    ProcedureStatus::COMPLETED->value,
+                    ProcedureStatus::NOT_DONE->value,
+                ])
+            ],
             'procedures.*.codeValue' => ['required_with:procedures', 'uuid', 'max:255'],
             'procedures.*.categoryCode' => [
                 'required_with:procedures',
@@ -533,13 +558,18 @@ class EncounterForm extends BaseForm
             'procedures.*.divisionId' => ['nullable', 'uuid'],
             'procedures.*.outcomeCode' => ['nullable', 'string', new InDictionary('eHealth/procedure_outcomes')],
             'procedures.*.performedPeriodStartDate' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $isCompleted = ($this->procedures[$index]['status'] ?? null) === ProcedureStatus::COMPLETED->value;
 
-                return [Rule::requiredIf($isCompleted), 'nullable', 'date_format:' . config('app.date_format'), 'before_or_equal:today'];
+                return [
+                    Rule::requiredIf($isCompleted),
+                    'nullable',
+                    'date_format:' . config('app.date_format'),
+                    'before_or_equal:today'
+                ];
             }),
             'procedures.*.performedPeriodStartTime' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $procedure = $this->procedures[$index] ?? [];
                 $isCompleted = ($procedure['status'] ?? null) === ProcedureStatus::COMPLETED->value;
 
@@ -551,7 +581,7 @@ class EncounterForm extends BaseForm
                 ];
             }),
             'procedures.*.performedPeriodEndDate' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $isCompleted = ($this->procedures[$index]['status'] ?? null) === ProcedureStatus::COMPLETED->value;
 
                 return [
@@ -563,7 +593,7 @@ class EncounterForm extends BaseForm
                 ];
             }),
             'procedures.*.performedPeriodEndTime' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $procedure = $this->procedures[$index] ?? [];
                 $isCompleted = ($procedure['status'] ?? null) === ProcedureStatus::COMPLETED->value;
 
@@ -585,7 +615,7 @@ class EncounterForm extends BaseForm
             'procedures.*.isReferralAvailable' => ['nullable', 'boolean'],
 
             'procedures.*.referralType' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $procedure = $this->procedures[$index] ?? [];
 
                 $isReferralAvailable = ($procedure['isReferralAvailable'] ?? false) === true;
@@ -598,7 +628,7 @@ class EncounterForm extends BaseForm
             }),
 
             'procedures.*.basedOnIdentifier' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $procedure = $this->procedures[$index] ?? [];
 
                 $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
@@ -612,53 +642,59 @@ class EncounterForm extends BaseForm
                 ];
             }),
 
-            'procedures.*.paperReferralRequesterEmployeeName' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
-                $procedure = $this->procedures[$index] ?? [];
+            'procedures.*.paperReferralRequesterEmployeeName' => Rule::forEach(
+                function (mixed $value, string $attribute) {
+                    $index = (int)explode('.', $attribute)[1];
+                    $procedure = $this->procedures[$index] ?? [];
 
-                $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
-                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+                    $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
+                    $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
 
-                return [
-                    Rule::requiredIf($isPaperReferral),
-                    Rule::prohibitedIf($isElectronicReferral),
-                    'nullable',
-                    'string',
-                    'max:255',
-                ];
-            }),
+                    return [
+                        Rule::requiredIf($isPaperReferral),
+                        Rule::prohibitedIf($isElectronicReferral),
+                        'nullable',
+                        'string',
+                        'max:255',
+                    ];
+                }
+            ),
 
-            'procedures.*.paperReferralRequesterLegalEntityEdrpou' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
-                $procedure = $this->procedures[$index] ?? [];
+            'procedures.*.paperReferralRequesterLegalEntityEdrpou' => Rule::forEach(
+                function (mixed $value, string $attribute) {
+                    $index = (int)explode('.', $attribute)[1];
+                    $procedure = $this->procedures[$index] ?? [];
 
-                $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
-                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+                    $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
+                    $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
 
-                return [
-                    Rule::requiredIf($isPaperReferral),
-                    Rule::prohibitedIf($isElectronicReferral),
-                    'nullable',
-                    'digits_between:8,10',
-                ];
-            }),
+                    return [
+                        Rule::requiredIf($isPaperReferral),
+                        Rule::prohibitedIf($isElectronicReferral),
+                        'nullable',
+                        'digits_between:8,10',
+                    ];
+                }
+            ),
 
-            'procedures.*.paperReferralRequesterLegalEntityName' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
-                $procedure = $this->procedures[$index] ?? [];
+            'procedures.*.paperReferralRequesterLegalEntityName' => Rule::forEach(
+                function (mixed $value, string $attribute) {
+                    $index = (int)explode('.', $attribute)[1];
+                    $procedure = $this->procedures[$index] ?? [];
 
-                $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
+                    $isElectronicReferral = ($procedure['referralType'] ?? '') === 'electronic';
 
-                return [
-                    Rule::prohibitedIf($isElectronicReferral),
-                    'nullable',
-                    'string',
-                    'max:255',
-                ];
-            }),
+                    return [
+                        Rule::prohibitedIf($isElectronicReferral),
+                        'nullable',
+                        'string',
+                        'max:255',
+                    ];
+                }
+            ),
 
             'procedures.*.paperReferralServiceRequestDate' => Rule::forEach(function (mixed $value, string $attribute) {
-                $index = (int) explode('.', $attribute)[1];
+                $index = (int)explode('.', $attribute)[1];
                 $procedure = $this->procedures[$index] ?? [];
 
                 $isPaperReferral = ($procedure['referralType'] ?? '') === 'paper';
@@ -679,7 +715,7 @@ class EncounterForm extends BaseForm
                         ->byName('eHealth/assistive_products')
                         ->flattenedChildValues(true, true)
                         ->keys()
-                        ->map(static fn (int|string $code) => (string) $code)
+                        ->map(static fn (int|string $code) => (string)$code)
                         ->values()
                         ->toArray()
                 ),
@@ -714,7 +750,7 @@ class EncounterForm extends BaseForm
                         return;
                     }
 
-                    $index = (int) explode('.', $attribute)[1];
+                    $index = (int)explode('.', $attribute)[1];
                     $divisionUuid = data_get($this->procedures[$index] ?? [], 'divisionId');
 
                     if (!$divisionUuid) {
@@ -796,6 +832,9 @@ class EncounterForm extends BaseForm
 
         $this->addAllowedEncounterClasses($rules);
         $this->addAllowedEncounterTypes($rules);
+        $this->addEncounterActivityValidation($rules);
+        $this->addActionReferenceCategoryValidation($rules);
+        $this->addPatientIdentityObservationValidation($rules);
         $this->addAllowedEpisodeCareManagerEmployeeTypes($rules);
         $this->addAllowedConditionCodes($rules);
         $this->addPsychiatryEvidenceValidation($rules);
@@ -811,13 +850,14 @@ class EncounterForm extends BaseForm
     protected function messages(): array
     {
         return [
-            'encounter.priorityCode.required_if' => __('validation.custom.encounter.priorityCode.required_if'),
+            'encounter.priorityCode.required' => __('validation.custom.encounter.priorityCode.required_if'),
             'encounter.reasons.required_if' => __('validation.custom.encounter.reasons.required_if'),
             'encounter.diagnoses.required_unless' => __('validation.custom.encounter.diagnoses.required_unless'),
-            'encounter.divisionId.required_if' => __('validation.custom.encounter.divisionId.required_if'),
+            'encounter.divisionId.required' => __('validation.custom.encounter.divisionId.required_if'),
             'encounter.divisionId.prohibited' => __('validation.custom.encounter.divisionId.prohibited'),
             'encounter.actions.required_if' => __('validation.custom.encounter.actions.required_if'),
             'encounter.actions.prohibited_unless' => __('validation.custom.encounter.actions.prohibited_unless'),
+            'encounter.participant.min' => __('validation.custom.encounter.participant.concilium_min'),
         ];
     }
 
@@ -844,12 +884,15 @@ class EncounterForm extends BaseForm
      */
     private function addAllowedEncounterClasses(array &$rules): void
     {
-        $rules['encounter.classCode'][] = function (string $attribute, mixed $value, Closure $fail): void {
+        $encounterClassLabels = $this->component->dictionaries['eHealth/encounter_classes'];
+
+        $rules['encounter.classCode'][] = function (string $attribute, mixed $value, Closure $fail) use (
+            $encounterClassLabels
+        ): void {
             $episodeTypeCode = $this->episode['typeCode'] ?? null;
 
             if (empty($episodeTypeCode) && !empty($this->episode['id'])) {
-                $episode = collect($this->component->episodes)
-                    ->firstWhere('uuid', $this->episode['id']);
+                $episode = collect($this->component->episodes)->firstWhere('uuid', $this->episode['id']);
                 $episodeTypeCode = data_get($episode, 'type.code');
             }
 
@@ -859,14 +902,20 @@ class EncounterForm extends BaseForm
 
             $allowed = config("ehealth.episode_type_encounter_classes.$episodeTypeCode", []);
             if (!in_array($value, $allowed, true)) {
-                $fail(__('validation.custom.encounter.classCode.episode_type_forbidden', ['value' => $value]));
+                $fail(__('validation.custom.encounter.classCode.episode_type_forbidden', [
+                    'value' => $encounterClassLabels[$value]
+                ]));
             }
         };
 
-        $rules['encounter.classCode'][] = static function (string $attribute, mixed $value, Closure $fail): void {
+        $rules['encounter.classCode'][] = static function (string $attribute, mixed $value, Closure $fail) use (
+            $encounterClassLabels
+        ): void {
             $allowed = config('ehealth.legal_entity_encounter_classes.' . legalEntity()->type->name, []);
             if (!in_array($value, $allowed, true)) {
-                $fail(__('validation.custom.encounter.classCode.legal_entity_forbidden', ['value' => $value]));
+                $fail(__('validation.custom.encounter.classCode.legal_entity_forbidden', [
+                    'value' => $encounterClassLabels[$value]
+                ]));
             }
         };
     }
@@ -887,6 +936,112 @@ class EncounterForm extends BaseForm
             $allowed = config("ehealth.encounter_class_encounter_types.$classCode", []);
             if (!in_array($value, $allowed, true)) {
                 $fail(__('validation.custom.encounter.typeCode.class_forbidden', ['value' => $value]));
+            }
+        };
+    }
+
+    /**
+     * Validate the presence of encounter activity (action references, diagnostic
+     * reports or procedures) depending on the encounter type.
+     *
+     * @param  array  $rules
+     * @return void
+     */
+    private function addEncounterActivityValidation(array &$rules): void
+    {
+        $rules['encounter.actionReferences'][] = function (string $attribute, mixed $value, Closure $fail): void {
+            $type = $this->encounter['typeCode'] ?? null;
+
+            if ($type === 'patient_identity') {
+                return;
+            }
+
+            $hasActionReferences = collect($this->encounter['actionReferences'] ?? [])
+                ->pluck('uuid')
+                ->filter()
+                ->isNotEmpty();
+
+            if ($type === 'concilium') {
+                if ($hasActionReferences) {
+                    $fail(__('validation.custom.encounter.actionReferences.prohibited_concilium'));
+                }
+
+                return;
+            }
+
+            if (
+                !$hasActionReferences
+                && empty($this->diagnosticReports)
+                && empty($this->procedures)
+            ) {
+                $fail(__('validation.custom.encounter.actionReferences.required_activity'));
+            }
+        };
+    }
+
+    /**
+     * Validate observation codes for "patient_identity" encounters: every
+     * mandatory code must be present and only allowed codes may be used.
+     *
+     * @param  array  $rules
+     * @return void
+     */
+    private function addPatientIdentityObservationValidation(array &$rules): void
+    {
+        if (($this->encounter['typeCode'] ?? null) !== 'patient_identity') {
+            return;
+        }
+
+        $rules['encounter.typeCode'][] = function (string $attribute, mixed $value, Closure $fail): void {
+            $codes = collect($this->observations ?? [])
+                ->pluck('codeCode')
+                ->filter()
+                ->all();
+
+            $missing = array_diff(config('ehealth.preperson_required_observation_codes', []), $codes);
+
+            if ($missing !== []) {
+                $fail(__('validation.custom.encounter.observations.patient_identity_required', [
+                    'codes' => implode(', ', $missing)
+                ]));
+            }
+
+            $notAllowed = array_diff($codes, config('ehealth.preperson_allowed_observation_codes', []));
+
+            if ($notAllowed !== []) {
+                $fail(__('validation.custom.encounter.observations.patient_identity_not_allowed', [
+                    'codes' => implode(', ', array_unique($notAllowed))
+                ]));
+            }
+        };
+    }
+
+    /**
+     * Validate that each action reference service belongs to the "counselling"
+     * category when the encounter class is AMB.
+     *
+     * @param  array  $rules
+     * @return void
+     */
+    private function addActionReferenceCategoryValidation(array &$rules): void
+    {
+        if (($this->encounter['classCode'] ?? null) !== 'AMB') {
+            return;
+        }
+
+        $serviceCategories = dictionary()->services()->flattened()->pluck('category', 'id');
+
+        $rules['encounter.actionReferences.*.uuid'][] = static function (
+            string $attribute,
+            mixed $value,
+            Closure $fail
+        ) use ($serviceCategories): void {
+            if (empty($value)) {
+                return;
+            }
+
+            if ($serviceCategories->get($value) !== 'counselling') {
+                $fail(__('validation.custom.encounter.actionReferences.invalid_amb_category'));
             }
         };
     }

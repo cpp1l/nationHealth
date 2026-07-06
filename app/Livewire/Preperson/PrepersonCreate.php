@@ -34,11 +34,11 @@ class PrepersonCreate extends Component
     public bool $showAlternativeIdentificationModal = false;
 
     /**
-     * MPI identifier of the just-registered preperson, used to build the encounter link.
+     * Local database ID of the just-registered preperson, used to build the encounter link.
      *
-     * @var string|null
+     * @var int|null
      */
-    public ?string $createdPrepersonId = null;
+    public ?int $createdPrepersonId = null;
 
     public array $dictionaryNames = [
         'GENDER',
@@ -170,7 +170,7 @@ class PrepersonCreate extends Component
             }
 
             // Offer to start an "alternative identification" encounter for the freshly registered preperson
-            $this->createdPrepersonId = $preperson->uuid;
+            $this->createdPrepersonId = $preperson->id;
             $this->showAlternativeIdentificationModal = true;
         }
     }

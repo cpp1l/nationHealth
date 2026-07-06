@@ -99,7 +99,7 @@ class EncounterCreate extends EncounterComponent
     }
 
     /**
-     * Submit encrypted data about person encounter.
+     * Sign the encounter, submit it to eHealth, then persist it locally.
      *
      * @return void
      */
@@ -131,26 +131,17 @@ class EncounterCreate extends EncounterComponent
             return;
         }
 
-        $formattedData = $this->packageBuilder->build($validatedData, $this->episodeType);
-
-        try {
-            $this->storeValidatedData($formattedData);
-        } catch (Throwable $exception) {
-            $this->handleDatabaseErrors($exception, 'Failed to store validated data');
-
-            return;
-        }
-
-        $formattedData = Arr::toSnakeCase($formattedData);
+        $package = $this->packageBuilder->build($validatedData, $this->episodeType);
+        $apiData = Arr::toSnakeCase($package);
 
         if ($this->episodeType === 'new') {
-            $this->createEpisode($formattedData['episode']);
-            unset($formattedData['episode']);
+            $this->createEpisode($apiData['episode']);
+            unset($apiData['episode']);
         }
 
         try {
             $signedContent = new CipherRequest()->signData(
-                $formattedData,
+                $apiData,
                 $validated['knedp'],
                 $validated['keyContainerUpload'],
                 $validated['password'],
@@ -163,17 +154,38 @@ class EncounterCreate extends EncounterComponent
         }
 
         try {
-            $resp = EHealth::encounter()->submit($this->patientUuid, [
+            $response = EHealth::encounter()->submit($this->patientUuid, [
                 'visit' => [
-                    'id' => data_get($formattedData, 'encounter.visit.identifier.value'),
-                    'period' => data_get($formattedData, 'encounter.period')
+                    'id' => data_get($apiData, 'encounter.visit.identifier.value'),
+                    'period' => data_get($apiData, 'encounter.period')
                 ],
                 'signed_data' => $signedContent->getBase64Data()
             ]);
-
-            logger()->debug('Job ID to further debug', $resp->getData());
         } catch (EHealthException|EHealthConnectionException $exception) {
             $exception->handle('Error while submitting encounter');
+
+            return;
+        }
+
+        logger()->debug('Job ID to further debug', $response->getData());
+
+        // eHealth accepted the package; only now persist it locally
+        try {
+            $this->storeValidatedData($package);
+        } catch (Throwable $exception) {
+            $this->handleDatabaseErrors($exception, 'Failed to store validated data');
+
+            return;
+        }
+
+        Session::flash('success', __('patients.messages.encounter_created'));
+
+        if ($this->prepersonId !== null) {
+            $this->redirectRoute(
+                'prepersons.encounters',
+                [legalEntity(), 'preperson' => $this->prepersonId],
+                navigate: true
+            );
 
             return;
         }

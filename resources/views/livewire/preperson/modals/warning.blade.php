@@ -45,7 +45,7 @@
                                 {{ __('preperson.modal_btn_later') }}
                             </a>
                             <a
-                                href="{{ $createdPrepersonId ? route('encounter.create', [legalEntity(), 'person' => $createdPrepersonId]) : '' }}"
+                                href="{{ $createdPrepersonId ? route('prepersons.encounter.create', [legalEntity(), 'preperson' => $createdPrepersonId]) : '' }}"
                                 wire:navigate
                                 class="button-primary"
                             >

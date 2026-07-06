@@ -22,6 +22,32 @@ class PrepersonIndex extends Component
 
     public ?string $searchBirthDate = null;
 
+    public ?int $certificatePrepersonId = null;
+
+    /**
+     * The preperson whose information certificate is currently open, if any.
+     *
+     * @return Preperson|null
+     */
+    #[Computed]
+    public function certificatePreperson(): ?Preperson
+    {
+        return $this->certificatePrepersonId !== null
+            ? Preperson::find($this->certificatePrepersonId)
+            : null;
+    }
+
+    /**
+     * Select the preperson whose information certificate should be displayed.
+     *
+     * @param  int  $prepersonId
+     * @return void
+     */
+    public function selectCertificate(int $prepersonId): void
+    {
+        $this->certificatePrepersonId = $prepersonId;
+    }
+
     /**
      * Prepersons matching the applied search filters, paginated.
      *

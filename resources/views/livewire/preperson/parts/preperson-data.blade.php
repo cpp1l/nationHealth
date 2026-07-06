@@ -1,3 +1,5 @@
+@use('App\Enums\Preperson\Status')
+
 @php
     $emergencyContact = (array) $preperson->emergencyContact;
 @endphp
@@ -214,13 +216,19 @@
         <a href="{{ route('prepersons.index', [legalEntity()]) }}" class="button-minor">
             {{ __('forms.close') }}
         </a>
-        <button type="button" class="button-primary-outline flex items-center gap-2" @click="showCertificate = true">
-            @icon('printer', 'w-4 h-4')
-            <span>{{ __('preperson.info_certificate') }}</span>
-        </button>
-        <button type="button" class="button-primary-outline-red">
-            {{ __('preperson.register_death') }}
-        </button>
+        @if($preperson->status !== Status::DRAFT)
+            <button
+                type="button"
+                class="button-primary-outline flex items-center gap-2"
+                @click="showCertificate = true"
+            >
+                @icon('printer', 'w-4 h-4')
+                <span>{{ __('preperson.info_certificate') }}</span>
+            </button>
+            <button type="button" class="button-primary-outline-red">
+                {{ __('preperson.register_death') }}
+            </button>
+        @endif
     </div>
 
     @include('livewire.person.records.partials.information-certificate')

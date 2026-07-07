@@ -4,7 +4,7 @@
     maxWidth="4/5"
 >
     <x-slot name="title">
-        {{ __('preperson.merge.confirm_title', ['uuid' => strtoupper($uuid)]) }}
+        {{ __('preperson.merge.confirm_title', ['uuid' => strtoupper($preperson->uuid ?? '')]) }}
     </x-slot>
 
     <div x-data="{ consent: false }">

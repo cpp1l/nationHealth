@@ -6,7 +6,19 @@
     x-data="{
         showCertificate: false,
         isEditModalOpen: false,
-        editingPrepersonData: {}
+        editingPrepersonData: {
+            emergency_contact: {
+                first_name: '',
+                last_name: '',
+                second_name: '',
+                phones: [
+                    {
+                        type: '',
+                        number: ''
+                    }
+                ]
+            }
+        }
     }"
 >
     <x-header-navigation class="breadcrumb-form">

@@ -155,7 +155,7 @@
                             {{ __('forms.phone_type') }}
                         </label>
                         <select
-                            x-model="editingPrepersonData.emergency_contact.phones.0.type"
+                            x-model="editingPrepersonData.emergency_contact.phones[0].type"
                             class="w-full bg-transparent border-0 p-0 text-gray-900 dark:text-white focus:ring-0 focus:outline-none"
                         >
                             <option value="">
@@ -179,7 +179,7 @@
                                 @icon('tabler-phone', 'w-4 h-4 text-gray-400')
                                 <input
                                     type="text"
-                                    x-model="editingPrepersonData.emergency_contact.phones.0.number"
+                                    x-model="editingPrepersonData.emergency_contact.phones[0].number"
                                     class="w-full bg-transparent border-0 p-0 focus:ring-0 focus:outline-none placeholder-gray-300"
                                     placeholder="-"
                                 >

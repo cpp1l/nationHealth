@@ -4,7 +4,7 @@
     maxWidth="4/5"
 >
     <x-slot name="title">
-        {{ __('preperson.merge.title', ['uuid' => strtoupper($uuid)]) }}
+        {{ __('preperson.merge.title', ['uuid' => strtoupper($preperson->uuid ?? '')]) }}
     </x-slot>
 
     <div class="mt-4" x-data="{ showFilter: true }">

@@ -83,6 +83,40 @@ class PrepersonPolicy
     }
 
     /**
+     * Determine whether the user can continue the registration of a draft preperson.
+     */
+    public function edit(User $user, Preperson $preperson): Response
+    {
+        if ($user->cannot('preperson:write')) {
+            return Response::denyWithStatus(404);
+        }
+
+        // Only drafts can have their registration continued.
+        if ($preperson->status !== PrepersonStatus::DRAFT) {
+            return Response::denyWithStatus(404);
+        }
+
+        return Response::allow();
+    }
+
+    /**
+     * Determine whether the user can delete a draft preperson.
+     */
+    public function delete(User $user, Preperson $preperson): Response
+    {
+        if ($user->cannot('preperson:write')) {
+            return Response::denyWithStatus(404);
+        }
+
+        // Only local drafts can be deleted; registered prepersons are managed through eHealth.
+        if ($preperson->status !== PrepersonStatus::DRAFT) {
+            return Response::denyWithStatus(404);
+        }
+
+        return Response::allow();
+    }
+
+    /**
      * Determine whether the user can update preperson.
      */
     public function update(User $user, Preperson $preperson): Response

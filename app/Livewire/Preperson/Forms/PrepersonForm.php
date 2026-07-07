@@ -38,28 +38,27 @@ class PrepersonForm extends BaseForm
         $emergencyContactRequired = $this->hasEmergencyContactData()
             || $this->reasonContext['reason'] === Reason::NEWBORN_WITHOUT_CERTIFICATE->value;
 
-        // todo: перевірити і додати валідацію згідно ТЗ, NameFields треба вроді як, але енівей глянуть
         return [
             'person.firstName' => ['nullable', 'min:3', new NameFields()],
             'person.lastName' => ['nullable', 'min:3', new NameFields()],
             'person.secondName' => ['nullable', 'min:3', new NameFields()],
-            'person.birthDate' => ['nullable', 'date_format:' . config('app.date_format')],
+            'person.birthDate' => ['nullable', 'date_format:' . config('app.date_format'), 'before_or_equal:today'],
             'person.gender' => ['required', 'string', new InDictionary('GENDER')],
             'person.emergencyContact.firstName' => [Rule::requiredIf($emergencyContactRequired), 'min:3', new NameFields()],
             'person.emergencyContact.lastName' => [Rule::requiredIf($emergencyContactRequired), 'min:3', new NameFields()],
             'person.emergencyContact.secondName' => ['nullable', 'min:3', new NameFields()],
             'person.emergencyContact.phones.*.type' => [
                 'nullable',
+                Rule::requiredIf($emergencyContactRequired),
                 'string',
-                'distinct',
-                'required_with:person.emergencyContact.phones.*.number'
+                'distinct'
             ],
             'person.emergencyContact.phones.*.number' => [
                 'nullable',
+                Rule::requiredIf($emergencyContactRequired),
                 'string',
                 new PhoneNumber(),
-                'distinct',
-                'required_with:person.emergencyContact.phones.*.type'
+                'distinct'
             ],
 
             'reasonContext.reason' => [
@@ -105,7 +104,7 @@ class PrepersonForm extends BaseForm
      *
      * @return bool
      */
-    private function hasEmergencyContactData(): bool
+    public function hasEmergencyContactData(): bool
     {
         $contact = $this->person['emergencyContact'] ?? [];
 

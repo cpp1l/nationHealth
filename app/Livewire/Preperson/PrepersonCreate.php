@@ -4,47 +4,16 @@ declare(strict_types=1);
 
 namespace App\Livewire\Preperson;
 
-use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
 use App\Enums\Preperson\Status;
-use App\Exceptions\EHealth\EHealthConnectionException;
-use App\Exceptions\EHealth\EHealthException;
-use App\Livewire\Preperson\Forms\PrepersonForm as Form;
 use App\Models\Preperson;
-use App\Traits\FormTrait;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Livewire\Component;
 use Throwable;
 
-class PrepersonCreate extends Component
+class PrepersonCreate extends PrepersonComponent
 {
-    use FormTrait;
-
-    public Form $form;
-
-    /**
-     * Whether the modal proposing alternative patient identification by observations is open.
-     *
-     * @var bool
-     */
-    public bool $showAlternativeIdentificationModal = false;
-
-    /**
-     * Local database ID of the just-registered preperson, used to build the encounter link.
-     *
-     * @var int|null
-     */
-    public ?int $createdPrepersonId = null;
-
-    public array $dictionaryNames = [
-        'GENDER',
-        'PHONE_TYPE'
-    ];
-
     public function mount(): void
     {
         $this->getDictionary();
@@ -57,20 +26,11 @@ class PrepersonCreate extends Component
      */
     public function createLocally(): void
     {
-        if (Auth::user()->cannot('create', Preperson::class)) {
-            Session::flash('error', __('patients.policy.create'));
-
+        if (!$this->ensureCanCreate()) {
             return;
         }
 
-        try {
-            $validated = $this->form->validate($this->form->rulesForCreate());
-        } catch (ValidationException $exception) {
-            Session::flash('error', $exception->validator->errors()->first());
-            $this->setErrorBag($exception->validator->getMessageBag());
-
-            return;
-        }
+        $validated = $this->validateForm();
 
         $personData = $validated['person'];
         // note is the eHealth-facing text; reasonContext keeps the raw fields so the draft can be re-edited later
@@ -95,7 +55,7 @@ class PrepersonCreate extends Component
             return;
         }
 
-        Session::flash('success', __('patients.messages.preperson_draft_created'));
+        Session::flash('success', __('preperson.messages.draft_created'));
         $this->redirectRoute('prepersons.index', [legalEntity()], navigate: true);
     }
 
@@ -106,20 +66,11 @@ class PrepersonCreate extends Component
      */
     public function create(): void
     {
-        if (Auth::user()->cannot('create', Preperson::class)) {
-            Session::flash('error', __('patients.policy.create'));
-
+        if (!$this->ensureCanCreate()) {
             return;
         }
 
-        try {
-            $validated = $this->form->validate($this->form->rulesForCreate());
-        } catch (ValidationException $exception) {
-            Session::flash('error', $exception->validator->errors()->first());
-            $this->setErrorBag($exception->validator->getMessageBag());
-
-            return;
-        }
+        $validated = $this->validateForm();
 
         $personData = $validated['person'];
         $personData['note'] = $this->form->buildNote();
@@ -147,32 +98,7 @@ class PrepersonCreate extends Component
             return;
         }
 
-        // Built from $personData (not $record) so reason_context never leaks into the eHealth request
-        $payload = Arr::toSnakeCase($personData);
-        $payload['external_id'] = $preperson->externalId;
-
-        try {
-            $response = EHealth::preperson()->create($payload);
-        } catch (EHealthException|EHealthConnectionException $exception) {
-            $exception->handle('Error when creating a preperson');
-
-            return;
-        }
-
-        if ($response->successful()) {
-            try {
-                // forceFill bypasses mass-assignment guards so identity fields (uuid) set from the trusted eHealth response
-                $preperson->forceFill($response->validate())->save();
-            } catch (Throwable $exception) {
-                $this->handleDatabaseErrors($exception, 'Failed to update preperson from eHealth response');
-
-                return;
-            }
-
-            // Offer to start an "alternative identification" encounter for the freshly registered preperson
-            $this->createdPrepersonId = $preperson->id;
-            $this->showAlternativeIdentificationModal = true;
-        }
+        $this->createInEHealth($preperson, $personData);
     }
 
     public function render(): View

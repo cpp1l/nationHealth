@@ -126,20 +126,30 @@
                     </div>
 
                     <div class="flex items-center space-x-6">
-                        <a
-                            href="{{ route('prepersons.patient-data', [legalEntity(), $preperson->id]) }}"
-                            class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium"
-                        >
-                            @icon('file-lines', 'w-4 h-4')
-                            <span class="text-sm">{{ __('patients.view_record') }}</span>
-                        </a>
-                        <a
-                            href="{{ route('prepersons.encounter.create', [legalEntity(), $preperson->id]) }}"
-                            class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium"
-                        >
-                            @icon('plus', 'w-4 h-4')
-                            <span class="text-sm">{{ __('patients.start_interacting') }}</span>
-                        </a>
+
+                        @if($preperson->status === Status::DRAFT)
+                            <a href="{{ route('prepersons.edit', [legalEntity(), $preperson]) }}"
+                               class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium"
+                            >
+                                @icon('file-lines', 'w-4 h-4')
+                                <span class="text-sm">{{ __('patients.continue_registration') }}</span>
+                            </a>
+                        @else
+                            <a
+                                href="{{ route('prepersons.patient-data', [legalEntity(), $preperson->id]) }}"
+                                class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium"
+                            >
+                                @icon('file-lines', 'w-4 h-4')
+                                <span class="text-sm">{{ __('patients.view_record') }}</span>
+                            </a>
+                            <a
+                                href="{{ route('prepersons.encounter.create', [legalEntity(), $preperson->id]) }}"
+                                class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium"
+                            >
+                                @icon('plus', 'w-4 h-4')
+                                <span class="text-sm">{{ __('patients.start_interacting') }}</span>
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -214,6 +224,17 @@
                                                         {{ __('preperson.register_death') }}
                                                     </button>
                                                 @endif
+
+                                                @can('delete', $preperson)
+                                                    <button
+                                                        type="button"
+                                                        wire:click="deleteDraft({{ $preperson->id }})"
+                                                        class="dropdown-button !flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                                    >
+                                                        @icon('trash', 'w-4 h-4')
+                                                        {{ __('preperson.delete_draft') }}
+                                                    </button>
+                                                @endcan
                                             </div>
                                         </div>
                                     </div>

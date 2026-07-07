@@ -26,6 +26,7 @@ use App\Livewire\Person\Records\PatientImmunizations;
 use App\Livewire\Person\Records\PatientObservations;
 use App\Livewire\Person\Records\PatientSummary;
 use App\Livewire\Preperson\PrepersonData;
+use App\Livewire\Preperson\PrepersonEdit;
 use App\Livewire\Preperson\PrepersonIndex;
 use App\Livewire\Procedure\ProcedureCreate;
 use App\Livewire\Procedure\ProcedureEdit;
@@ -125,6 +126,7 @@ Route::prefix('prepersons')
     ->whereNumber('preperson')
     ->group(static function () {
         Route::get('/', PrepersonIndex::class)->can('viewAny', Preperson::class)->name('index');
+        Route::get('/{preperson}/edit', PrepersonEdit::class)->can('edit', 'preperson')->name('edit');
 
         Route::get('/{preperson}/patient-data', PrepersonData::class)->can('view', 'preperson')->name('patient-data');
         Route::get('/{preperson}/summary', PatientSummary::class)->can('view', 'preperson')->name('summary');

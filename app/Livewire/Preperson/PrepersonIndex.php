@@ -8,6 +8,8 @@ use App\Models\Preperson;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -46,6 +48,25 @@ class PrepersonIndex extends Component
     public function selectCertificate(int $prepersonId): void
     {
         $this->certificatePrepersonId = $prepersonId;
+    }
+
+    /**
+     * Delete a locally stored preperson draft.
+     *
+     * @param  Preperson  $preperson
+     * @return void
+     */
+    public function deleteDraft(Preperson $preperson): void
+    {
+        if (Auth::user()->cannot('delete', $preperson)) {
+            Session::flash('error', __('preperson.policy.delete'));
+
+            return;
+        }
+
+        $preperson->delete();
+
+        Session::flash('success', __('preperson.messages.draft_deleted'));
     }
 
     /**

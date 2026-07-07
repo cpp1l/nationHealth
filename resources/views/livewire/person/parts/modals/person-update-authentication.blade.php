@@ -43,7 +43,7 @@
                             </div>
 
                             <div class="form-group flex items-end">
-                                <button wire:click.prevent="approve" type="button" class="button-primary">
+                                <button wire:click.prevent="approvePersonalDataUpdate" type="button" class="button-primary">
                                     {{ __('forms.confirm') }}
                                 </button>
                             </div>
@@ -52,7 +52,7 @@
                         {{-- Resend SMS --}}
                         <div class="form-group">
                             <button type="button"
-                                    wire:click.prevent="resendSms"
+                                    {{-- wire:click.prevent="resendSms" --}}
                                     @click="resetCooldown(); startCooldown()"
                                     x-data="{
                                         cooldown: 60,

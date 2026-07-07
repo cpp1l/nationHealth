@@ -429,6 +429,13 @@ class PatientData extends BasePatientComponent
         $this->showConfirmationUpdateModal = true;
     }
 
+    public function approvePersonalDataUpdate(): void
+    {
+        $this->showConfirmationUpdateModal = false;
+
+        // TODO: Implement the logic for approving personal data update.
+    }
+
     public function render(): View
     {
         return view('livewire.person.records.patient-data');

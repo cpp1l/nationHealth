@@ -11,7 +11,19 @@ use Livewire\Component;
 
 class PrepersonData extends Component
 {
-    protected Preperson $preperson;
+    public array $form = [
+        'firstName' => '',
+        'lastName' => '',
+        'birthDate' => '',
+        'secondName' => '',
+        'taxId' => '',
+        'phoneNumber' => '',
+        'birthCertificate' => '',
+    ];
+
+    public bool $showAdditionalParams = false;
+
+    public Preperson $preperson;
 
     /**
      * Initialize the component from the route-bound preperson.

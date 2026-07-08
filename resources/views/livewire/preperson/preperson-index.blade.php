@@ -2,7 +2,25 @@
 @use('App\Models\Preperson')
 @use('Illuminate\Support\Carbon')
 
-<div x-data="{ showCertificate: false }">
+<div
+    x-data="{
+        showCertificate: false,
+        isEditModalOpen: false,
+        editingPrepersonData: {
+            emergency_contact: {
+                first_name: '',
+                last_name: '',
+                second_name: '',
+                phones: [
+                    {
+                        type: '',
+                        number: ''
+                    }
+                ]
+            }
+        }
+    }"
+>
     <x-header-navigation class="breadcrumb-form">
         <x-slot name="title">{{ __('preperson.label') }}</x-slot>
         <x-slot name="navigation">
@@ -92,7 +110,7 @@
         @forelse($prepersons as $preperson)
             <fieldset
                 wire:key="preperson-{{ $preperson->id }}"
-                class="shift-content p-4 sm:p-8 sm:pb-10 mb-16 mt-6 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 max-w-7xl"
+                class="shift-content p-4 sm:p-8 sm:pb-10 mb-16 mt-6 border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 max-w-6xl"
             >
                 <legend class="legend">ID {{ $preperson->externalId }}</legend>
 
@@ -101,7 +119,7 @@
                     <div class="flex items-center flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500 mt-2">
                         @if($preperson->birthDate)
                             <span class="flex items-center gap-1.5">
-                                @icon('calendar', 'w-6 h-6 text-gray-800 dark:text-white')
+                                @icon('calendar-outline', 'w-6 h-6 text-gray-800 dark:text-white')
                                 <span>{{ __('forms.birth_date_abbreviated') }} {{ Carbon::parse($preperson->birthDate)->format(config('app.date_format')) }}</span>
                             </span>
                         @endif
@@ -154,7 +172,7 @@
                 </div>
 
                 <div class="flow-root mt-4">
-                    <div class="max-w-7xl">
+                    <div class="max-w-6xl">
                         <table class="table-input w-full table-auto">
                             <thead class="thead-input">
                             <tr>
@@ -207,11 +225,33 @@
                                                     </button>
 
                                                     <button
-                                                        @click=""
+                                                        @click="
+                                                            isEditModalOpen = true;
+                                                            editingPrepersonData = {
+                                                                external_id: '{{ $preperson->external_id }}',
+                                                                first_name: '{{ $preperson->first_name }}',
+                                                                last_name: '{{ $preperson->last_name }}',
+                                                                second_name: '{{ $preperson->second_name }}',
+                                                                gender: '{{ $preperson->gender?->value ?? $preperson->gender }}',
+                                                                birth_date: '{{ $preperson->birth_date }}',
+                                                                emergency_contact: {
+                                                                    first_name: '{{ data_get($preperson->emergency_contact, 'first_name') }}',
+                                                                    last_name: '{{ data_get($preperson->emergency_contact, 'last_name') }}',
+                                                                    second_name: '{{ data_get($preperson->emergency_contact, 'second_name') }}',
+                                                                    phones: [
+                                                                        {
+                                                                            type: '{{ data_get($preperson->emergency_contact, 'phones.0.type') }}',
+                                                                            number: '{{ data_get($preperson->emergency_contact, 'phones.0.number') }}'
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            };
+                                                            openDropdown = false;
+                                                        "
                                                         class="dropdown-button !flex items-center gap-2 px-4 py-2 text-sm border-b border-gray-100 dark:border-gray-600 w-full hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-left text-gray-700 dark:text-gray-200"
                                                         type="button"
                                                     >
-                                                        @icon('pencil-clipboard', 'w-4 h-4')
+                                                        @icon('file-text', 'w-4 h-4')
                                                         {{ __('patients.edit_data') }}
                                                     </button>
 
@@ -264,6 +304,8 @@
             'emergencyContact' => (array) $this->certificatePreperson->emergencyContact
         ])
     @endif
+
+    @include('livewire.preperson.modals.edit-preperson')
 
     <livewire:components.x-message :key="now()->timestamp" />
     <x-forms.loading />

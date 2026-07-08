@@ -24,6 +24,9 @@
                 @icon('refresh', 'w-4 h-4')
                 <span>{{ __('patients.sync_ehealth_data') }}</span>
             </button>
+
+
+
         </div>
     </x-slot>
 
@@ -920,7 +923,7 @@
             </div>
         </div>
 
-    <div class="mt-8 flex items-center gap-4">
+    <div class="shift-content mt-8 flex items-center gap-4">
         <a href="{{ route('persons.index', [legalEntity()]) }}" class="button-minor" style="margin: 0 !important;">
             {{ __('forms.back') }}
         </a>

@@ -147,6 +147,7 @@ Route::prefix('prepersons')
             ->can('view', 'preperson')
             ->name('clinical-impressions');
         Route::get('/{preperson}/encounters', PatientEncounters::class)->can('view', 'preperson')->name('encounters');
+        Route::get('/{preperson}/procedures', PatientProcedures::class)->can('view', 'preperson')->name('procedures');
 
         Route::get('/{preperson}/encounter/create', EncounterCreate::class)
             ->can('view', 'preperson')

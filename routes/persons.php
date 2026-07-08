@@ -129,7 +129,7 @@ Route::prefix('prepersons')
         Route::get('/', PrepersonIndex::class)->can('viewAny', Preperson::class)->name('index');
         Route::get('/{preperson}/edit', PrepersonEdit::class)->can('edit', 'preperson')->name('edit');
 
-        Route::get('/{preperson}/patient-data', PrepersonData::class)->name('patient-data');
+        Route::get('/{preperson}/patient-data', PrepersonData::class)->can('view', 'preperson')->name('patient-data');
         Route::get('/{preperson}/summary', PatientSummary::class)->can('view', 'preperson')->name('summary');
         Route::get('/{preperson}/episodes', PatientEpisodes::class)->can('view', 'preperson')->name('episodes');
         Route::get('/{preperson}/observations', PatientObservations::class)
@@ -147,6 +147,7 @@ Route::prefix('prepersons')
             ->can('view', 'preperson')
             ->name('clinical-impressions');
         Route::get('/{preperson}/encounters', PatientEncounters::class)->can('view', 'preperson')->name('encounters');
+        Route::get('/{preperson}/procedures', PatientProcedures::class)->can('view', 'preperson')->name('procedures');
 
         Route::get('/{preperson}/encounter/create', EncounterCreate::class)
             ->can('view', 'preperson')

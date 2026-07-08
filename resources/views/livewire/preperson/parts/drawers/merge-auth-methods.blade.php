@@ -147,4 +147,5 @@
             {{ __('forms.next') }}
         </button>
     </div>
+    </div>
 </x-dialog-drawer>

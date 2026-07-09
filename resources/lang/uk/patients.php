@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 return [
@@ -16,6 +15,7 @@ return [
 
     // Used not once.
     'patients' => 'Пацієнти',
+    'patients_unidentified' => 'Пацієнти (неідентифіковані)',
     'patient_legal_representative' => 'Законний представник пацієнта',
     'add_patient' => 'Новий пацієнт',
     'edit_data' => 'Редагувати дані',
@@ -154,6 +154,7 @@ return [
     'create_diagnostic_report' => 'Створити діагностичний звіт',
     'sign_declaration' => 'Укласти декларацію',
     'create_procedure' => 'Створити процедуру',
+    'create_episode' => 'Створити епізод',
 
     // Create patient
     'patient_type' => 'Тип пацієнта',
@@ -316,6 +317,9 @@ return [
     'new_episode' => 'Новий епізод',
     'episode_name' => 'Назва епізоду',
     'episode_type' => 'Тип епізоду',
+    'episode_status' => 'Статус епізоду',
+    'episode_start_date' => 'Дата початку',
+    'episode_start_time' => 'Час початку',
 
     // Reasons
     'reason_for_visit' => 'Причина звернення',
@@ -654,6 +658,59 @@ return [
         'procedure_with_encounter_cannot_be_cancelled_separately' => 'Процедуру, створену у складі взаємодії, не можна позначити внесеною помилково окремо.',
         'procedure_cannot_be_cancelled_by_current_user' => 'Поточний користувач не є автором процедури, не є медичним адміністратором цього НМП і не має дозволу write на цю процедуру.',
         'procedure_not_found_in_db' => 'Процедуру не знайдено в локальній базі даних. Спочатку синхронізуйте дані з ЕСОЗ.',
+        'episode_cancel_modal_title' => 'Підтвердження щодо визначення помилково внесеної медичної документації про пацієнта в ЕСОЗ',
+        'episode_cancel_modal_description' => 'Дія є незворотною. Ви впевнені, що бажаєте позначити епізод як внесений помилково? Медична документація, яка визначена такою, що внесена помилково, зберігається в електронній системі охорони здоров’я!',
+        'episode_cancel_reason_label' => 'Підстава помилкового внесення медичної документації',
+        'episode_cancel_reason_placeholder' => 'Підстава',
+        'episode_cancel_explanation_label' => 'Обґрунтування підстав визначення помилкового внесення медичної документації',
+        'episode_cancel_explanation_placeholder' => 'Напишіть коментар тут',
+        'episode_cancel_confirm_button' => 'Позначити документ помилково внесеним',
+        'episode_cancel_request_sent' => 'Запит на позначення епізоду внесеним помилково успішно відправлено.',
+        'episode_already_entered_in_error' => 'Епізод уже позначено внесеним помилково.',
+        'episode_cancel_package_save_error' => 'Помилка збереження статусу скасування епізоду.',
+        'episode_not_found' => 'Епізод не знайдено.',
+        'episode_close_modal_title' => 'Підтвердження щодо завершення епізоду в ЕСОЗ',
+        'episode_close_modal_description' => 'Дія є незворотною. Ви впевнені, що бажаєте позначити епізод як завершений?',
+        'episode_close_date_label' => 'Дата завершення епізоду',
+        'episode_close_reason_label' => 'Причина завершення епізоду',
+        'episode_close_reason_placeholder' => 'Виберіть причину',
+        'episode_close_summary_label' => 'Підсумок за епізодом',
+        'episode_close_summary_placeholder' => 'Текст для введення',
+        'episode_close_confirm_button' => 'Завершити епізод',
+        'episode_already_closed' => 'Епізод вже завершений.',
+        'episode_close_request_sent' => 'Запит на завершення епізоду успішно відправлено.',
+        'episode_close_package_save_error' => 'Помилка збереження статусу завершення епізоду.',
+        'episode_edit_title' => 'Оновлення епізоду - :name',
+        'episode_create_title' => 'Створення епізоду',
+        'episode_updated' => 'Епізод успішно оновлено.',
+        'episode_created' => 'Епізод успішно створено.',
+        'episode_update_save_error' => 'Помилка збереження оновлень епізоду.',
+        'episode_create_save_error' => 'Помилка збереження епізоду.',
+        'select_doctor' => 'Оберіть лікаря',
+        'attending_doctor' => 'Лікуючий лікар',
+        'cancel_changes' => 'Відмінити',
+        'save_changes' => 'Зберегти зміни',
+        'episode_ehealth_id' => 'eHealth ID епізоду',
+        'episode_created_at_date' => 'Дата створення',
+        'episode_created_at_time' => 'Час створення',
+        'episode_updated_at_date' => 'Дата оновлення',
+        'episode_updated_at_time' => 'Час оновлення',
+        'episode_status_reason' => 'Стан статусу',
+        'episode_closing_reason' => 'Підстави для закриття',
+        'episode_managing_org' => 'Організація автор',
+        'episode_care_manager' => 'Працівник автор',
+        'episode_period_title' => 'Період дії епізоду',
+        'episode_period_start' => 'Дата відкриття',
+        'episode_period_end' => 'Дата закриття',
+        'episode_current_diagnosis_title' => 'Поточний основний діагноз',
+        'episode_no_current_diagnosis' => 'Немає поточного основного діагнозу.',
+        'episode_condition_ehealth_id' => 'eHealth ID стану',
+        'episode_diagnosis_code' => 'Код діагнозу',
+        'episode_diagnosis_role' => 'Роль діагнозу',
+        'episode_diagnosis_rank' => 'Ранг діагнозу',
+        'episode_diagnosis_history_title' => 'Історія основного діагнозу',
+        'episode_diagnosis_history_empty' => 'Історія змін основного діагнозу відсутня.',
+        'episode_diagnosis_date' => 'Дата створення діагнозу',
     ],
 
 ];

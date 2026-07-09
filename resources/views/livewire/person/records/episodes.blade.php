@@ -142,13 +142,24 @@
                     </button>
                 </div>
 
-                <div class="relative" x-data="{ openGroupActions: false }" @click.outside="openGroupActions = false">
-                    <button type="button"
-                            @click="openGroupActions = !openGroupActions"
-                            class="button-primary-outline px-5 py-2.5 text-sm"
+                <div class="flex items-center gap-3">
+                    <a href="{{ $prepersonId
+                        ? route('prepersons.episodes.create', [legalEntity(), 'preperson' => $prepersonId])
+                        : route('persons.episodes.create', [legalEntity(), 'person' => $personId]) }}"
+                       wire:navigate
+                       class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium text-sm"
                     >
-                        {{ __('patients.group_actions') }}
-                    </button>
+                        @icon('plus', 'w-4 h-4')
+                        <span>{{ __('patients.create_episode') ?? 'Створити епізод' }}</span>
+                    </a>
+
+                    <div class="relative" x-data="{ openGroupActions: false }" @click.outside="openGroupActions = false">
+                        <button type="button"
+                                @click="openGroupActions = !openGroupActions"
+                                class="button-primary-outline px-5 py-2.5 text-sm"
+                        >
+                            {{ __('patients.group_actions') }}
+                        </button>
 
                     <div x-show="openGroupActions"
                          x-transition
@@ -167,6 +178,7 @@
                             </button>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
 
@@ -203,6 +215,9 @@
             </div>
         </div>
     </div>
+
+    @include('livewire.person.records.parts.episode-cancellation-modal')
+    @include('livewire.person.records.parts.episode-closure-modal')
 
     <x-forms.loading />
 </x-layouts.patient>

@@ -185,7 +185,7 @@
                                                     <div class="py-1">
                                                         @can('create', DeclarationRequest::class)
                                                             <a wire:click="redirectTo('{{ $patient['id'] }}', 'declaration.create')"
-                                                               class="dropdown-button !flex items-center gap-2 px-4 py-2 text-sm border-b border-gray-100 dark:border-gray-600 w-full hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-left text-gray-700 dark:text-gray-200"
+                                                               class="dropdown-button !flex items-center gap-2 px-4 py-2 text-sm w-full hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-left text-gray-700 dark:text-gray-200"
                                                                @click="openDropdown = false"
                                                             >
                                                                 @icon('file-text', 'w-4 h-4')
@@ -195,7 +195,7 @@
 
                                                         @can('create', DiagnosticReport::class)
                                                             <a wire:click="redirectTo('{{ $patient['id'] }}', 'diagnostic-report.create')"
-                                                               class="dropdown-button !flex items-center gap-2 px-4 py-2 text-sm border-b border-gray-100 dark:border-gray-600 w-full hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-left text-gray-700 dark:text-gray-200"
+                                                               class="dropdown-button !flex items-center gap-2 px-4 py-2 text-sm w-full hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-left text-gray-700 dark:text-gray-200"
                                                                @click="openDropdown = false"
                                                             >
                                                                 @icon('activity', 'w-4 h-4')
@@ -210,6 +210,16 @@
                                                             >
                                                                 @icon('settings', 'w-4 h-4')
                                                                 {{ __('patients.create_procedure') }}
+                                                            </a>
+                                                        @endcan
+
+                                                        @can('view', Episode::class)
+                                                            <a wire:click="redirectTo('{{ $patient['id'] }}', 'persons.episodes.create')"
+                                                               class="dropdown-button !flex items-center gap-2 px-4 py-2 text-sm w-full hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-left text-gray-700 dark:text-gray-200"
+                                                               @click="openDropdown = false"
+                                                            >
+                                                                @icon('book', 'w-4 h-4')
+                                                                {{ __('patients.create_episode') }}
                                                             </a>
                                                         @endcan
                                                     </div>

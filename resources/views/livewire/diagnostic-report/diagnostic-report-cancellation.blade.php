@@ -38,10 +38,10 @@
                                 name="cancellationReason"
                                 id="cancellationReason"
                             >
-                                <option value="">{{ __('patients.messages.diagnostic_report_cancel_reason_placeholder') }}</option>
+                                <option value="" class="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">{{ __('patients.messages.diagnostic_report_cancel_reason_placeholder') }}</option>
 
                                 @foreach(data_get($this->dictionaries, 'eHealth/cancellation_reasons', []) as $code => $label)
-                                    <option value="{{ $code }}" wire:key="diagnostic-report-cancel-reason-{{ $code }}">
+                                    <option value="{{ $code }}" class="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" wire:key="diagnostic-report-cancel-reason-{{ $code }}">
                                         {{ $label }}
                                     </option>
                                 @endforeach

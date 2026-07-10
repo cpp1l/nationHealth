@@ -29,11 +29,9 @@
                     </div>
 
                     <ul class="list-disc list-inside mb-8">
-                        <p class="default-p">Ви, як медичний працівник закладу охорони здоров'я:</p>
-                        <li class="default-p pl-2">підтверджуєте, що пацієнта як особу ідентифіковано;</li>
-                        <li class="default-p pl-2">підтверджуєте, що повідомили пацієнту або його законному представнику
-                            мету та підстави обробки персональних даних.
-                        </li>
+                        <p class="default-p">{{ __('declarations.medical_worker_confirmation') }}</p>
+                        <li class="default-p pl-2">{{ __('declarations.patient_identified') }}</li>
+                        <li class="default-p pl-2">{{ __('declarations.informed_about_data_processing') }}</li>
                         @if($form->person['authenticationMethods'][0]['type'] === AuthenticationMethod::THIRD_PERSON->value)
                             <li class="default-p pl-2">підтверджуєте перевірку повноважень представника пацієнта (у разі
                                 надання даних про законного представника).

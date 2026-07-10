@@ -38,7 +38,7 @@
 
                         <div class="flex gap-4 xl:flex-row justify-start items-center mt-4">
                             <a
-                                href="{{ route('persons.index', [legalEntity()]) }}"
+                                href="{{ route('prepersons.index', [legalEntity()]) }}"
                                 wire:navigate
                                 class="button-minor"
                             >

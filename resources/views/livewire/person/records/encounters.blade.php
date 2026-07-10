@@ -256,7 +256,7 @@
                                     <div class="min-w-0">
                                         <div class="record-inner-label">{{ __('patients.doctor_speciality') }}</div>
                                         <div class="record-inner-value text-[14px]">
-                                            {{ data_get($encounter, 'performer.displayValue', '-') }}
+                                            {{ data_get($encounter, 'performer.displayValue') ?? '-' }}
                                         </div>
                                     </div>
                                     <div class="min-w-0">

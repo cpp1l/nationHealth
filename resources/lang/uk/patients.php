@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 return [
@@ -15,7 +16,6 @@ return [
 
     // Used not once.
     'patients' => 'Пацієнти',
-    'patients_unidentified' => 'Пацієнти (неідентифіковані)',
     'patient_legal_representative' => 'Законний представник пацієнта',
     'add_patient' => 'Новий пацієнт',
     'edit_data' => 'Редагувати дані',
@@ -47,8 +47,6 @@ return [
     'date_time_entered' => 'Дата та час внесення',
     'episode' => 'Епізод',
     'ehealth_id' => 'ID ЕСОЗ',
-    'cancellation_reason' => 'Причина позначення внесеним помилково',
-    'explanatory_letter' => 'Пояснювальна записка',
 
     // Summary sections fields
     'status_clinical' => 'Статус клінічний',
@@ -58,13 +56,11 @@ return [
     'date_updated' => 'Дата оновлення',
     'doctor' => 'Лікар',
     'view_details' => 'Переглянути деталі',
-    'get_data_access' => 'Отримати доступ до даних',
     'class' => 'Клас',
     'doctor_speciality' => 'Спеціалізація лікаря',
     'status_completed' => 'Завершена',
     'created' => 'Створено',
     'clinical_impression_conclusion' => 'Заключення по оцінці',
-    'conducted' => 'Проведена',
     'route' => 'Шлях',
     'reactions' => 'Реакції',
     'manufacturer_and_lot_number' => 'Виробник та партія',
@@ -75,7 +71,6 @@ return [
     'getting_indicators' => 'Отримання показників',
     'updated' => 'Оновлено',
     'medical_record_id' => 'ID Мед. Запису',
-    'start_date' => 'Дата початку',
     'basic' => 'Основний',
     'final' => 'Заключний',
     'head' => 'Голова',
@@ -88,7 +83,6 @@ return [
     'qualitative_analysis' => 'Якісний аналіз',
     'model_number' => '№ моделі',
     'manufacture_date' => 'Дата виготовлення',
-    'comment' => 'Коментар',
     'properties' => 'Властивості',
     'manufacturer_and_serial' => 'Виробник, серійний',
     'status_change_reason' => 'Причина зміни статусу',
@@ -135,17 +129,13 @@ return [
     // patient update
     'missed_patient_data' => 'Декларація не може бути створена, так як в МІС відсутні дані, необхідні для роботи з декларацією.',
     'syncng_patient_data' => 'Наразі здійснюється синхронізація даних пацієнта з ЕСОЗ. Будь ласка, зачекайте 5-10 секунд та спробуйте ще раз.',
-    'patient_data_need_to_update' => 'Потрібно оновити персональні дані пацієнта відповідно до даних в ЕСОЗ для продовження роботи з декларацією.',
     'patient_auth_method_is_obsolete' => 'Для укладення декларації для цього пацієнта, будь ласка оновіть метод автентифікації!',
-    'patient_data_update' => 'Запросити відсутні дані пацієнта',
     'patient_data_incomplete' => 'Дані пацієнта неповні',
 
     // patient search
     'patient_search' => 'Пошук пацієнта',
-    'search' => 'Шукати',
     'male' => 'Чоловік',
     'female' => 'Жінка',
-    'all' => 'Всі',
     'birth_certificate' => 'Свідоцтво',
     'applications' => 'Заявки',
     'continue_registration' => 'Продовжити реєстрацію',
@@ -173,7 +163,6 @@ return [
     'informed' => "інформація з пам'ятки повідомлена пацієнту",
     'reject' => 'Відхилити заявку',
     'print_leaflet_for_patient' => "Роздрукувати пам'ятку для ознайомлення пацієнтом",
-    'get_certificate' => 'Довідка',
     'register_death' => 'Зареєструвати смерть',
 
     'status' => [
@@ -190,7 +179,6 @@ return [
         'new' => 'Новий',
         'approved' => 'Підтверджений',
         'signed' => 'Підписаний',
-        'signed_status' => 'Підписано',
         'cancelled' => 'Скасований',
         'completed' => 'Завершений',
         'expired' => 'Прострочений',
@@ -219,7 +207,6 @@ return [
     'verification_in_eHealth' => 'Верифікація в ЕСОЗ',
     'update_status' => 'Оновити статус',
     'passport_data' => 'Паспортні дані',
-    'confidant_person_not_exist' => 'Законний представник не був вказаний.',
 
     // Confidant persons
     'confidant_persons' => 'Законні представники',
@@ -246,7 +233,6 @@ return [
     // Summary record
     'summary' => 'Зведені дані',
     'data_access' => 'Доступ до даних',
-    'sync_ehealth_data' => 'Синхронізувати дані з ЕСОЗ',
     'sync_success' => 'Дані успішно синхронізовані',
     'show_more' => 'Побачити більше',
     'allergies' => 'Алергії',
@@ -259,7 +245,6 @@ return [
     'search_episode' => 'Пошук епізоду',
     'filter_code' => 'ЕСОЗ ID',
     'reset_filters' => 'Скинути фільтри',
-    'additional_params' => 'Додаткові параметри пошуку',
     'group_actions' => 'Групові дії',
     'revoke_access' => 'Відкликати доступ до записів',
     'filter_created_at_range' => 'Створено від - до',
@@ -271,17 +256,14 @@ return [
     // Diagnoses record
     'diagnoses_search' => 'Пошук діагнозів',
     'diagnostic_reports_search' => 'Пошук діагностичних звітів',
-    'diagnostic_report_not_found' => 'Діагностичних звітів не знайдено',
 
     // Observations record
     'observations' => 'Обстеження',
     'condition_search' => 'Пошук станів',
-    'observations_not_found' => 'Обстежень не знайдено',
 
     // Encounter
     'encounters' => 'Взаємодії',
     'encounter' => 'Взаємодія',
-    'main_data' => 'Основні дані',
     'reasons_for_visit' => 'Причини звернення',
     'prescriptions' => 'Рецепти',
     'referrals' => 'Направлення',
@@ -318,8 +300,6 @@ return [
     'episode_name' => 'Назва епізоду',
     'episode_type' => 'Тип епізоду',
     'episode_status' => 'Статус епізоду',
-    'episode_start_date' => 'Дата початку',
-    'episode_start_time' => 'Час початку',
 
     // Reasons
     'reason_for_visit' => 'Причина звернення',
@@ -329,7 +309,6 @@ return [
     'clinical_status' => 'Клінічний статус',
     'verification_status' => 'Статус верифікації',
     'entry_date' => 'Дата внесення',
-    'entry_time' => 'Час внесення',
     'severity_of_the_condition' => 'Ступінь тяжкості стану',
     'primary_source' => 'Первинне джерело',
     'new_primary_diagnose' => "Ви вказали новий основний діагноз.<br> Підтвердження дії змінить основний діагноз епізоду медичної допомоги!",
@@ -341,9 +320,7 @@ return [
     'evidence' => 'Докази',
     'evidence_observations' => 'Спостереження',
     'severity' => 'Ступінь тяжкості',
-    'end_date' => 'Дата кінця',
     'loading' => 'Завантаження...',
-    'input_code_or_name' => 'Почніть вводити код або назву',
     'new_diagnose_state' => 'Новий діагноз/стан',
     'edit_diagnose_state' => 'Редагувати діагноз/стан',
     'choose_coding_system' => 'Оберіть систему кодування',
@@ -351,12 +328,10 @@ return [
     'add_icpc2_code' => ' Додати код за ICPC-2',
     'add_diagnose' => 'Додати діагноз',
     'doctor_who_created_episode' => 'ПІБ лікаря, що створив епізод',
-    'conditions_not_found' => 'Стани не знайдено',
 
     // Additional data
     'additional_data' => 'Додаткові дані',
     'assignments' => 'Призначення',
-    'period_start' => 'Час початку',
     'period_end' => 'Час закінчення',
     'add_coauthor' => 'Додати співавтора',
     'find_doctor' => 'Знайти лікаря',
@@ -369,7 +344,6 @@ return [
     'immunization' => 'Вакцинація',
     'vaccine' => 'Вакцина',
     'dosage' => 'Дозування',
-    'execution_state' => 'Стан проведення',
     'reason' => 'Причина',
     'reasons' => 'Причини',
     'data' => 'Дані',
@@ -390,9 +364,6 @@ return [
     'vaccination_protocol_required' => 'Необхідно додати принаймні один протокол вакцинації.',
     'vaccination_protocol_required_fields' => 'Для цієї вакцинації необхідно заповнити порядковий номер дози, етап імунізації та кількість доз по протоколу.',
     'episode_id' => 'ID епізоду',
-    'date_from' => 'Дата проведення від',
-    'date_to' => 'Дата проведення до',
-    'immunizations_not_found' => 'Вакцинації не знайдено',
     'immunization_search' => 'Пошук вакцинації',
 
     // Diagnostic reports
@@ -426,7 +397,6 @@ return [
     'observation_method' => 'Метод спостереження',
     'interpretation_of_observation' => 'Інтерпретація спостереження',
     'date_and_time_of_receiving_the_indicators' => 'Дата та час отримання показників',
-    'diagnostic_report_id' => 'ID діагностичного звіту',
     'device_id' => 'ID девайсу',
 
     // Procedures
@@ -441,7 +411,7 @@ return [
     'complications_arising_during_the_procedure' => 'Ускладнення, що виникли під час процедури',
     'based_on' => 'ID направлення',
     'used_reference_id' => 'ID використаного обладнання',
-    'patients.procedure_search' => 'Пошук процедури',
+    'procedure_search' => 'Пошук процедури',
 
     // Clinical impressions
     'clinical_impression' => 'Клінічна оцінка',
@@ -453,7 +423,6 @@ return [
     'supporting_medical_information' => 'Підтверджуючі медичні дані',
     'medical_records_type' => 'тип медичних записів',
     'employee_who_created' => 'Співробітник, який створив',
-    'medical_record' => 'медичний запис',
     'clinical_impression_search' => 'Пошук клінічних оцінок',
 
     // Auth methods
@@ -500,7 +469,6 @@ return [
     'no_confidant_persons' => 'Законні представники відсутні',
     'inactive_status' => 'Неактивний',
     'no_requests' => 'Запити відсутні',
-    'view_as_unidentified_patient' => 'Переглянути як неідентифікований пацієнт',
     'main_info' => 'Основна інформація',
     'email_address' => 'Електронна адреса',
 
@@ -509,15 +477,12 @@ return [
         'person_already_has_offline_auth_method' => 'Пацієнт вже має метод автентифікації через документи.',
         'person_auth_methods_sync_error' => 'Помилка синхронізації методів автентифікації пацієнта.',
         'cannot_set_offline_auth_method_if_person_has_otp' => 'Не можна встановити метод автентифікації через документи, якщо пацієнт уже має метод через SMS.',
-        'otp_requires_self_auth_age' => 'Метод автентифікації через SMS доступний лише пацієнтам старшим за :age років.',
         'error_creating_approval' => 'Помилка під час створення затвердження для отримання даних пацієнта.',
         'authMethod' => [
             'only_third_person_for_person_with_confidants' => 'Для пацієнта з довіреними особами можна створити лише метод автентифікації через іншу особу.',
-            'only_third_person_can_be_updated' => 'Оновити можна лише метод автентифікації через іншу особу.',
             'cannot_deactivate_inactive' => 'Неможливо деактивувати неактивний метод автентифікації.',
             'cannot_deactivate_last' => 'Неможливо деактивувати останній метод автентифікації.',
             'only_third_person_can_be_deactivated' => 'Деактивувати можна лише метод автентифікації через іншу особу.',
-            'distinct' => 'Методи автентифікації "Через СМС" та "Через документи" є взаємно виключними.',
             'wrong_type' => 'Вибраний метод автентифікації не дозволяє здійснити дану операцію.',
             'not_found' => 'Метод автентифікації не знайдено.',
         ]
@@ -617,15 +582,11 @@ return [
         'diagnostic_report_cancel_reason_label' => 'Підстава помилкового внесення медичної документації',
         'diagnostic_report_cancel_reason_placeholder' => 'Підстава',
         'diagnostic_report_cancel_explanation_label' => 'Обґрунтування підстав визначення помилкового внесення медичної документації',
-        'diagnostic_report_cancel_explanation_placeholder' => 'Напишіть коментар тут',
         'diagnostic_report_cancel_confirm_button' => 'Позначити документ помилково внесеним',
-        'diagnostic_report_cancel_job_id_missing' => 'ЕСОЗ прийняв запит, але не повернув ідентифікатор задачі для перевірки результату.',
-        'diagnostic_report_cancel_job_failed' => 'ЕСОЗ не підтвердив позначення діагностичного звіту внесеним помилково.',
         'diagnostic_report_cancel_package_prepare_error' => 'Помилка підготовки пакета діагностичного звіту для позначення внесеним помилково.',
         'diagnostic_report_cancel_package_sign_error' => 'Помилка підписання пакета діагностичного звіту для позначення внесеним помилково.',
         'diagnostic_report_cancel_package_request_error' => 'Помилка відправлення запиту на позначення діагностичного звіту внесеним помилково.',
         'diagnostic_report_cancel_package_save_error' => 'Помилка збереження оновленого пакета діагностичного звіту після позначення внесеним помилково.',
-        'diagnostic_report_end_time_cannot_be_in_future' => 'Час завершення прийому не може бути в майбутньому.',
         'diagnostic_report_not_found' => 'Діагностичний звіт не знайдено.',
         'diagnostic_report_not_found_in_db' => 'Діагностичний звіт не знайдено в локальній базі даних. Спочатку синхронізуйте дані з ЕСОЗ.',
         'care_plans_synced_successfully' => 'Плани лікування успішно синхронізовані',
@@ -643,13 +604,11 @@ return [
         'procedure_sync_background_dispatch_error' => 'Помилка запуску фонової синхронізації процедур.',
         'procedure_cancel_request_sent' => 'Запит на позначення процедури внесеною помилково успішно відправлено.',
         'procedure_already_entered_in_error' => 'Процедуру вже позначено внесеною помилково.',
-        'procedure_created_by_another_employee_cannot_be_cancelled' => 'Процедуру, створену іншим працівником, не можна позначити внесеною помилково.',
         'procedure_cancel_modal_title' => 'Підтвердження щодо визначення помилково внесеної медичної документації про пацієнта в ЕСОЗ',
         'procedure_cancel_modal_description' => 'Дія є незворотною. Ви впевнені, що бажаєте позначити процедуру як внесену помилково? Медична документація, яка визначена такою, що внесена помилково, зберігається в електронній системі охорони здоров’я!',
         'procedure_cancel_reason_label' => 'Підстава помилкового внесення медичної документації',
         'procedure_cancel_reason_placeholder' => 'Підстава',
         'procedure_cancel_explanation_label' => 'Обґрунтування підстав визначення помилкового внесення медичної документації',
-        'procedure_cancel_explanation_placeholder' => 'Напишіть коментар тут',
         'procedure_cancel_confirm_button' => 'Позначити документ помилково внесеним',
         'procedure_cancel_package_prepare_error' => 'Помилка підготовки процедури для позначення внесеною помилково.',
         'procedure_cancel_package_sign_error' => 'Помилка підписання процедури для позначення внесеною помилково.',
@@ -657,18 +616,13 @@ return [
         'procedure_cancel_package_save_error' => 'Помилка збереження оновленого статусу процедури після позначення внесеною помилково.',
         'procedure_not_found' => 'Процедуру не знайдено.',
         'procedure_with_encounter_cannot_be_cancelled_separately' => 'Процедуру, створену у складі взаємодії, не можна позначити внесеною помилково окремо.',
-        'procedure_cannot_be_cancelled_by_current_user' => 'Поточний користувач не є автором процедури, не є медичним адміністратором цього НМП і не має дозволу write на цю процедуру.',
         'procedure_not_found_in_db' => 'Процедуру не знайдено в локальній базі даних. Спочатку синхронізуйте дані з ЕСОЗ.',
         'episode_cancel_modal_title' => 'Підтвердження щодо визначення помилково внесеної медичної документації про пацієнта в ЕСОЗ',
         'episode_cancel_modal_description' => 'Дія є незворотною. Ви впевнені, що бажаєте позначити епізод як внесений помилково? Медична документація, яка визначена такою, що внесена помилково, зберігається в електронній системі охорони здоров’я!',
         'episode_cancel_reason_label' => 'Підстава помилкового внесення медичної документації',
         'episode_cancel_reason_placeholder' => 'Підстава',
         'episode_cancel_explanation_label' => 'Обґрунтування підстав визначення помилкового внесення медичної документації',
-        'episode_cancel_explanation_placeholder' => 'Напишіть коментар тут',
         'episode_cancel_confirm_button' => 'Позначити документ помилково внесеним',
-        'episode_cancel_request_sent' => 'Запит на позначення епізоду внесеним помилково успішно відправлено.',
-        'episode_already_entered_in_error' => 'Епізод уже позначено внесеним помилково.',
-        'episode_cancel_package_save_error' => 'Помилка збереження статусу скасування епізоду.',
         'episode_not_found' => 'Епізод не знайдено.',
         'episode_close_modal_title' => 'Підтвердження щодо завершення епізоду в ЕСОЗ',
         'episode_close_modal_description' => 'Дія є незворотною. Ви впевнені, що бажаєте позначити епізод як завершений?',
@@ -678,21 +632,12 @@ return [
         'episode_close_summary_label' => 'Підсумок за епізодом',
         'episode_close_summary_placeholder' => 'Текст для введення',
         'episode_close_confirm_button' => 'Завершити епізод',
-        'episode_already_closed' => 'Епізод вже завершений.',
-        'episode_close_request_sent' => 'Запит на завершення епізоду успішно відправлено.',
-        'episode_close_package_save_error' => 'Помилка збереження статусу завершення епізоду.',
         'episode_edit_title' => 'Оновлення епізоду - :name',
         'episode_create_title' => 'Створення епізоду',
-        'episode_updated' => 'Епізод успішно оновлено.',
-        'episode_created' => 'Епізод успішно створено.',
-        'episode_update_save_error' => 'Помилка збереження оновлень епізоду.',
-        'episode_create_save_error' => 'Помилка збереження епізоду.',
-        'select_doctor' => 'Оберіть лікаря',
         'attending_doctor' => 'Лікуючий лікар',
         'cancel_changes' => 'Відмінити',
         'save_changes' => 'Зберегти зміни',
         'episode_ehealth_id' => 'eHealth ID епізоду',
-        'episode_created_at_date' => 'Дата створення',
         'episode_created_at_time' => 'Час створення',
         'episode_updated_at_date' => 'Дата оновлення',
         'episode_updated_at_time' => 'Час оновлення',
@@ -713,5 +658,4 @@ return [
         'episode_diagnosis_history_empty' => 'Історія змін основного діагнозу відсутня.',
         'episode_diagnosis_date' => 'Дата створення діагнозу',
     ],
-
 ];

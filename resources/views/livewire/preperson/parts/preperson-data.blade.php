@@ -232,7 +232,7 @@
                 <span>{{ __('preperson.info_certificate') }}</span>
             </button>
             <button type="button" class="button-primary-outline-red">
-                {{ __('preperson.register_death') }}
+                {{ __('patients.register_death') }}
             </button>
         @endif
     </div>

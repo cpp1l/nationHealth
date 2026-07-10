@@ -68,7 +68,7 @@
                                 name="explanatoryLetter"
                                 maxlength="255"
                                 class="input-modal min-h-24 px-4 py-3 text-sm"
-                                placeholder="{{ __('patients.messages.episode_cancel_explanation_placeholder') }}"
+                                placeholder="{{ __('forms.write_comment_here') }}"
                             ></textarea>
 
                             @error('explanatoryLetter')

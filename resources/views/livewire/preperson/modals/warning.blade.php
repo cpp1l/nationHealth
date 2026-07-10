@@ -42,14 +42,14 @@
                                 wire:navigate
                                 class="button-minor"
                             >
-                                {{ __('preperson.modal_btn_later') }}
+                                {{ __('preperson.continue_later') }}
                             </a>
                             <a
                                 href="{{ $createdPrepersonId ? route('prepersons.encounter.create', [legalEntity(), 'preperson' => $createdPrepersonId]) : '' }}"
                                 wire:navigate
                                 class="button-primary"
                             >
-                                {{ __('preperson.modal_btn_create') }}
+                                {{ __('preperson.create_encounter') }}
                             </a>
                         </div>
                     </div>

@@ -6,7 +6,7 @@
     maxWidth="4/5"
 >
     <x-slot name="title">
-        {{ __('preperson.merge.auth_methods') }}
+        {{ __('patients.authentication_methods') }}
     </x-slot>
 
     <div class="mt-8 space-y-4">
@@ -36,7 +36,7 @@
                     @if(!empty($authMethod['alias']))
                         <div>
                             <p class="text-sm font-medium text-gray-400 dark:text-gray-500">
-                                {{ __('preperson.merge.auth_method_name') }}
+                                {{ __('patients.authentication_method_name') }}
                             </p>
                             <p class="text-base font-semibold text-gray-900 dark:text-gray-100 mt-1">
                                 {{ $authMethod['alias'] }}

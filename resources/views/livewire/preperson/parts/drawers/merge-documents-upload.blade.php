@@ -4,7 +4,7 @@
     maxWidth="4/5"
 >
     <x-slot name="title">
-        {{ __('preperson.merge.auth_via_documents') }}
+        {{ __('patients.authentication_documents') }}
     </x-slot>
 
     <div x-data="{ selectedFiles: {} }">

@@ -96,7 +96,7 @@
                                placeholder=" "
                                required
                         />
-                        <label for="startDate" class="wrapped-label">{{ __('patients.episode_start_date') }}</label>
+                        <label for="startDate" class="wrapped-label">{{ __('forms.start_date') }}</label>
                         @error('startDate')
                             <p class="text-error mt-1 text-xs">{{ $message }}</p>
                         @enderror
@@ -112,7 +112,7 @@
                                placeholder=" "
                                required
                         />
-                        <label for="startTime" class="wrapped-label">{{ __('patients.episode_start_time') }}</label>
+                        <label for="startTime" class="wrapped-label">{{ __('forms.start_time') }}</label>
                         @error('startTime')
                             <p class="text-error mt-1 text-xs">{{ $message }}</p>
                         @enderror

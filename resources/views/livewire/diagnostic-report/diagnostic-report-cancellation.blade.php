@@ -63,7 +63,7 @@
                                 name="explanatoryLetter"
                                 maxlength="255"
                                 class="w-full min-h-48 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-5 py-4 text-lg text-gray-700 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500"
-                                placeholder="{{ __('patients.messages.diagnostic_report_cancel_explanation_placeholder') }}"
+                                placeholder="{{ __('forms.write_comment_here') }}"
                             ></textarea>
 
                             @error('form.explanatoryLetter')

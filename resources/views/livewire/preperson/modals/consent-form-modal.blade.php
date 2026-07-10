@@ -51,7 +51,7 @@
                         class="inline-flex items-center gap-2 border border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-blue-600 dark:text-blue-400 px-4 py-2.5 rounded-lg transition-colors font-semibold text-sm cursor-pointer"
                     >
                         @icon('printer', 'w-4 h-4')
-                        <span>{{ __('preperson.merge.print') }}</span>
+                        <span>{{ __('preperson.print') }}</span>
                     </button>
                 </div>
             </div>

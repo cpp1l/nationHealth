@@ -15,7 +15,7 @@
             <div>
                 <label for="mergeKnedp" class="default-label">{{ __('forms.knedp') }} *</label>
                 <select class="input-modal w-full" wire:model="form.knedp" name="mergeKnedp" id="mergeKnedp">
-                    <option value="" selected>{{ __('preperson.merge.select_knedp') }}</option>
+                    <option value="" selected>{{ __('forms.select') }}</option>
                     @foreach(signatureService()->getCertificateAuthorities() as $certificateType)
                         <option value="{{ $certificateType['id'] }}" wire:key="merge-{{ $certificateType['id'] }}">
                             {{ $certificateType['name'] }}
@@ -48,11 +48,11 @@
                             />
                         </svg>
                         <p class="mb-2 px-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                            <span class="font-semibold text-blue-600 dark:text-blue-400">{{ __('preperson.merge.drag_key_file') }}</span>
-                            {{ __('preperson.merge.or_upload_from_device') }}
+                            <span class="font-semibold text-blue-600 dark:text-blue-400">{{ __('forms.drag_key_file') }}</span>
+                            {{ __('forms.or_upload_from_device') }}
                         </p>
                         <p class="px-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                            {{ __('preperson.merge.key_file_extension_hint') }}
+                            {{ __('forms.key_file_extension_hint') }}
                         </p>
                     </div>
                     <input
@@ -72,7 +72,7 @@
 
                 <template x-if="fileName">
                     <div x-transition class="text-sm text-green-700 mt-2 font-medium">
-                        {!! __('preperson.merge.file_uploaded_success', ['name' => '<span class="font-semibold" x-text="fileName"></span>']) !!}
+                        {!! __('forms.file_uploaded_success', ['name' => '<span class="font-semibold" x-text="fileName"></span>']) !!}
                     </div>
                 </template>
 

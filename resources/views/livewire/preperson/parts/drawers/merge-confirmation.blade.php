@@ -16,10 +16,10 @@
                 @icon('alert-circle', 'w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 mt-0.5')
                 <div class="space-y-3.5 text-sm text-gray-755 dark:text-gray-300">
                     <p class="font-bold text-gray-900 dark:text-white flex items-center">
-                        {{ __('preperson.merge.doctor_obligations') }}
+                        {{ __('declarations.medical_worker_confirmation') }}
                     </p>
                     <div class="space-y-1">
-                        <p class="leading-relaxed">- {{ __('preperson.merge.confirm_identified') }}</p>
+                        <p class="leading-relaxed">- {{ __('declarations.patient_identified') }}</p>
                         <p class="leading-relaxed">- {{ __('preperson.merge.confirm_selected_correctly') }}</p>
                         <p class="leading-relaxed">- {{ __('preperson.merge.confirm_representative') }}</p>
                     </div>
@@ -31,12 +31,12 @@
                 <div class="flex items-center gap-2">
                     @icon('alert-circle', 'w-5 h-5 text-blue-600 dark:text-blue-400')
                     <h4 class="font-bold text-blue-800 dark:text-blue-300 text-sm tracking-wider">
-                        {{ __('preperson.merge.patient_memo') }}
+                        {{ __('declarations.patient_memo') }}
                     </h4>
                 </div>
                 <div class="space-y-3 text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
                     <p class="font-semibold">
-                        {{ __('preperson.merge.providing_code_or_docs') }}
+                        {{ __('declarations.sms_or_documents_note') }}
                     </p>
                     <div class="space-y-1">
                         <p>- {{ __('preperson.merge.memo_point_1') }}</p>
@@ -64,7 +64,7 @@
                     for="patientConsent"
                     class="text-sm font-medium text-gray-900 dark:text-gray-100 select-none cursor-pointer"
                 >
-                    {{ __('preperson.merge.memo_communicated') }}
+                    {{ __('patients.informed') }}
                 </label>
             </div>
         </div>

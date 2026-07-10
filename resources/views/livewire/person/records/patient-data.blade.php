@@ -22,7 +22,7 @@
             <button type="button" class="button-sync px-4 py-2 text-sm shadow-sm flex items-center gap-2"
                     style="margin: 0 !important;">
                 @icon('refresh', 'w-4 h-4')
-                <span>{{ __('patients.sync_ehealth_data') }}</span>
+                <span>{{ __('forms.synchronise_with_eHealth') }}</span>
             </button>
 
 

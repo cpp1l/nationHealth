@@ -31,7 +31,7 @@
                     @can('viewAny', Person::class)
                         <button wire:click.prevent="searchForPerson" class="flex items-center gap-2 button-primary">
                             @icon('search', 'w-4 h-4')
-                            <span>{{ __('patients.search') }}</span>
+                            <span>{{ __('forms.search') }}</span>
                         </button>
                     @endcan
                     <button type="button" wire:click="resetFilters" class="button-primary-outline-red">

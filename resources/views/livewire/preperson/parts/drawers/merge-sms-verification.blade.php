@@ -3,7 +3,7 @@
     onCloseClick="showMergeSmsDrawer = false"
     maxWidth="4/5"
 >
-    <x-slot name="title">{{ __('preperson.merge.auth_via_sms') }}</x-slot>
+    <x-slot name="title">{{ __('patients.authentication_SMS') }}</x-slot>
 
     <div x-data="{
         code: '',
@@ -26,7 +26,7 @@
                 class="p-6 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50 flex gap-3.5">
                 @icon('alert-circle', 'w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 mt-0.5')
                 <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {{ __('preperson.merge.phone_access_check') }}
+                    {{ __('patients.please_check_patient_number') }}:
                     <span class="font-semibold text-gray-900 dark:text-white">
                     {{ data_get($this->selectedAuthMethod, 'phoneNumber') }}
                 </span>
@@ -35,7 +35,7 @@
 
             <div class="space-y-6">
                 <h4 class="text-lg font-bold text-gray-900 dark:text-white">
-                    {{ __('preperson.merge.sms_code') }}
+                    {{ __('patients.code_sms') }}
                 </h4>
 
                 <div class="flex items-end gap-6">

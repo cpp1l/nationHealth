@@ -16,7 +16,7 @@
         <div class="mt-4" x-data="{ showFilter: true }">
             <div class="mb-8 flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
                 @icon('search-outline', 'w-4.5 h-4.5')
-                <p>{{ __('preperson.merge.search_patient') }}</p>
+                <p>{{ __('patients.patient_search') }}</p>
             </div>
 
             @include('livewire.person.parts.search-filter', ['context' => 'merge'])
@@ -93,8 +93,8 @@
                                 <thead class="thead-input">
                                 <tr>
                                     <th scope="col" class="th-input">{{ strtoupper(__('forms.city')) }}</th>
-                                    <th scope="col" class="th-input">{{ __('preperson.merge.tax_id_label') }}</th>
-                                    <th scope="col" class="th-input">{{ __('preperson.merge.birth_certificate_label') }}</th>
+                                    <th scope="col" class="th-input">{{ __('preperson.merge.tax_id') }}</th>
+                                    <th scope="col" class="th-input">{{ __('preperson.merge.birth_certificate') }}</th>
                                     <th scope="col" class="th-input">{{ strtoupper(__('forms.status.label')) }}</th>
                                 </tr>
                                 </thead>

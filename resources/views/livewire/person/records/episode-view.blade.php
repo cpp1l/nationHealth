@@ -41,7 +41,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="form-group datepicker-wrapper relative w-full">
                         <input value="{{ $episode->ehealthInsertedAt ? explode(' ', $episode->ehealthInsertedAt)[0] : '-' }}" type="text" class="peer input pl-10 appearance-none text-gray-500 dark:text-gray-400" placeholder=" " disabled />
-                        <label class="wrapped-label">{{ __('patients.messages.episode_created_at_date') }}</label>
+                        <label class="wrapped-label">{{ __('forms.created_at') }}</label>
                     </div>
                     <div class="form-group relative w-full">
                         @icon('clock', 'w-5 h-5 text-gray-500 dark:text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none')

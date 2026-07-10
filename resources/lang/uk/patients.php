@@ -627,6 +627,7 @@ return [
         'diagnostic_report_cancel_package_save_error' => 'Помилка збереження оновленого пакета діагностичного звіту після позначення внесеним помилково.',
         'diagnostic_report_end_time_cannot_be_in_future' => 'Час завершення прийому не може бути в майбутньому.',
         'diagnostic_report_not_found' => 'Діагностичний звіт не знайдено.',
+        'diagnostic_report_not_found_in_db' => 'Діагностичний звіт не знайдено в локальній базі даних. Спочатку синхронізуйте дані з ЕСОЗ.',
         'care_plans_synced_successfully' => 'Плани лікування успішно синхронізовані',
         'care_plans_first_page_synced_successfully' => 'Перша сторінка планів лікування синхронізована, решта обробляється у фоні',
         'care_plan_sync_already_running' => 'Синхронізація планів лікування вже запущена. Будь ласка, зачекайте її завершення.',

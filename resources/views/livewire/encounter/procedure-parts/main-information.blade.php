@@ -23,7 +23,7 @@
                         <option value="not_done">{{ __('patients.status.not_done') }}</option>
                     @endif
 
-                    @if(($context ?? null) === 'procedure' && data_get($this->form->procedure, 'status') === ProcedureStatus::ENTERED_IN_ERROR->value)
+                    @if(data_get($this->form, 'procedure.status') === ProcedureStatus::ENTERED_IN_ERROR->value)
                         <option value="{{ ProcedureStatus::ENTERED_IN_ERROR->value }}">
                             {{ __('patients.status.entered_in_error') }}
                         </option>

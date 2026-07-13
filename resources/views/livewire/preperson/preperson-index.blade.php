@@ -254,7 +254,7 @@
                 </div>
             </fieldset>
         @empty
-            <div class="max-w-6xl font-medium text-gray-500 text-center py-12">
+            <div class="shift-content max-w-6xl">
                 <x-nothing-found />
             </div>
         @endforelse

@@ -29,7 +29,7 @@ return [
     'code_and_name' => 'Код та назва',
     'diagnoses' => 'Діагнози',
     'encounter_search' => 'Пошук взаємодій',
-    'observation' => 'Обстеження',
+    'observation' => 'Спостереження',
     'information_source' => 'Джерело інформації',
     'other_source' => 'Інше джерело',
     'performer' => 'Виконавець',
@@ -300,6 +300,10 @@ return [
     'episode_name' => 'Назва епізоду',
     'episode_type' => 'Тип епізоду',
     'episode_status' => 'Статус епізоду',
+    'preperson_observations_alert_title' => 'Обов’язкові спостереження для неідентифікованого пацієнта',
+    'preperson_observations_alert_text' => 'Стать, зріст тіла, вага тіла',
+    'episode_start_date' => 'Дата початку',
+    'episode_start_time' => 'Час початку',
 
     // Reasons
     'reason_for_visit' => 'Причина звернення',

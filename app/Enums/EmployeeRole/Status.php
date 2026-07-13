@@ -23,4 +23,12 @@ enum Status: string
             self::INACTIVE => __('forms.status.non_active')
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'badge-green',
+            self::INACTIVE => 'badge-red'
+        };
+    }
 }

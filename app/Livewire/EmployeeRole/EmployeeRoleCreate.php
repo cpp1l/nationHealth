@@ -49,14 +49,24 @@ class EmployeeRoleCreate extends Component
         $this->getDictionary();
 
         $this->employees = Employee::activeSpecialists($legalEntity->id)->get()
-            ->map(static fn (Employee $employee) => [
+            ->map(fn (Employee $employee): array => [
                 'uuid' => $employee->uuid,
-                'fullName' => $employee->fullName,
-                'position' => $employee->position
+                'label' => $employee->fullName . ' - ' . ($this->dictionaries['POSITION'][$employee->position] ?? '')
             ])
             ->toArray();
 
-        $this->healthcareServices = HealthcareService::active()->get()->toArray();
+        $this->healthcareServices = HealthcareService::active()->get()
+            ->map(function (HealthcareService $healthcareService): array {
+                $specialityPrefix = $healthcareService->specialityType
+                    ? ($this->dictionaries['SPECIALITY_TYPE'][$healthcareService->specialityType] ?? '') . ' - '
+                    : '';
+
+                return [
+                    'uuid' => $healthcareService->uuid,
+                    'label' => $specialityPrefix . $healthcareService->division->name
+                ];
+            })
+            ->toArray();
     }
 
     public function create(): void

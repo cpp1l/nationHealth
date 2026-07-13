@@ -99,38 +99,39 @@ class EmployeeRole extends Model
     }
 
     /**
-     * Filter by party full name.
+     * Filter by the selected employee (used as employee_id in the request).
      *
      * @param  Builder  $query
-     * @param  string  $search
+     * @param  string|null  $employeeUuid
      * @return Builder
      */
     #[Scope]
-    protected function filterByEmployeeSearch(Builder $query, string $search): Builder
+    protected function filterByEmployeeId(Builder $query, ?string $employeeUuid): Builder
     {
-        if ($search) {
+        if ($employeeUuid) {
             $query->whereHas(
                 'employee',
-                fn (Builder $employeeQuery) => $employeeQuery->whereHas(
-                    'party',
-                    fn (Builder $partyQuery) => $partyQuery
-                        ->whereLike('first_name', "%$search%")
-                        ->orWhereLike('last_name', "%$search%")
-                        ->orWhereLike('second_name', "%$search%")
-                )
+                fn (Builder $employeeQuery) => $employeeQuery->whereUuid($employeeUuid)
             );
         }
 
         return $query;
     }
 
+    /**
+     * Filter by the selected healthcare service (used as healthcare_service_id in the request).
+     *
+     * @param  Builder  $query
+     * @param  string|null  $healthcareServiceUuid
+     * @return Builder
+     */
     #[Scope]
-    protected function filterBySpecialityType(Builder $query, ?string $specialityTypeFilter): Builder
+    protected function filterByHealthcareServiceId(Builder $query, ?string $healthcareServiceUuid): Builder
     {
-        if ($specialityTypeFilter) {
+        if ($healthcareServiceUuid) {
             $query->whereHas(
                 'healthcareService',
-                fn (Builder $subQuery) => $subQuery->where('speciality_type', $specialityTypeFilter)
+                fn (Builder $healthcareServiceQuery) => $healthcareServiceQuery->whereUuid($healthcareServiceUuid)
             );
         }
 

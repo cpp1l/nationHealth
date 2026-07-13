@@ -33,33 +33,23 @@
                 <form wire:submit.prevent="applyFilters">
                     <div>
                         <div class="form-row-3">
-                            <div class="form-group group">
-                                <input
-                                    type="search"
-                                    id="employeeSearch"
-                                    placeholder=" "
-                                    class="input peer pl-8"
-                                    wire:model="employeeSearch"
-                                    autocomplete="off"
-                                />
-                                <label for="employeeSearch" class="label pl-8">
-                                    {{ __('employee-roles.search_by_employee') }}
-                                </label>
-                                @icon('search', 'w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none')
-                            </div>
+                            <x-forms.combobox
+                                :options="$employees"
+                                bind="employeeIdFilter"
+                                bindValue="uuid"
+                                bindParam="label"
+                                :label="__('employee-roles.search_by_employee')"
+                            />
                         </div>
 
                         <div class="form-row-3">
-                            <div class="form-group group">
-                                <select wire:model="specialityTypeFilter" id="specialityType" class="input-select">
-                                    <option value="" selected>{{ __('employee-roles.speciality_type') }}</option>
-                                    @foreach($healthcareServiceSpecialityTypes as $type)
-                                        <option value="{{ $type }}">
-                                            {{ $dictionaries['SPECIALITY_TYPE'][$type] }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <x-forms.combobox
+                                :options="$healthcareServices"
+                                bind="healthcareServiceIdFilter"
+                                bindValue="uuid"
+                                bindParam="label"
+                                :label="__('employee-roles.healthcareServiceId')"
+                            />
                         </div>
 
                         @php
@@ -95,8 +85,9 @@
         </x-slot>
     </x-header-navigation>
 
-    <div class="flow-root mt-8 shift-content pl-3.5"
-         wire:key="employee-roles-table-page-{{ $employeeRoles->total() }}-{{ $employeeRoles->currentPage() }}"
+    <div
+        class="flow-root mt-8 shift-content pl-3.5"
+        wire:key="employee-roles-table-page-{{ $employeeRoles->total() }}-{{ $employeeRoles->currentPage() }}"
     >
         <div class="max-w-7xl">
             @if($employeeRoles->isNotEmpty())
@@ -137,13 +128,7 @@
                                     {{ formatDisplayDate($employeeRole->endDate) ?: '-' }}
                                 </td>
                                 <td class="index-table-td">
-                                    <span class="{{
-                                        match($employeeRole->status) {
-                                            Status::ACTIVE => 'badge-green',
-                                            Status::INACTIVE => 'badge-red',
-                                            default => ''
-                                        }
-                                    }}">
+                                    <span class="{{ $employeeRole->status->color() }}">
                                         {{ $employeeRole->status->label() }}
                                     </span>
                                 </td>

@@ -15,6 +15,9 @@ use Illuminate\Bus\Batch;
 use Illuminate\View\View;
 use App\Models\LegalEntity;
 use App\Models\EmployeeRole;
+use App\Models\HealthcareService;
+use App\Models\Employee\Employee;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\WithPagination;
 use App\Jobs\EmployeeRoleSync;
 use App\Repositories\Repository;
@@ -39,20 +42,20 @@ class EmployeeRoleIndex extends Component
     protected const string BATCH_NAME = 'EmployeeRoleSync';
 
     /**
-     * Full name of employee.
-     *
-     * @var string
-     */
-    #[Url(as: 'search')]
-    public string $employeeSearch = '';
-
-    /**
-     * Chosen speciality type for filter.
+     * Selected employee (used as employee_id filter).
      *
      * @var string|null
      */
-    #[Url(as: 'speciality')]
-    public ?string $specialityTypeFilter = null;
+    #[Url(as: 'employee')]
+    public ?string $employeeIdFilter = null;
+
+    /**
+     * Selected healthcare service (used as healthcare_service_id filter).
+     *
+     * @var string|null
+     */
+    #[Url(as: 'healthcare_service')]
+    public ?string $healthcareServiceIdFilter = null;
 
     /**
      * Statuses by default.
@@ -63,11 +66,18 @@ class EmployeeRoleIndex extends Component
     public array $statusFilter = ['ACTIVE'];
 
     /**
-     * List of all speciality types.
+     * Employees that have roles in the current legal entity (filter options).
      *
      * @var array
      */
-    public array $healthcareServiceSpecialityTypes;
+    public array $employees = [];
+
+    /**
+     * Healthcare services that have roles in the current legal entity (filter options).
+     *
+     * @var array
+     */
+    public array $healthcareServices = [];
 
     protected array $dictionaryNames = ['SPECIALITY_TYPE', 'PROVIDING_CONDITION'];
 
@@ -127,7 +137,45 @@ class EmployeeRoleIndex extends Component
     {
         $this->getDictionary();
 
-        $this->healthcareServiceSpecialityTypes = array_keys($this->dictionaries['SPECIALITY_TYPE']);
+        $roleKeys = EmployeeRole::whereHas(
+            'healthcareService',
+            static fn (Builder $query) => $query->whereLegalEntityId($legalEntity->id)
+        )
+            ->get(['employee_id', 'healthcare_service_id']);
+
+        $this->employees = Employee::whereIn('id', $roleKeys->pluck('employee_id')->unique())
+            ->with([
+                'party:id,first_name,last_name,second_name',
+                'specialities:specialityable_id,specialityable_type,speciality,speciality_officio'
+            ])
+            ->get(['id', 'uuid', 'party_id'])
+            ->map(function (Employee $employee): array {
+                $officioSpeciality = $employee->specialities->firstWhere('specialityOfficio', true)?->speciality;
+                $specialitySuffix = $officioSpeciality
+                    ? ' - ' . ($this->dictionaries['SPECIALITY_TYPE'][$officioSpeciality] ?? $officioSpeciality)
+                    : '';
+
+                return [
+                    'uuid' => $employee->uuid,
+                    'label' => $employee->fullName . $specialitySuffix
+                ];
+            })
+            ->toArray();
+
+        $this->healthcareServices = HealthcareService::whereIn('id', $roleKeys->pluck('healthcare_service_id')->unique())
+            ->with('division:id,name')
+            ->get(['id', 'uuid', 'speciality_type', 'division_id'])
+            ->map(function (HealthcareService $healthcareService): array {
+                $specialityPrefix = $healthcareService->specialityType
+                    ? ($this->dictionaries['SPECIALITY_TYPE'][$healthcareService->specialityType] ?? '') . ' - '
+                    : '';
+
+                return [
+                    'uuid' => $healthcareService->uuid,
+                    'label' => $specialityPrefix . $healthcareService->division->name
+                ];
+            })
+            ->toArray();
 
         $this->syncStatus = $this->getSyncStatus();
     }
@@ -139,8 +187,18 @@ class EmployeeRoleIndex extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['employeeSearch', 'specialityTypeFilter', 'statusFilter']);
+        $this->reset(['employeeIdFilter', 'healthcareServiceIdFilter', 'statusFilter']);
 
+        $this->resetPage();
+    }
+
+    public function updatedEmployeeIdFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedHealthcareServiceIdFilter(): void
+    {
         $this->resetPage();
     }
 
@@ -245,8 +303,8 @@ class EmployeeRoleIndex extends Component
     public function employeeRoles(): LengthAwarePaginator
     {
         return EmployeeRole::forLegalEntity()
-            ->filterByEmployeeSearch($this->employeeSearch)
-            ->filterBySpecialityType($this->specialityTypeFilter)
+            ->filterByEmployeeId($this->employeeIdFilter)
+            ->filterByHealthcareServiceId($this->healthcareServiceIdFilter)
             ->filterByStatus($this->statusFilter)
             ->paginate(config('pagination.per_page'));
     }

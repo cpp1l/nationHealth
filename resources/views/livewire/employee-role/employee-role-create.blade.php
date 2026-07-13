@@ -8,60 +8,24 @@
             <legend class="legend">{{ __('employee-roles.new') }}</legend>
 
             <div class="form-row-2">
-                <div class="form-group group">
-                    <label for="healthcareServiceId" class="label-modal">
-                        {{ __('employee-roles.healthcareServiceId') }}
-                    </label>
+                <x-forms.combobox
+                    :options="$healthcareServices"
+                    bind="form.healthcareServiceId"
+                    bindValue="uuid"
+                    bindParam="label"
+                    :isRequired="true"
+                    :label="__('employee-roles.healthcareServiceId')"
+                />
 
-                    <select
-                        wire:model="form.healthcareServiceId"
-                        id="healthcareServiceId"
-                        name="healthcareServiceId"
-                        class="input-select peer"
-                        type="text"
-                        required
-                    >
-                        <option value="" selected>{{ __('forms.select') }}</option>
-                        @foreach($healthcareServices as $healthcareService)
-                            <option value="{{ $healthcareService['uuid'] }}">
-                                @if (!empty($healthcareService['specialityType']))
-                                    {{ $dictionaries['SPECIALITY_TYPE'][$healthcareService['specialityType']] ?? '' }} -
-                                @endif
-                                {{ $healthcareService['division']['name'] }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    @error('form.healthcareServiceId')
-                    <p class="text-error">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="form-group group">
-                    <label for="employeeId" class="label-modal">{{ __('employee-roles.employeeId') }}</label>
-
-                    <select
-                        wire:model="form.employeeId"
-                        id="employeeId"
-                        name="employeeId"
-                        class="input-select peer"
-                        type="text"
-                        required
-                    >
-                        <option value="" selected>{{ __('forms.select') }}</option>
-                        @foreach($employees as $employee)
-                            <option value="{{ $employee['uuid'] }}">
-                                {{ $employee['fullName'] }} - {{ $dictionaries['POSITION'][$employee['position']] }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    @error('form.employeeId')
-                    <p class="text-error">{{ $message }}</p>
-                    @enderror
-                </div>
+                <x-forms.combobox
+                    :options="$employees"
+                    bind="form.employeeId"
+                    bindValue="uuid"
+                    bindParam="label"
+                    :isRequired="true"
+                    :label="__('employee-roles.employeeId')"
+                />
             </div>
-
         </fieldset>
 
         <div class="flex gap-8">

@@ -45,7 +45,8 @@ class ProcedureMapper implements FhirMapperContract
                 ->toCodeableConcept(),
         ];
 
-        $hasPerformedPeriod = !empty($data['performedPeriodStartDate'])
+        $hasPerformedPeriod = $status === ProcedureStatus::COMPLETED
+            && !empty($data['performedPeriodStartDate'])
             && !empty($data['performedPeriodStartTime'])
             && !empty($data['performedPeriodEndDate'])
             && !empty($data['performedPeriodEndTime']);
@@ -130,19 +131,17 @@ class ProcedureMapper implements FhirMapperContract
         if ($data['primarySource']) {
             $result['performer'] = FhirResource::make()
                 ->coding('eHealth/resources', 'employee')
-                ->toIdentifier($uuids['employee']);
+                ->toIdentifier($uuids['procedureEmployee'] ?? $uuids['employee']);
+        } else {
+            $result['reportOrigin'] = FhirResource::make()
+                ->coding('eHealth/report_origins', $data['reportOriginCode'])
+                ->toCodeableConcept($data['reportOriginText'] ?? '');
         }
 
         if ($hasEncounter) {
             $result['encounter'] = FhirResource::make()
                 ->coding('eHealth/resources', 'encounter')
                 ->toIdentifier($uuids['encounter']);
-
-            if (!$data['primarySource']) {
-                $result['reportOrigin'] = FhirResource::make()
-                    ->coding('eHealth/report_origins', $data['reportOriginCode'])
-                    ->toCodeableConcept($data['reportOriginText'] ?? '');
-            }
 
             if (!empty($data['complicationDetails'])) {
                 $result['complicationDetails'] = collect($data['complicationDetails'])

@@ -185,6 +185,7 @@ Route::prefix('prepersons')
 
         Route::get('/{preperson}/procedure/create', ProcedureCreate::class)
             ->can('view', 'preperson')
+            ->can('create', Procedure::class)
             ->name('procedure.create');
         Route::get('/{preperson}/procedure/{procedureId}', ProcedureEdit::class)
             ->can('view', 'preperson')

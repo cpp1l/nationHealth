@@ -29,21 +29,20 @@ class ProcedureForm extends BaseForm
         $hasBasedOn = !empty(data_get($this->procedure, 'basedOnIdentifier'));
         $hasPaperReferralData = !empty(data_get($this->procedure, 'paperReferralRequesterLegalEntityEdrpou'));
 
+        $isPrimarySourceFalse = data_get($this->procedure, 'primarySource') === false;
+        $isPrimarySourceTrue = data_get($this->procedure, 'primarySource') === true;
+
         return [
             'procedure.uuid' => ['nullable', 'uuid'],
             'procedure.status' => ['required', Rule::in([
                 ProcedureStatus::COMPLETED->value,
+                ProcedureStatus::NOT_DONE->value,
             ])],
             'procedure.categoryCode' => ['required', 'string', new InDictionary('eHealth/procedure_categories')],
             'procedure.codeValue' => ['required', 'uuid'],
             'procedure.primarySource' => [
                 'required',
                 'boolean',
-                static function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($value !== true) {
-                        $fail(__('validation.accepted'));
-                    }
-                },
             ],
             'procedure.divisionId' => ['nullable', 'uuid'],
             'procedure.outcomeCode' => ['nullable', 'string', new InDictionary('eHealth/procedure_outcomes')],
@@ -54,6 +53,14 @@ class ProcedureForm extends BaseForm
                 'required',
                 Rule::in(['electronic', 'paper']),
             ],
+            'procedure.reportOriginCode' => [
+                Rule::requiredIf($isPrimarySourceFalse),
+                Rule::prohibitedIf($isPrimarySourceTrue),
+                'nullable',
+                'string',
+                new InDictionary('eHealth/report_origins'),
+            ],
+            'procedure.reportOriginText' => ['nullable', 'string', 'max:255'],
             'procedure.basedOnIdentifier' => [
                 Rule::requiredIf($isElectronicReferral),
                 Rule::prohibitedIf($isPaperReferral),

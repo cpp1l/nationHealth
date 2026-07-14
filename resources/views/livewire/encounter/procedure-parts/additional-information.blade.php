@@ -7,7 +7,7 @@
         {{ __('forms.additional_info') }}
     </legend>
 
-    {{-- Procedure with primary_source=false could be send only with encounter package --}}
+    {{-- Procedure information source --}}
     <div class="flex gap-20 md:mb-5 mb-4">
         <h2 class="default-p font-bold">{{ __('patients.information_source') }}</h2>
 
@@ -30,22 +30,20 @@
             </label>
         </div>
 
-        @if($context === 'encounter')
-            <div class="flex items-center">
-                <input @change="modalProcedure.primarySource = false"
-                    x-model.boolean="modalProcedure.primarySource"
-                    id="patient"
-                    type="radio"
-                    value="false"
-                    name="primarySource"
-                    class="default-radio"
-                    :checked="modalProcedure.primarySource === false"
-                >
-                <label for="patient" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                    {{ __('patients.other_source') }}
-                </label>
-            </div>
-        @endif
+        <div class="flex items-center">
+            <input @change="modalProcedure.primarySource = false"
+                x-model.boolean="modalProcedure.primarySource"
+                id="patient"
+                type="radio"
+                value="false"
+                name="primarySource"
+                class="default-radio"
+                :checked="modalProcedure.primarySource === false"
+            >
+            <label for="patient" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                {{ __('patients.other_source') }}
+            </label>
+        </div>
     </div>
 
     {{-- When the performer is chosen --}}
@@ -104,8 +102,8 @@
                         {{ __('patients.procedure_start_date_and_time') }}
                     </label>
 
-                    @error('form.procedures.performedPeriodStartDate')
-                    <p class="text-error">{{ $message }}</p>
+                    @error($procedureErrorPath . '.performedPeriodStartDate')
+                        <p class="text-error">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
@@ -125,8 +123,8 @@
                     >
                 </div>
 
-                @error('form.procedures.performedPeriodStartTime')
-                <p class="text-error">{{ $message }}</p>
+                @error($procedureErrorPath . '.performedPeriodStartTime')
+                    <p class="text-error">{{ $message }}</p>
                 @enderror
             </div>
         </div>
@@ -151,8 +149,8 @@
                         {{ __('patients.procedure_end_date_and_time') }}
                     </label>
 
-                    @error('form.procedures.performedPeriodEndDate')
-                    <p class="text-error">{{ $message }}</p>
+                    @error($procedureErrorPath . '.performedPeriodEndDate')
+                        <p class="text-error">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
@@ -172,8 +170,8 @@
                     >
                 </div>
 
-                @error('form.procedures.performedPeriodEndTime')
-                <p class="text-error">{{ $message }}</p>
+                @error($procedureErrorPath . '.performedPeriodEndTime')
+                    <p class="text-error">{{ $message }}</p>
                 @enderror
             </div>
         </div>

@@ -19,8 +19,10 @@
                     <option value="">{{ __('forms.select') }} {{ mb_strtolower(__('forms.status.label')) }} *</option>
                     <option value="completed">{{ __('patients.status.completed') }}</option>
 
-                    @if(($context ?? null) === 'encounter')
-                        <option value="not_done">{{ __('patients.status.not_done') }}</option>
+                    @if(in_array(($context ?? null), ['encounter', 'procedure'], true))
+                        <option value="{{ ProcedureStatus::NOT_DONE->value }}">
+                            {{ __('patients.status.not_done') }}
+                        </option>
                     @endif
 
                     @if(data_get($this->form, 'procedure.status') === ProcedureStatus::ENTERED_IN_ERROR->value)

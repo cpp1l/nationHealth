@@ -22,6 +22,7 @@ use App\Livewire\Contract\ReimbursementContractCreate;
 use App\Livewire\ContractRequest\ContractRequestEdit;
 use App\Livewire\ContractRequest\ContractRequestIndex;
 use App\Livewire\ContractRequest\ContractRequestShow;
+use App\Models\Contracts\ContractRequest;
 use App\Livewire\Dashboard;
 use App\Livewire\Declaration\DeclarationIndex;
 use App\Livewire\Division\DivisionCreate;
@@ -227,8 +228,12 @@ Route::middleware(['auth:ehealth', 'verified'])->group(function () {
                     ->name('show')
                     ->middleware('can:view,contractRequest');
                 Route::get('/{contractRequest}/edit', ContractRequestEdit::class)->name('edit');
-                Route::get('/create/capitation', CapitationContractCreate::class)->name('capitation.create');
-                Route::get('/create/reimbursement', ReimbursementContractCreate::class)->name('reimbursement.create');
+                Route::get('/create/capitation', CapitationContractCreate::class)
+                    ->name('capitation.create')
+                    ->middleware('can:createCapitation,'.ContractRequest::class);
+                Route::get('/create/reimbursement', ReimbursementContractCreate::class)
+                    ->name('reimbursement.create')
+                    ->middleware('can:createReimbursement,'.ContractRequest::class);
             });
 
             // Routes related to legal entity licenses; primary license can't be edited

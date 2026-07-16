@@ -10,21 +10,23 @@
         <x-slot name="title">{{ __('contracts.contract_requests') }}</x-slot>
 
         <div class="mt-3 ml-0 flex flex-col sm:flex-row sm:flex-wrap gap-2 self-start">
-            @if(legalEntity()->type->name === \App\Models\LegalEntity::TYPE_PRIMARY_CARE)
+            @can('createCapitation', ContractRequest::class)
                 <a href="{{ route('contract-request.capitation.create', [legalEntity()]) }}"
                    wire:navigate
                    class="button-primary flex items-center gap-2 whitespace-nowrap">
                     @icon('plus', 'w-4 h-4')
                     {{ __('contracts.new') }} ({{ __('contracts.capitation') }})
                 </a>
-            @else
+            @endcan
+
+            @can('createReimbursement', ContractRequest::class)
                 <a href="{{ route('contract-request.reimbursement.create', [legalEntity()]) }}"
                    wire:navigate
                    class="button-primary flex items-center gap-2 whitespace-nowrap">
                     @icon('plus', 'w-4 h-4')
                     {{ __('contracts.new') }} ({{ __('contracts.reimbursement') }})
                 </a>
-            @endif
+            @endcan
 
             @can('sync', ContractRequest::class)
                 <button wire:click="sync" type="button" class="button-sync flex items-center gap-2 whitespace-nowrap">

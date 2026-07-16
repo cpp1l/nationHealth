@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Contracts\ContractRequest;
+use App\Models\LegalEntity;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -57,6 +58,31 @@ class ContractRequestPolicy
         return $user->can('contract_request:create')
             ? Response::allow()
             : Response::denyWithStatus(404);
+    }
+
+    /**
+     * Capitation contract creation is currently disabled for all legal entity types
+     * (including PRIMARY_CARE and OUTPATIENT).
+     */
+    public function createCapitation(User $user): Response
+    {
+        return Response::denyWithStatus(404);
+    }
+
+    /**
+     * Reimbursement contract creation is allowed only for pharmacy legal entities.
+     */
+    public function createReimbursement(User $user): Response
+    {
+        if (!$user->can('contract_request:create')) {
+            return Response::denyWithStatus(404);
+        }
+
+        if (legalEntity()->type->name !== LegalEntity::TYPE_PHARMACY) {
+            return Response::denyWithStatus(404);
+        }
+
+        return Response::allow();
     }
 
     /**

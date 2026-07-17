@@ -13,15 +13,21 @@
         </x-slot>
 
         <div class="mt-3 ml-0 flex flex-col sm:flex-row sm:flex-wrap gap-2 self-start">
-            <a href="{{ route('equipment.create', [legalEntity()]) }}" class="button-primary flex items-center gap-2">
-                @icon('plus', 'w-4 h-4')
-                {{ __('equipments.new') }}
-            </a>
+            @can('create', Equipment::class)
+                <a
+                    href="{{ route('equipment.create', [legalEntity()]) }}"
+                    class="button-primary flex items-center gap-2"
+                >
+                    @icon('plus', 'w-4 h-4')
+                    {{ __('equipments.new') }}
+                </a>
+            @endcan
 
             @can('sync', Equipment::class)
-                <button type="button"
-                        wire:click="{{ !$this->isSync ? 'sync' : '' }}"
-                        class="{{ $this->isSync ? 'button-sync-disabled' : 'button-sync' }} flex items-center gap-2 whitespace-nowrap"
+                <button
+                    type="button"
+                    wire:click="{{ !$this->isSync ? 'sync' : '' }}"
+                    class="{{ $this->isSync ? 'button-sync-disabled' : 'button-sync' }} flex items-center gap-2 whitespace-nowrap"
                     {{ $this->isSync ? 'disabled' : '' }}
                 >
                     @icon('refresh', 'w-4 h-4')

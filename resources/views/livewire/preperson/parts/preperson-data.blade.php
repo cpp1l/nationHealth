@@ -57,7 +57,7 @@
                                     autocomplete="off"
                                     readonly
                                 />
-                                <label class="wrapped-label">{{ __('preperson.created_date') }}</label>
+                                <label class="wrapped-label">{{ __('forms.created_at') }}</label>
                             </div>
 
                             <div class="form-group relative w-full">
@@ -70,7 +70,7 @@
                                     autocomplete="off"
                                     readonly
                                 />
-                                <label class="wrapped-label">{{ __('preperson.created_time') }}</label>
+                                <label class="wrapped-label">{{ __('forms.created_time') }}</label>
                             </div>
                         </div>
                     </div>
@@ -84,7 +84,7 @@
                             autocomplete="off"
                             readonly
                         />
-                        <label class="label">{{ __('preperson.created_by') }}</label>
+                        <label class="label">{{ __('forms.created_by') }}</label>
                     </div>
                 </div>
 
@@ -101,7 +101,7 @@
                                     autocomplete="off"
                                     readonly
                                 />
-                                <label class="wrapped-label">{{ __('preperson.updated_date') }}</label>
+                                <label class="wrapped-label">{{ __('forms.updated_at') }}</label>
                             </div>
 
                             <div class="form-group relative w-full">
@@ -114,7 +114,7 @@
                                     autocomplete="off"
                                     readonly
                                 />
-                                <label class="wrapped-label">{{ __('preperson.updated_time') }}</label>
+                                <label class="wrapped-label">{{ __('forms.updated_time') }}</label>
                             </div>
                         </div>
                     </div>
@@ -128,12 +128,45 @@
                             autocomplete="off"
                             readonly
                         />
-                        <label class="label">{{ __('preperson.updated_by') }}</label>
+                        <label class="label">{{ __('forms.updated_by') }}</label>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    @can('create', MergeRequest::class)
+        @if($preperson->status !== Status::DRAFT)
+            <div x-data="{ open: true }"
+                 class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                <h2>
+                    <button
+                        type="button"
+                        class="flex items-center justify-between w-full px-6 py-4 text-left group cursor-pointer"
+                        @click="open = !open"
+                        :aria-expanded="open"
+                    >
+                        <span class="text-base font-semibold text-gray-900 dark:text-white">
+                            {{ __('preperson.identification') }}
+                        </span>
+                        @icon('chevron-down', 'w-5 h-5 text-gray-400 transition-transform group-aria-expanded:rotate-180 shrink-0')
+                    </button>
+                </h2>
+                <div x-show="open">
+                    <div class="px-6 pb-6 border-t border-gray-100 dark:border-gray-700 pt-4">
+                        <button
+                            type="button"
+                            @click="showMergePatientDrawer = true"
+                            class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium"
+                        >
+                            @icon('plus', 'w-4 h-4')
+                            <span class="text-sm">{{ __('preperson.associate_patient') }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endcan
 
 
 

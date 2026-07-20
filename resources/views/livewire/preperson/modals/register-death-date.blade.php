@@ -22,15 +22,16 @@
                     <div class="space-y-4">
                         <div class="form-group group max-w-[200px]">
                             <div class="datepicker-wrapper">
-                                <input wire:model="deathDate"
-                                       datepicker-max-date="{{ now()->format(config('app.date_format')) }}"
-                                       type="text"
-                                       name="deathDate"
-                                       id="deathDate"
-                                       class="datepicker-input with-leading-icon input peer @error('deathDate') input-error @enderror"
-                                       placeholder=" "
-                                       required
-                                       autocomplete="off"
+                                <input
+                                    type="text"
+                                    id="deathDate"
+                                    name="deathDate"
+                                    wire:model="deathDate"
+                                    datepicker-max-date="{{ now()->format(config('app.date_format')) }}"
+                                    class="datepicker-input with-leading-icon input peer @error('deathDate') input-error @enderror"
+                                    placeholder=" "
+                                    required
+                                    autocomplete="off"
                                 />
                                 <label for="deathDate" class="wrapped-label">
                                     {{ __('preperson.death_date') }}
@@ -38,9 +39,9 @@
                             </div>
 
                             @error('deathDate')
-                            <p class="text-error mt-1 text-xs">
-                                {{ $message }}
-                            </p>
+                                <p class="text-error mt-1 text-xs">
+                                    {{ $message }}
+                                </p>
                             @enderror
                         </div>
                     </div>

@@ -113,6 +113,11 @@ class LicensePolicy
             return Response::denyWithStatus(403, __('licenses.policy.primary_not_editable'));
         }
 
+        // The additional license can be updated for legal entities with an active primary license.
+        if (!legalEntity()->hasActivePrimaryLicense()) {
+            return Response::denyWithStatus(404);
+        }
+
         return Response::allow();
     }
 }

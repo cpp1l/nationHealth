@@ -37,15 +37,18 @@ class LicenseForm extends Form
     {
         $allowedTypes = array_keys($this->component->licenseTypes);
 
-        return [
-            'type' => [
+        // On update the license type is immutable, so it must equal the original type.
+        // On create the legal entity must not already have a license with the same type.
+        $typeRules = $this->component->uuid === ''
+            ? [
                 'required',
                 Rule::in($allowedTypes),
-                // Check that legal entity does not have license with type same as in request.
-                Rule::unique('licenses', 'type')
-                    ->where('legal_entity_id', legalEntity()->id)
-                    ->ignore($this->component->uuid, 'uuid')
-            ],
+                Rule::unique('licenses', 'type')->where('legal_entity_id', legalEntity()->id)
+            ]
+            : ['required', Rule::in([$this->component->originalType])];
+
+        return [
+            'type' => $typeRules,
             'licenseNumber' => ['nullable', 'string', 'max:255'],
             'issuedBy' => ['required', 'string', 'max:255'],
             'issuedDate' => ['required', 'date_format:' . config('app.date_format'), 'before_or_equal:activeFromDate'],

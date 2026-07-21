@@ -16,6 +16,9 @@ abstract class LicenseComponent extends Component
     #[Locked]
     public string $uuid = '';
 
+    #[Locked]
+    public string $originalType = '';
+
     public Form $form;
 
     public array $licenseTypes = [];

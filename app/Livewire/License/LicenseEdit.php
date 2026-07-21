@@ -23,6 +23,7 @@ class LicenseEdit extends LicenseComponent
     public function mount(LegalEntity $legalEntity, License $license): void
     {
         $this->uuid = $license->uuid;
+        $this->originalType = $license->type->value;
         $this->form->fill($license);
     }
 

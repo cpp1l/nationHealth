@@ -237,9 +237,19 @@ class LegalEntity extends Model
         $query->where('uuid', $legalEntityUUID);
     }
 
+    /**
+     * Determine whether the legal entity has an active, non-expired primary license.
+     */
     public function hasActivePrimaryLicense(): bool
     {
-        return $this->licenses()->whereIsPrimary(true)->whereIsActive(true)->exists();
+        return $this->licenses()
+            ->whereIsPrimary(true)
+            ->whereIsActive(true)
+            ->where(static function (Builder $query): void {
+                $query->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>=', now()->toDateString());
+            })
+            ->exists();
     }
 
     /**

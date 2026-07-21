@@ -38,57 +38,75 @@
         </div>
     </div>
 
-    <div
-        class="form-row"
-        x-data="{
-            open: false,
-            selected: licenseTypes[licenseType],
-            choose(key, label) {
-                this.selected = label;
-                licenseType = key;
-                this.open = false;
-            }
-        }"
-        @click.away="open = false"
-    >
-        <div class="relative w-full">
-            <div
-                class="input-select peer cursor-pointer whitespace-normal wrap-break-word min-h-12 px-3 py-2 pr-10"
-                @click="open = !open"
-                :class="{ 'ring-1 ring-blue-500 border-blue-500': open }"
-            >
-                <span x-text="selected || @js(__('licenses.type.placeholder'))"></span>
-                <span
-                    class="absolute right-3 top-1/2 w-2 h-2 border-r-2 border-b-2 border-gray-500 dark:border-gray-400 transform -translate-y-1/2 rotate-45 pointer-events-none"
-                ></span>
+    @if ($uuid)
+        <div class="form-row">
+            <div class="form-group">
+                <input
+                    type="text"
+                    name="licenseTypeValue"
+                    id="licenseTypeValue"
+                    class="peer input dark:text-gray-400"
+                    x-bind:value="licenseTypes[licenseType]"
+                    placeholder=" "
+                    disabled
+                />
+
+                <label for="licenseTypeValue" class="label">{{ __('licenses.type.label') }}</label>
             </div>
-
-            <ul x-show="open" x-transition x-cloak class="dropdown-panel w-full max-h-60 overflow-auto z-10">
-                @foreach ($licenseTypes as $key => $label)
-                    <li>
-                        <button
-                            type="button"
-                            x-text="'{{ $label }}'"
-                            @click="choose('{{ $key }}', '{{ $label }}')"
-                            @class([
-                                'text-left text-sm whitespace-normal break-words px-3 py-2 w-full text-start',
-                                'rounded-t-md' => $loop->first,
-                                'rounded-b-md' => $loop->last
-                            ])
-                        >
-                        </button>
-                    </li>
-                @endforeach
-            </ul>
-
-            <label class="label" for="licenseType">{{ __('licenses.type.label') }}</label>
-            <input type="hidden" name="licenseType" :value="selected">
-
-            @error('form.type')
-            <p class="text-error">{{ $message }}</p>
-            @enderror
         </div>
-    </div>
+    @else
+        <div
+            class="form-row"
+            x-data="{
+                open: false,
+                selected: licenseTypes[licenseType],
+                choose(key, label) {
+                    this.selected = label;
+                    licenseType = key;
+                    this.open = false;
+                }
+            }"
+            @click.away="open = false"
+        >
+            <div class="relative w-full">
+                <div
+                    class="input-select peer cursor-pointer whitespace-normal wrap-break-word min-h-12 px-3 py-2 pr-10"
+                    @click="open = !open"
+                    :class="{ 'ring-1 ring-blue-500 border-blue-500': open }"
+                >
+                    <span x-text="selected || @js(__('licenses.type.placeholder'))"></span>
+                    <span
+                        class="absolute right-3 top-1/2 w-2 h-2 border-r-2 border-b-2 border-gray-500 dark:border-gray-400 transform -translate-y-1/2 rotate-45 pointer-events-none"
+                    ></span>
+                </div>
+
+                <ul x-show="open" x-transition x-cloak class="dropdown-panel w-full max-h-60 overflow-auto z-10">
+                    @foreach ($licenseTypes as $key => $label)
+                        <li>
+                            <button
+                                type="button"
+                                x-text="'{{ $label }}'"
+                                @click="choose('{{ $key }}', '{{ $label }}')"
+                                @class([
+                                    'text-left text-sm whitespace-normal break-words px-3 py-2 w-full text-start',
+                                    'rounded-t-md' => $loop->first,
+                                    'rounded-b-md' => $loop->last
+                                ])
+                            >
+                            </button>
+                        </li>
+                    @endforeach
+                </ul>
+
+                <label class="label" for="licenseType">{{ __('licenses.type.label') }}</label>
+                <input type="hidden" name="licenseType" :value="selected">
+
+                @error('form.type')
+                <p class="text-error">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+    @endif
 
     <div class="form-row-2">
         <div class="form-group">

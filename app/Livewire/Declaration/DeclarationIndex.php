@@ -282,7 +282,7 @@ class DeclarationIndex extends Component
                 'person.names'
             ])
                 ->when(
-                    !$user->hasAllowedRole(Role::OWNER),
+                    !$user->hasAllowedRole([Role::OWNER, Role::ADMIN]),
                     fn (Builder $query) => $query->forEmployees($employeePool),
                     fn (Builder $query) => $query->filterByLegalEntityId(legalEntity()->id)
                         ->when(
@@ -294,8 +294,8 @@ class DeclarationIndex extends Component
                 ->each->setAttribute('type', 'declaration');
         }
 
-        // Don't show declaration requests for OWNER
-        if (!$user->hasAllowedRole(Role::OWNER) && $user->can('viewAny', DeclarationRequest::class)) {
+        // Don't show declaration requests for OWNER and ADMIN
+        if (!$user->hasAllowedRole([Role::OWNER, Role::ADMIN]) && $user->can('viewAny', DeclarationRequest::class)) {
             $declarationRequests = DeclarationRequest::with([
                 'person:id,birth_date',
                 'person.names'

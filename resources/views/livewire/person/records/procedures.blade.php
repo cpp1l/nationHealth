@@ -303,7 +303,7 @@
                         </select>
 
                         <label for="filterEpisodeId" class="label">
-                            {{ __('patients.episode_id') }}
+                            {{ __('episodes.id') }}
                         </label>
                     </div>
 
@@ -354,7 +354,7 @@
                         </select>
 
                         <label for="filterOriginEpisodeId" class="label">
-                            {{ __('patients.origin_episode_id') }}
+                            {{ __('episodes.origin_id') }}
                         </label>
                     </div>
 
@@ -476,7 +476,7 @@
                                             :aria-expanded="open"
                                             :aria-controls="$id('dropdown-button')"
                                             type="button"
-                                            class="record-inner-action-btn"
+                                            class="record-inner-action-btn cursor-pointer"
                                     >
                                         @icon('edit-user-outline', 'w-5 h-5')
                                     </button>

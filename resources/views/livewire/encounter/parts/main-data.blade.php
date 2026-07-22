@@ -61,7 +61,7 @@
          class="mt-8"
     >
         <div class="flex items-center space-x-6 mb-6">
-            <span class="text-sm font-bold text-gray-900 dark:text-white">{{ __('patients.episode') }}</span>
+            <span class="text-sm font-bold text-gray-900 dark:text-white">{{ __('episodes.label') }}</span>
             <div class="flex items-center">
                 <input @change="episodeType = 'existing'; episodeTypeCode = ''; episodeName = ''"
                        id="existingEpisode"
@@ -72,7 +72,7 @@
                        :checked="episodeType === 'existing'"
                 >
                 <label for="existingEpisode" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                    {{ __('patients.existing_episode') }}
+                    {{ __('episodes.existing') }}
                 </label>
             </div>
             <div class="flex items-center">
@@ -85,7 +85,7 @@
                        :checked="episodeType === 'new'"
                 >
                 <label for="newEpisode" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                    {{ __('patients.new_episode') }}
+                    {{ __('episodes.new') }}
                 </label>
             </div>
         </div>
@@ -103,7 +103,7 @@
                            autocomplete="off"
                     />
                     <label for="episodeName" class="label required">
-                        {{ __('patients.episode_name') }}
+                        {{ __('episodes.name') }}
                     </label>
 
                     @error('form.episode.name')
@@ -125,7 +125,7 @@
                         @endforeach
                     </select>
                     <label for="episodeType" class="label required">
-                        {{ __('patients.episode_type') }}
+                        {{ __('episodes.type') }}
                     </label>
 
                     @error('form.episode.typeCode')
@@ -151,7 +151,7 @@
                         @endforeach
                     </select>
                     <label for="existingEpisodeId" class="label required">
-                        {{ __('patients.existing_episode') }}
+                        {{ __('episodes.existing') }}
                     </label>
 
                     @error('form.episode.id')

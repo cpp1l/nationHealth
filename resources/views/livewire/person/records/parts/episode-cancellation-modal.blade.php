@@ -22,17 +22,17 @@
                      x-trap.noscroll.inert="open"
                 >
                     <h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-                        {{ __('patients.messages.episode_cancel_modal_title') }}
+                        {{ __('episodes.cancel_modal_title') }}
                     </h3>
 
                     <p class="mb-6 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        {{ __('patients.messages.episode_cancel_modal_description') }}
+                        {{ __('episodes.cancel_modal_description') }}
                     </p>
 
                     <form class="space-y-4">
                         <div>
                             <label for="cancellationReason" class="label-modal">
-                                {{ __('patients.messages.episode_cancel_reason_label') }} *
+                                {{ __('episodes.cancel_reason_label') }} *
                             </label>
 
                             <select
@@ -42,7 +42,7 @@
                                 id="cancellationReason"
                             >
                                 <option value="" class="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">
-                                    {{ __('patients.messages.episode_cancel_reason_placeholder') }}
+                                    {{ __('episodes.cancel_reason_placeholder') }}
                                 </option>
 
                                 @foreach(data_get($this->dictionaries, 'eHealth/cancellation_reasons', []) as $code => $label)
@@ -59,7 +59,7 @@
 
                         <div>
                             <label for="explanatoryLetter" class="label-modal">
-                                {{ __('patients.messages.episode_cancel_explanation_label') }}
+                                {{ __('episodes.cancel_explanation_label') }}
                             </label>
 
                             <textarea
@@ -92,7 +92,7 @@
                                     class="button-danger"
                             >
                                 <span wire:loading.remove wire:target="cancelSelectedEpisode">
-                                    {{ __('patients.messages.episode_cancel_confirm_button') }}
+                                    {{ __('episodes.cancel_confirm_button') }}
                                 </span>
 
                                 <span wire:loading wire:target="cancelSelectedEpisode">

@@ -1,4 +1,4 @@
-@use('App\Enums\Person\EpisodeStatus')
+@use('App\Enums\Episode\Status')
 
 @php
     $episodes = $episodes ?? $this->episodes;
@@ -22,7 +22,7 @@
                 <div class="record-inner-column-bordered w-full md:w-36 shrink-0">
                     <div class="record-inner-label">{{ __('forms.status.label') }}</div>
                     <div>
-                        @php($status = EpisodeStatus::from(data_get($episode, 'status')))
+                        @php($status = Status::from(data_get($episode, 'status')))
                         <span @class([$status->color()])>
                             {{ $status->label() }}
                         </span>
@@ -31,45 +31,48 @@
 
                 <div class="record-inner-action-col">
                     <div class="flex justify-center relative">
-                        <div x-data="{
-                                 open: false,
-                                 toggle() {
-                                     if (this.open) {
-                                         return this.close();
-                                     }
-                                     this.$refs.button.focus();
-                                     this.open = true;
-                                 },
-                                 close(focusAfter) {
-                                     if (!this.open) return;
-                                     this.open = false;
-                                     focusAfter && focusAfter.focus()
-                                 }
-                             }"
-                             @keydown.escape.prevent.stop="close($refs.button)"
-                             @focusin.window="!$refs.panel.contains($event.target) && close()"
-                             x-id="['dropdown-button']"
-                             class="relative"
+                        <div
+                            x-data="{
+                                open: false,
+                                toggle() {
+                                    if (this.open) {
+                                        return this.close();
+                                    }
+                                    this.$refs.button.focus();
+                                    this.open = true;
+                                },
+                                close(focusAfter) {
+                                    if (!this.open) return;
+                                    this.open = false;
+                                    focusAfter && focusAfter.focus()
+                                }
+                            }"
+                            @keydown.escape.prevent.stop="close($refs.button)"
+                            @focusin.window="!$refs.panel.contains($event.target) && close()"
+                            x-id="['dropdown-button']"
+                            class="relative"
                         >
-                            <button @click="toggle()"
-                                    x-ref="button"
-                                    :aria-expanded="open"
-                                    :aria-controls="$id('dropdown-button')"
-                                    type="button"
-                                    class="record-inner-action-btn"
+                            <button
+                                @click="toggle()"
+                                x-ref="button"
+                                :aria-expanded="open"
+                                :aria-controls="$id('dropdown-button')"
+                                type="button"
+                                class="record-inner-action-btn cursor-pointer"
                             >
                                 @icon('edit-user-outline', 'w-5 h-5')
                             </button>
 
-                            <div x-show="open"
-                                 x-cloak
-                                 x-ref="panel"
-                                 x-transition.origin.top.right
-                                 @click.outside="close($refs.button)"
-                                 :id="$id('dropdown-button')"
-                                 class="absolute right-0 mt-2 w-56 rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-md z-50 py-1"
+                            <div
+                                x-show="open"
+                                x-cloak
+                                x-ref="panel"
+                                x-transition.origin.top.right
+                                @click.outside="close($refs.button)"
+                                :id="$id('dropdown-button')"
+                                class="absolute right-0 mt-2 w-56 rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-md z-50 py-1"
                             >
-                                <a href="{{ route($prepersonId !== null ? 'prepersons.episodes.view' : 'persons.episodes.view', [legalEntity(), $prepersonId !== null ? 'preperson' : 'person' => $prepersonId ?? $personId, 'episodeUuid' => data_get($episode, 'uuid')]) }}"
+                                <a href="{{ route($prepersonId !== null ? 'prepersons.episodes.view' : 'persons.episodes.view', [legalEntity(), $prepersonId !== null ? 'preperson' : 'person' => $prepersonId ?? $personId, 'episode' => data_get($episode, 'id')]) }}"
                                    wire:navigate
                                    @click="close($refs.button)"
                                    class="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
@@ -78,7 +81,7 @@
                                     {{ __('patients.view_details') }}
                                 </a>
 
-                                <a href="{{ route($prepersonId !== null ? 'prepersons.episodes.edit' : 'persons.episodes.edit', [legalEntity(), $prepersonId !== null ? 'preperson' : 'person' => $prepersonId ?? $personId, 'episodeUuid' => data_get($episode, 'uuid')]) }}"
+                                <a href="{{ route($prepersonId !== null ? 'prepersons.episodes.edit' : 'persons.episodes.edit', [legalEntity(), $prepersonId !== null ? 'preperson' : 'person' => $prepersonId ?? $personId, 'episode' => data_get($episode, 'id')]) }}"
                                    wire:navigate
                                    @click="close($refs.button)"
                                    class="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm text-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
@@ -108,46 +111,43 @@
                 </div>
             </div>
 
-        <div class="record-inner-body">
-            <div class="record-inner-grid-container">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <div class="record-inner-label">{{ __('patients.date_opened') }}</div>
-                        <div class="record-inner-value">{{ data_get($episode, 'period.start', '-') }}</div>
-                    </div>
-                    <div>
-                        <div class="record-inner-label">{{ __('patients.date_closed') }}</div>
-                        <div class="record-inner-value">{{ data_get($episode, 'period.end') ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <div class="record-inner-label">{{ __('patients.date_updated') }}</div>
-                        <div class="record-inner-value">{{ data_get($episode, 'ehealthUpdatedAt', '-') }}</div>
-                    </div>
-                    <div>
-                        <div class="record-inner-label">{{ __('patients.doctor') }}</div>
-                        <div class="record-inner-value">
-                            {{ data_get($episode, 'careManager.displayValue') ?? '-' }}
+            <div class="record-inner-body">
+                <div class="record-inner-grid-container">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="record-inner-label">{{ __('patients.date_opened') }}</div>
+                            <div class="record-inner-value">{{ data_get($episode, 'period.start', '-') }}</div>
+                        </div>
+                        <div>
+                            <div class="record-inner-label">{{ __('patients.date_closed') }}</div>
+                            <div class="record-inner-value">{{ data_get($episode, 'period.end') ?? '-' }}</div>
+                        </div>
+                        <div>
+                            <div class="record-inner-label">{{ __('patients.date_updated') }}</div>
+                            <div class="record-inner-value">{{ data_get($episode, 'ehealthUpdatedAt', '-') }}</div>
+                        </div>
+                        <div>
+                            <div class="record-inner-label">{{ __('patients.doctor') }}</div>
+                            <div class="record-inner-value">
+                                {{ data_get($episode, 'careManager.displayValue') ?? '-' }}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="record-inner-id-col">
-                <div class="min-w-0">
-                    <div class="record-inner-label">{{ __('patients.filter_code') }}</div>
-                    <div class="record-inner-id-value">{{ data_get($episode, 'uuid', '-') }}</div>
+                <div class="record-inner-id-col">
+                    <div class="min-w-0">
+                        <div class="record-inner-label">{{ __('patients.filter_code') }}</div>
+                        <div class="record-inner-id-value">{{ data_get($episode, 'uuid', '-') }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
         </div>
     @endforeach
 
     @if($hasLimit)
-        <div x-show="limit < {{ count($this->episodes) }}" class="flex justify-start mt-4">
-            <button type="button"
-                    @click="limit += 5"
-                    class="item-add"
-            >
+        <div x-show="limit < {{ count($episodes) }}" class="flex justify-start mt-4">
+            <button type="button" @click="limit += 5" class="item-add">
                 {{ __('patients.show_more') }}
             </button>
         </div>

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Enums\Person;
+namespace App\Enums\Episode;
 
 use App\Traits\EnumUtils;
 
 /**
  * see https://e-health-ua.atlassian.net/wiki/spaces/ESOZ/pages/17908171181/eHealth+episode_statuses
  */
-enum EpisodeStatus: string
+enum Status: string
 {
     use EnumUtils;
 

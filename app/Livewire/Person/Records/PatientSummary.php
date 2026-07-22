@@ -182,12 +182,12 @@ class PatientSummary extends BasePatientComponent
         };
     }
 
-    private function setPaginatedRecords(string $section, Builder $query, string $property, ?callable $afterLoad = null): void
+    private function setPaginatedRecords(string $section, Builder $query, string $property, ?callable $afterLoad = null, array $visible = []): void
     {
         $limit = $this->summaryLimits[$section] ?? self::SUMMARY_PAGE_SIZE;
 
         $this->hasMore[$section] = (clone $query)->count() > $limit;
-        $this->{$property} = $query->limit($limit)->get()->toArray();
+        $this->{$property} = $query->limit($limit)->get()->makeVisible($visible)->toArray();
 
         if ($afterLoad !== null) {
             $afterLoad($this->{$property});
@@ -253,7 +253,7 @@ class PatientSummary extends BasePatientComponent
             $this->dispatchRemainingPages(self::ENTITY_TYPE_EPISODE);
         } else {
             legalEntity()->setEntityStatus(JobStatus::COMPLETED, LegalEntity::ENTITY_EPISODE);
-            Session::flash('success', __('patients.messages.episodes_synced_successfully'));
+            Session::flash('success', __('episodes.messages.synced_successfully'));
         }
 
         $this->resetSummarySection('episodes');
@@ -265,7 +265,8 @@ class PatientSummary extends BasePatientComponent
         $this->setPaginatedRecords(
             'episodes',
             Episode::with('period')->forPatient($this->patient()),
-            'episodes'
+            'episodes',
+            visible: ['id']
         );
     }
 

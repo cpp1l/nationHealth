@@ -68,8 +68,13 @@ Route::prefix('persons')->group(static function () {
             Route::get('/{person}/summary', PatientSummary::class)->can('view', Person::class)->name('summary');
             Route::get('/{person}/episodes', PatientEpisodes::class)->can('view', Episode::class)->name('episodes');
             Route::get('/{person}/episodes/create', PatientEpisodeEdit::class)->name('episodes.create');
-            Route::get('/{person}/episodes/{episodeUuid}', PatientEpisodeView::class)->can('view', Episode::class)->name('episodes.view');
-            Route::get('/{person}/episodes/{episodeUuid}/edit', PatientEpisodeEdit::class)->name('episodes.edit');
+            Route::get('/{person}/episodes/{episode:id}', PatientEpisodeView::class)
+                ->can('view', Episode::class)
+                ->whereNumber('episode')
+                ->name('episodes.view');
+            Route::get('/{person}/episodes/{episode:id}/edit', PatientEpisodeEdit::class)
+                ->whereNumber('episode')
+                ->name('episodes.edit');
             Route::get('/{person}/care-plans', PatientCarePlans::class)->name('care-plans');
             Route::get('/{person}/observations', PatientObservations::class)->name('observations');
             Route::get('/{person}/immunizations', PatientImmunizations::class)->name('immunizations');
@@ -140,11 +145,13 @@ Route::prefix('prepersons')
         Route::get('/{preperson}/episodes/create', PatientEpisodeEdit::class)
             ->can('view', 'preperson')
             ->name('episodes.create');
-        Route::get('/{preperson}/episodes/{episodeUuid}', PatientEpisodeView::class)
+        Route::get('/{preperson}/episodes/{episode:id}', PatientEpisodeView::class)
             ->can('view', 'preperson')
+            ->whereNumber('episode')
             ->name('episodes.view');
-        Route::get('/{preperson}/episodes/{episodeUuid}/edit', PatientEpisodeEdit::class)
+        Route::get('/{preperson}/episodes/{episode:id}/edit', PatientEpisodeEdit::class)
             ->can('view', 'preperson')
+            ->whereNumber('episode')
             ->name('episodes.edit');
         Route::get('/{preperson}/observations', PatientObservations::class)
             ->can('view', 'preperson')

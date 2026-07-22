@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Livewire\Encounter;
 
+use App\Classes\eHealth\Api\ServiceRequestApi;
 use App\Classes\eHealth\EHealth;
 use App\Classes\eHealth\Exceptions\ApiException as eHealthApiException;
-use App\Classes\eHealth\Api\ServiceRequestApi;
 use App\Core\Arr;
+use App\Enums\Episode\Status as EpisodeStatus;
 use App\Enums\Equipment\AvailabilityStatus;
 use App\Enums\Person\ClinicalImpressionStatus;
-use App\Enums\Person\EpisodeStatus;
 use App\Enums\Person\ObservationStatus;
 use App\Enums\Status;
 use App\Enums\User\Role;
@@ -19,17 +19,17 @@ use App\Exceptions\EHealth\EHealthException;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use App\Livewire\Encounter\Forms\Api\EncounterRequestApi;
+use App\Livewire\Encounter\Forms\EncounterForm as Form;
 use App\Models\Employee\Employee;
+use App\Models\Equipment;
 use App\Models\Icd10;
 use App\Models\Person\Person;
 use App\Models\Preperson;
-use App\Models\Equipment;
 use App\Repositories\Repository;
 use App\Traits\FormTrait;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
-use App\Livewire\Encounter\Forms\EncounterForm as Form;
 use Livewire\WithFileUploads;
 
 class EncounterComponent extends Component

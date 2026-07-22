@@ -6,11 +6,11 @@ namespace App\Classes\eHealth\Api\Patient;
 
 use App\Classes\eHealth\EHealthResponse;
 use App\Classes\eHealth\ValidationRuleBuilder;
-use App\Enums\Person\EpisodeStatus;
+use App\Enums\Episode\Status;
+use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthResponseException;
 use App\Exceptions\EHealth\EHealthValidationException;
 use GuzzleHttp\Promise\PromiseInterface;
-use App\Exceptions\EHealth\EHealthConnectionException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -196,7 +196,7 @@ class Episode extends PatientApiBase
             [
                 'uuid' => ['required', 'uuid'],
                 'name' => ['required', 'string', 'max:255'],
-                'status' => ['required', 'string', Rule::in(EpisodeStatus::values())],
+                'status' => ['required', 'string', Rule::in(Status::values())],
                 'ehealth_inserted_at' => ['required', 'date'],
                 'ehealth_updated_at' => ['required', 'date']
             ],
@@ -217,7 +217,7 @@ class Episode extends PatientApiBase
                 'explanatory_letter' => ['nullable', 'string', 'max:255'],
                 'uuid' => ['required', 'uuid'],
                 'name' => ['required', 'string', 'max:255'],
-                'status' => ['required', 'string', Rule::in(EpisodeStatus::values())],
+                'status' => ['required', 'string', Rule::in(Status::values())],
                 'ehealth_inserted_at' => ['required', 'date'],
                 'ehealth_updated_at' => ['required', 'date']
             ],
@@ -251,7 +251,7 @@ class Episode extends PatientApiBase
             // Status History
             [
                 'status_history' => ['required', 'array'],
-                'status_history.*.status' => ['required', 'string', Rule::in(EpisodeStatus::values())],
+                'status_history.*.status' => ['required', 'string', Rule::in(Status::values())],
                 'status_history.*.ehealth_inserted_at' => ['required', 'date'],
                 'status_history.*.ehealth_inserted_by' => ['required', 'uuid']
             ],

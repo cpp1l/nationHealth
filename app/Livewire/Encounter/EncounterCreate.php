@@ -7,11 +7,11 @@ namespace App\Livewire\Encounter;
 use App\Classes\Cipher\Api\CipherRequest;
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
+use App\Enums\Episode\Status;
 use App\Exceptions\Cipher\CipherConnectionException;
 use App\Exceptions\Cipher\CipherException;
 use App\Exceptions\EHealth\EHealthConnectionException;
 use App\Exceptions\EHealth\EHealthException;
-use App\Enums\Person\EpisodeStatus;
 use App\Models\LegalEntity;
 use App\Models\MedicalEvents\Sql\Encounter;
 use App\Models\Person\Person;
@@ -73,7 +73,7 @@ class EncounterCreate extends EncounterComponent
             return;
         }
 
-        $formattedData = $this->packageBuilder->build($validated, $this->episodeType, EpisodeStatus::DRAFT);
+        $formattedData = $this->packageBuilder->build($validated, $this->episodeType, Status::DRAFT);
 
         try {
             $encounterId = $this->storeValidatedData($formattedData);

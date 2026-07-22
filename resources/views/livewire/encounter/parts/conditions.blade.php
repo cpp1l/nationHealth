@@ -659,7 +659,7 @@
                                x-model="modalCondition.asserterText"
                                :disabled="modalCondition.primarySource === true"
                                class="w-full text-sm p-2 px-3 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800 transition-colors"
-                               placeholder="{{ __('patients.doctor_who_created_episode') }}"
+                               placeholder="{{ __('episodes.created_by_doctor') }}"
                         />
                     </div>
                 </div>

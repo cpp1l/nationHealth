@@ -34,7 +34,7 @@
     <div class="breadcrumb-form p-4 shift-content">
         @php
             $navItems = [
-                ['id' => 'episodes', 'action' => 'getEpisodes', 'syncAction' => 'syncEpisodes', 'label' => __('patients.episodes'), 'icon' => 'book', 'syncEntity' => PatientSummary::ENTITY_TYPE_EPISODE],
+                ['id' => 'episodes', 'action' => 'getEpisodes', 'syncAction' => 'syncEpisodes', 'label' => __('episodes.plural'), 'icon' => 'book', 'syncEntity' => PatientSummary::ENTITY_TYPE_EPISODE],
                 ['id' => 'encounters', 'action' => 'getEncounters', 'syncAction' => 'syncEncounters', 'label' => __('patients.encounters'), 'icon' => 'users', 'syncEntity' => PatientSummary::ENTITY_TYPE_ENCOUNTER],
                 ['id' => 'clinicalImpressions', 'action' => 'getClinicalImpressions', 'syncAction' => 'syncClinicalImpressions', 'label' => __('patients.clinical_impressions'), 'icon' => 'check', 'syncEntity' => PatientSummary::ENTITY_TYPE_CLINICAL_IMPRESSION],
                 ['id' => 'immunizations', 'action' => 'getImmunizations', 'syncAction' => 'syncImmunizations', 'label' => __('patients.immunizations'), 'icon' => 'shield', 'syncEntity' => PatientSummary::ENTITY_TYPE_IMMUNIZATION],

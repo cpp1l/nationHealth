@@ -1,6 +1,6 @@
 @php
+    use App\Enums\Episode\Status;
     use App\Models\MedicalEvents\Sql\Encounter;
-    use App\Enums\Person\EpisodeStatus;
     use App\Models\MedicalEvents\Sql\Episode;
 @endphp
 
@@ -38,7 +38,7 @@
         <div class="w-full mt-6" x-data="{ showAdditionalParams: $wire.entangle('showAdditionalParams') }">
             <div class="mb-4 flex items-center gap-1 font-semibold text-gray-900 dark:text-gray-100">
                 @icon('search-outline', 'w-4.5 h-4.5')
-                <p>{{ __('patients.search_episode') }}</p>
+                <p>{{ __('episodes.search') }}</p>
             </div>
 
             <div class="form-row-3 mb-6"
@@ -108,7 +108,7 @@
                             class="input-select peer w-full"
                     >
                         <option value="" selected>{{ __('forms.select') }}</option>
-                        @foreach(EpisodeStatus::searchableOptions() as $value => $label)
+                        @foreach(Status::searchableOptions() as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>
@@ -150,10 +150,11 @@
                        class="cursor-pointer text-blue-600 hover:text-blue-800 flex items-center gap-1.5 font-medium text-sm"
                     >
                         @icon('plus', 'w-4 h-4')
-                        <span>{{ __('patients.create_episode') ?? 'Створити епізод' }}</span>
+                        <span>{{ __('episodes.create') ?? 'Створити епізод' }}</span>
                     </a>
 
-                    <div class="relative" x-data="{ openGroupActions: false }" @click.outside="openGroupActions = false">
+                    <div class="relative" x-data="{ openGroupActions: false }"
+                         @click.outside="openGroupActions = false">
                         <button type="button"
                                 @click="openGroupActions = !openGroupActions"
                                 class="button-primary-outline px-5 py-2.5 text-sm"
@@ -161,24 +162,24 @@
                             {{ __('patients.group_actions') }}
                         </button>
 
-                    <div x-show="openGroupActions"
-                         x-transition
-                         x-cloak
-                         class="absolute right-0 top-full mt-2 z-10 w-60 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600 overflow-hidden"
-                    >
-                        <div class="py-1">
-                            <button type="button"
-                                    @click="openGroupActions = false"
-                                    class="dropdown-button !flex items-center gap-2.5 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left"
-                            >
+                        <div x-show="openGroupActions"
+                             x-transition
+                             x-cloak
+                             class="absolute right-0 top-full mt-2 z-10 w-60 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600 overflow-hidden"
+                        >
+                            <div class="py-1">
+                                <button type="button"
+                                        @click="openGroupActions = false"
+                                        class="dropdown-button !flex items-center gap-2.5 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-left"
+                                >
                                 <span class="text-gray-500">
                                     @icon('close', 'w-4 h-4')
                                 </span>
-                                {{ __('patients.revoke_access') }}
-                            </button>
+                                    {{ __('patients.revoke_access') }}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
                 </div>
             </div>
 

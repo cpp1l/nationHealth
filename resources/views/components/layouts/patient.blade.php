@@ -71,7 +71,7 @@
                         <a href="{{ route("$routePrefix.episodes", [legalEntity(), $routeParamKey => $recordId]) }}"
                            class="summary-tab {{ request()->routeIs("$routePrefix.episodes") ? 'summary-tab-active' : 'summary-tab-inactive' }}"
                         >
-                            {{ __('patients.episodes') }}
+                            {{ __('episodes.plural') }}
                         </a>
 
                         <a href="{{ route("$routePrefix.observations", [legalEntity(), $routeParamKey => $recordId]) }}"

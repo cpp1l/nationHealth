@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\MedicalEvents;
 
+use App\Enums\Episode\Status;
 use App\Enums\Person\DiagnosticReportStatus;
-use App\Enums\Person\EpisodeStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -16,10 +16,10 @@ class EncounterPackageBuilder
      *
      * @param  array  $data  Validated form data
      * @param  string  $episodeType  'new' or 'existing'
-     * @param  EpisodeStatus  $episodeStatus  Status to assign to the episode
+     * @param  Status  $episodeStatus  Status to assign to the episode
      * @return array
      */
-    public function build(array $data, string $episodeType, EpisodeStatus $episodeStatus = EpisodeStatus::ACTIVE): array
+    public function build(array $data, string $episodeType, Status $episodeStatus = Status::ACTIVE): array
     {
         $uuids = [
             'encounter' => Str::uuid()->toString(),

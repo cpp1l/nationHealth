@@ -486,7 +486,7 @@
                             />
 
                             <label for="episodesId" class="label">
-                                {{ __('patients.context_episode_id') }}
+                                {{ __('episodes.context_id') }}
                             </label>
 
                             <button type="button"
@@ -524,7 +524,7 @@
 
                                 <template x-if="filteredOptions.length === 0">
                                     <div class="px-3 py-2 text-sm text-gray-500">
-                                        {{ __('patients.episodes_not_found') }}
+                                        {{ __('episodes.none_found') }}
                                     </div>
                                 </template>
                             </div>
@@ -598,7 +598,7 @@
                             />
 
                             <label for="originEpisodesId" class="label">
-                                {{ __('patients.origin_episode_id') }}
+                                {{ __('episodes.origin_id') }}
                             </label>
 
                             <button type="button"
@@ -636,7 +636,7 @@
 
                                 <template x-if="filteredOptions.length === 0">
                                     <div class="px-3 py-2 text-sm text-gray-500">
-                                        {{ __('patients.episodes_not_found') }}
+                                        {{ __('episodes.none_found') }}
                                     </div>
                                 </template>
                             </div>
@@ -733,7 +733,7 @@
                                             :aria-expanded="open"
                                             :aria-controls="$id('dropdown-button')"
                                             type="button"
-                                            class="record-inner-action-btn"
+                                            class="record-inner-action-btn cursor-pointer"
                                     >
                                         @icon('edit-user-outline', 'w-5 h-5')
                                     </button>

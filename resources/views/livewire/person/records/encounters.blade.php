@@ -80,7 +80,7 @@
                                   bind="filterEpisodeId"
                                   bindValue="uuid"
                                   bindParam="name"
-                                  :label="__('patients.episodes')"
+                                  :label="__('episodes.plural')"
                 />
             </div>
 
@@ -147,7 +147,7 @@
                                       bind="filterOriginEpisodeId"
                                       bindValue="uuid"
                                       bindParam="displayValue"
-                                      :label="__('patients.origin_episode')"
+                                      :label="__('episodes.origin')"
                     />
                 </div>
             </div>
@@ -202,7 +202,7 @@
                                             :aria-expanded="open"
                                             :aria-controls="$id('dropdown-button')"
                                             type="button"
-                                            class="record-inner-action-btn transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg"
+                                            class="record-inner-action-btn cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg"
                                     >
                                         @icon('edit-user-outline', 'w-6 h-6 text-gray-700 dark:text-gray-300')
                                     </button>

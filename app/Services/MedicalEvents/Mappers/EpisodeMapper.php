@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\MedicalEvents\Mappers;
 
 use App\Contracts\FhirMapperContract;
-use App\Enums\Person\EpisodeStatus;
 use App\Services\MedicalEvents\FhirResource;
 
 class EpisodeMapper implements FhirMapperContract

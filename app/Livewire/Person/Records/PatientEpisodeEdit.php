@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace App\Livewire\Person\Records;
 
+use App\Models\LegalEntity;
 use App\Models\MedicalEvents\Sql\Episode;
+use App\Models\Person\Person;
+use App\Models\Preperson;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
 
 class PatientEpisodeEdit extends BasePatientComponent
 {
-    public string $episodeUuid = '';
+    /**
+     * Local episode ID; `null` when creating a new episode.
+     *
+     * @var int|null
+     */
+    #[Locked]
+    public ?int $episodeId = null;
 
     public string $name = '';
 
@@ -30,9 +39,33 @@ class PatientEpisodeEdit extends BasePatientComponent
 
     public array $episodeStatuses = [];
 
-    public function save(): void {}
+    /**
+     * Bind the route models; the episode is absent on the create route.
+     *
+     * @param  LegalEntity  $legalEntity
+     * @param  Person|null  $person
+     * @param  Preperson|null  $preperson
+     * @param  Episode|null  $episode
+     * @return void
+     */
+    public function mount(
+        LegalEntity $legalEntity,
+        ?Person $person = null,
+        ?Preperson $preperson = null,
+        ?Episode $episode = null
+    ): void {
+        parent::mount($legalEntity, $person, $preperson);
 
-    public function cancel(): void {}
+        $this->episodeId = $episode?->id;
+    }
+
+    public function save(): void
+    {
+    }
+
+    public function cancel(): void
+    {
+    }
 
     public function render(): View
     {

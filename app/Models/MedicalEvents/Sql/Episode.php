@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace App\Models\MedicalEvents\Sql;
 
 use App\Casts\EHealthTimestampCast;
-use App\Enums\Person\EpisodeStatus;
-use Eloquence\Behaviours\HasCamelCasing;
+use App\Enums\Episode\Status;
 use App\Models\Person\Person;
 use App\Models\Preperson;
+use Eloquence\Behaviours\HasCamelCasing;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Str;
 
 class Episode extends Model
 {
@@ -51,10 +53,38 @@ class Episode extends Model
     ];
 
     protected $casts = [
-        'status' => EpisodeStatus::class,
+        'status' => Status::class,
         'ehealth_inserted_at' => EHealthTimestampCast::class,
         'ehealth_updated_at' => EHealthTimestampCast::class
     ];
+
+    protected function ehealthInsertedDate(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => Str::before((string) $this->ehealthInsertedAt, ' ')
+        );
+    }
+
+    protected function ehealthInsertedTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => Str::after((string) $this->ehealthInsertedAt, ' ')
+        );
+    }
+
+    protected function ehealthUpdatedDate(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => Str::before((string) $this->ehealthUpdatedAt, ' ')
+        );
+    }
+
+    protected function ehealthUpdatedTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => Str::after((string) $this->ehealthUpdatedAt, ' ')
+        );
+    }
 
     public function period(): MorphOne
     {

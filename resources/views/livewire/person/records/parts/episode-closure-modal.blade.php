@@ -28,17 +28,17 @@
                      x-trap.noscroll.inert="open"
                 >
                     <h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-                        {{ __('patients.messages.episode_close_modal_title') }}
+                        {{ __('episodes.close_modal_title') }}
                     </h3>
 
                     <p class="mb-6 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        {{ __('patients.messages.episode_close_modal_description') }}
+                        {{ __('episodes.close_modal_description') }}
                     </p>
 
                     <form class="space-y-4">
                         <div>
                             <label for="closingDate" class="label-modal">
-                                {{ __('patients.messages.episode_close_date_label') }} *
+                                {{ __('episodes.close_date_label') }} *
                             </label>
 
                             <x-forms.input-date
@@ -55,7 +55,7 @@
 
                         <div>
                             <label for="closingReason" class="label-modal">
-                                {{ __('patients.messages.episode_close_reason_label') }} *
+                                {{ __('episodes.close_reason_label') }} *
                             </label>
 
                             <select
@@ -65,7 +65,7 @@
                                 id="closingReason"
                             >
                                 <option value="" class="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">
-                                    {{ __('patients.messages.episode_close_reason_placeholder') }}
+                                    {{ __('episodes.close_reason_placeholder') }}
                                 </option>
 
                                 @foreach(data_get($this->dictionaries, 'eHealth/episode_closing_reasons', []) as $code => $label)
@@ -82,7 +82,7 @@
 
                         <div>
                             <label for="closingSummary" class="label-modal">
-                                {{ __('patients.messages.episode_close_summary_label') }}
+                                {{ __('episodes.close_summary_label') }}
                             </label>
 
                             <textarea
@@ -91,7 +91,7 @@
                                 name="closingSummary"
                                 maxlength="1000"
                                 class="input-modal min-h-24 px-4 py-3 text-sm"
-                                placeholder="{{ __('patients.messages.episode_close_summary_placeholder') }}"
+                                placeholder="{{ __('episodes.close_summary_placeholder') }}"
                             ></textarea>
 
                             @error('closingSummary')
@@ -115,7 +115,7 @@
                                     class="button-primary"
                             >
                                 <span wire:loading.remove wire:target="closeSelectedEpisode">
-                                    {{ __('patients.messages.episode_close_confirm_button') }}
+                                    {{ __('episodes.close_confirm_button') }}
                                 </span>
 
                                 <span wire:loading wire:target="closeSelectedEpisode">

@@ -6,22 +6,22 @@ namespace App\Livewire\Person\Records;
 
 use App\Classes\eHealth\EHealth;
 use App\Core\Arr;
-use App\Enums\Person\EpisodeStatus;
-use App\Rules\InDictionary;
-use Illuminate\Validation\Rule;
+use App\Enums\Episode\Status;
 use App\Enums\JobStatus;
+use App\Exceptions\EHealth\EHealthConnectionException;
+use App\Exceptions\EHealth\EHealthException;
 use App\Jobs\EpisodeFullSync;
 use App\Models\Icd10;
 use App\Models\LegalEntity;
 use App\Models\MedicalEvents\Sql\Episode;
 use App\Repositories\MedicalEvents\Repository;
+use App\Rules\InDictionary;
 use App\Traits\BatchLegalEntityQueries;
 use App\Traits\HandlesSyncBatch;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Session;
-use App\Exceptions\EHealth\EHealthConnectionException;
-use App\Exceptions\EHealth\EHealthException;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\WithPagination;
 use Throwable;
@@ -138,7 +138,7 @@ class PatientEpisodes extends BasePatientComponent
             $this->dispatchRemainingPages('episode');
         } else {
             legalEntity()->setEntityStatus(JobStatus::COMPLETED, LegalEntity::ENTITY_EPISODE);
-            Session::flash('success', __('patients.messages.episodes_synced_successfully'));
+            Session::flash('success', __('episodes.messages.synced_successfully'));
         }
 
         $this->isSearching = false;
@@ -178,7 +178,7 @@ class PatientEpisodes extends BasePatientComponent
                 'string',
                 new InDictionary(['eHealth/ICPC2/condition_codes', 'eHealth/ICD10_AM/condition_codes'])
             ],
-            'filterStatus' => ['nullable', Rule::in(array_keys(EpisodeStatus::searchableOptions()))],
+            'filterStatus' => ['nullable', Rule::in(array_keys(Status::searchableOptions()))],
             'filterPeriodDateRange' => ['nullable', 'string', 'max:255']
         ];
     }
@@ -195,7 +195,9 @@ class PatientEpisodes extends BasePatientComponent
             ->recentlyUpdatedFirst()
             ->paginate(config('pagination.per_page'));
 
-        $paginator->setCollection(collect(Arr::toCamelCase($paginator->getCollection()->toArray())));
+        $paginator->setCollection(
+            collect(Arr::toCamelCase($paginator->getCollection()->makeVisible('id')->toArray()))
+        );
 
         return $paginator;
     }
@@ -234,17 +236,29 @@ class PatientEpisodes extends BasePatientComponent
         ]);
     }
 
-    public function openEpisodeCancellation(string $uuid): void {}
+    public function openEpisodeCancellation(string $uuid): void
+    {
+    }
 
-    public function closeEpisodeCancellationModal(): void {}
+    public function closeEpisodeCancellationModal(): void
+    {
+    }
 
-    public function cancelSelectedEpisode(): void {}
+    public function cancelSelectedEpisode(): void
+    {
+    }
 
-    public function openEpisodeClosure(string $uuid): void {}
+    public function openEpisodeClosure(string $uuid): void
+    {
+    }
 
-    public function closeEpisodeClosureModal(): void {}
+    public function closeEpisodeClosureModal(): void
+    {
+    }
 
-    public function closeSelectedEpisode(): void {}
+    public function closeSelectedEpisode(): void
+    {
+    }
 
     public function render(): View
     {

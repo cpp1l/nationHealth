@@ -58,7 +58,7 @@
                                     :aria-expanded="open"
                                     :aria-controls="$id('dropdown-button')"
                                     type="button"
-                                    class="record-inner-action-btn"
+                                    class="record-inner-action-btn cursor-pointer"
                             >
                                 @icon('edit-user-outline', 'w-6 h-6 text-gray-700 dark:text-gray-300')
                             </button>
@@ -130,7 +130,7 @@
                         <div class="record-inner-id-value">{{ data_get($clinicalImpression, 'uuid', '-') }}</div>
                     </div>
                     <div class="min-w-0">
-                        <div class="record-inner-label">{{ __('patients.episode_id') }}</div>
+                        <div class="record-inner-label">{{ __('episodes.id') }}</div>
                         <div class="record-inner-id-value">
                             @php
                                 $episodeValue = '';

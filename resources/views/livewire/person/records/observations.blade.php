@@ -176,7 +176,7 @@
                                       bind="filterEpisodeId"
                                       bindValue="uuid"
                                       bindParam="name"
-                                      :label="__('patients.episodes')"
+                                      :label="__('episodes.plural')"
                     />
                 </div>
 
@@ -265,7 +265,7 @@
                                                 :aria-expanded="open"
                                                 :aria-controls="$id('dropdown-button')"
                                                 type="button"
-                                                class="record-inner-action-btn"
+                                                class="record-inner-action-btn cursor-pointer"
                                         >
                                             @icon('edit-user-outline', 'w-5 h-5')
                                         </button>

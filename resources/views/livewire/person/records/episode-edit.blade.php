@@ -9,7 +9,7 @@
     :prepersonId="$prepersonId"
     :patientFullName="$patientFullName"
     :hideNavigation="true"
-    :title="$episodeUuid ? __('patients.messages.episode_edit_title', ['name' => $name]) : __('patients.messages.episode_create_title')"
+    :title="$episodeId ? __('episodes.edit_title', ['name' => $name]) : __('episodes.create_title')"
 >
     <x-slot name="headerActions"></x-slot>
 
@@ -27,7 +27,7 @@
                            autocomplete="off"
                     />
                     <label for="name" class="label">
-                        {{ __('patients.episode_name') }}
+                        {{ __('episodes.name') }}
                     </label>
                     @error('name')
                         <p class="text-error mt-1 text-xs">{{ $message }}</p>
@@ -52,7 +52,7 @@
                         @endforeach
                     </select>
                     <label for="typeCode" class="label">
-                        {{ __('patients.episode_type') }}
+                        {{ __('episodes.type') }}
                     </label>
                     @error('typeCode')
                         <p class="text-error mt-1 text-xs">{{ $message }}</p>
@@ -77,7 +77,7 @@
                         @endforeach
                     </select>
                     <label for="statusCode" class="label">
-                        {{ __('patients.episode_status') }}
+                        {{ __('episodes.status') }}
                     </label>
                     @error('statusCode')
                         <p class="text-error mt-1 text-xs">{{ $message }}</p>
@@ -137,7 +137,7 @@
                         @endforeach
                     </select>
                     <label for="careManagerUuid" class="label">
-                        {{ __('patients.messages.attending_doctor') }}
+                        {{ __('episodes.attending_doctor') }}
                     </label>
                     @error('careManagerUuid')
                         <p class="text-error mt-1 text-xs">{{ $message }}</p>
@@ -145,14 +145,14 @@
                 </div>
             </div>
 
-            @if($episodeUuid)
+            @if($episodeId)
                 <div class="form-row-3 pt-8">
                     <div class="flex gap-4 col-span-1">
                         <button type="button"
                                 wire:click="cancel"
                                 class="button-primary-outline-red flex-1 text-center py-2.5 text-sm rounded-lg"
                         >
-                            {{ __('patients.messages.cancel_changes') }}
+                            {{ __('episodes.cancel_changes') }}
                         </button>
 
                         <button type="submit"
@@ -160,7 +160,7 @@
                                 wire:loading.class="opacity-50 cursor-not-allowed"
                                 class="button-primary flex-1 text-center py-2.5 text-sm rounded-lg"
                         >
-                            {{ __('patients.messages.save_changes') }}
+                            {{ __('episodes.save_changes') }}
                         </button>
                     </div>
                 </div>

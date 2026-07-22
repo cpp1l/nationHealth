@@ -55,7 +55,7 @@ class DeclarationPolicy
             return Response::denyWithStatus(404);
         }
 
-        if ($user->hasAllowedRole([Role::OWNER, Role::REORGANIZATION_OWNER]) && $declaration->legalEntityId === legalEntity()->id) {
+        if ($user->hasAllowedRole([Role::OWNER, Role::REORGANIZATION_OWNER, Role::ADMIN]) && $declaration->legalEntityId === legalEntity()->id) {
             return Response::allow();
         }
 

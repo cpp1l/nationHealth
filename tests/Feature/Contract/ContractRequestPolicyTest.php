@@ -88,13 +88,72 @@ class ContractRequestPolicyTest extends TestCase
         $this->assertTrue($policy->approve($user, $contractRequest)->denied());
     }
 
-    private function createLegalEntity(): LegalEntity
+    public function test_create_capitation_is_denied_for_all_legal_entity_types(): void
+    {
+        Gate::before(static fn () => true);
+
+        foreach (['PRIMARY_CARE', 'OUTPATIENT', 'PHARMACY'] as $typeName) {
+            $legalEntity = $this->createLegalEntity($typeName);
+            $this->instance('legalEntity', $legalEntity);
+
+            $user = $this->createUser();
+            $policy = new ContractRequestPolicy();
+
+            $this->assertTrue(
+                $policy->createCapitation($user)->denied(),
+                "createCapitation should be denied for {$typeName}"
+            );
+        }
+    }
+
+    public function test_create_reimbursement_allowed_only_for_pharmacy(): void
+    {
+        Gate::before(static fn () => true);
+
+        $pharmacy = $this->createLegalEntity('PHARMACY');
+        $this->instance('legalEntity', $pharmacy);
+        $user = $this->createUser();
+        $policy = new ContractRequestPolicy();
+
+        $this->assertTrue($policy->createReimbursement($user)->allowed());
+
+        foreach (['PRIMARY_CARE', 'OUTPATIENT'] as $typeName) {
+            $legalEntity = $this->createLegalEntity($typeName);
+            $this->instance('legalEntity', $legalEntity);
+
+            $this->assertTrue(
+                $policy->createReimbursement($user)->denied(),
+                "createReimbursement should be denied for {$typeName}"
+            );
+        }
+    }
+
+    private function createUser(): User
+    {
+        $party = Party::create([
+            'uuid' => (string) Str::uuid(),
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'tax_id' => '1234567890',
+            'birth_date' => '1980-01-01',
+            'gender' => 'MALE',
+        ]);
+
+        return User::create([
+            'uuid' => (string) Str::uuid(),
+            'email' => 'test-'.Str::random(8).'@example.com',
+            'password' => bcrypt('password'),
+            'party_id' => $party->id,
+        ]);
+    }
+
+    private function createLegalEntity(string $typeName = 'PHARMACY'): LegalEntity
     {
         $typeId = \Illuminate\Support\Facades\DB::table('legal_entity_types')
-            ->where('name', 'PHARMACY')
+            ->where('name', $typeName)
             ->value('id')
             ?? \Illuminate\Support\Facades\DB::table('legal_entity_types')
-                ->insertGetId(['name' => 'PHARMACY']);
+                ->insertGetId(['name' => $typeName]);
 
         return LegalEntity::create([
             'uuid' => (string) Str::uuid(),
